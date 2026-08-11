@@ -10,6 +10,32 @@
 <link id="appManifest" rel="manifest">
 <title>Уулзварын зайн хэмжилт</title>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore-compat.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   FIREBASE ТОХИРГОО
+
+   Firebase Console → Project settings → Your apps → Web app хэсгээс
+   утгуудыг хуулж доор тавина. Дэлгэрэнгүй заавар: FIREBASE-SETUP.md
+
+   Тохиргоо тавиагүй үед апп ОФЛАЙН ГОРИМД урьдын адил ажиллана
+   (нэвтрэх шаардлагагүй, өгөгдөл утсанд хадгалагдана).
+   ═══════════════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAv59l-koXmXCOZ8Enxr3APEJa9CQbgfBw",
+  authDomain: "uulzwar-zai.firebaseapp.com",
+  projectId: "uulzwar-zai",
+  storageBucket: "uulzwar-zai.firebasestorage.app",
+  messagingSenderId: "1024973519879",
+  appId: "1:1024973519879:web:739dae81ea685df4bdbea2"
+};
+
+/* Өгөгдөл хэдэн хоног хадгалагдах вэ. Энэ хугацаа өнгөрөнгүүт Firestore
+   өөрөө устгана (Console → Firestore → TTL бодлого, талбар: expireAt). */
+const TTL_DAYS = 30;
+</script>
 <style>
 :root {
   --bg: #0e1018;
@@ -27,8 +53,54 @@
 html, body { height: 100%; overflow: hidden; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
 
+/* ── LOGIN ── */
+#login { display: none; height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 420px; margin: 0 auto; flex-direction: column; justify-content: center; }
+#login.on { display: flex; }
+.lg-brand { text-align: center; margin-bottom: 1.5rem; }
+.lg-brand .lg-ic { width: 62px; height: 62px; background: var(--accent); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto .7rem; }
+.lg-brand h1 { font-size: 18px; font-weight: 800; }
+.lg-brand p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.lg-err { display: none; background: rgba(240,69,69,.13); border: 1px solid var(--danger); color: #ff9b9b; font-size: 12.5px; border-radius: 9px; padding: 10px 12px; margin-bottom: .7rem; line-height: 1.5; }
+.lg-err.on { display: block; }
+.lg-note { display: none; background: rgba(240,165,0,.12); border: 1px solid var(--warn); color: #ffd9a0; font-size: 12.5px; border-radius: 9px; padding: 10px 12px; margin-bottom: .7rem; line-height: 1.5; }
+.lg-note.on { display: block; }
+#lgBusy { display: none; text-align: center; font-size: 12px; color: var(--muted); margin-top: .7rem; }
+#lgBusy.on { display: block; }
+.lg-forgot { display: block; text-align: center; margin-top: 1rem; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+
+/* User chip / session bar */
+.me-bar { display: flex; align-items: center; gap: 10px; background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: .75rem; }
+.me-av { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+.me-av.adm { background: var(--warn); }
+.me-info { flex: 1; min-width: 0; }
+.me-name { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.me-role { font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.me-role.adm { color: var(--warn); background: rgba(240,165,0,.15); }
+.me-role.wrk { color: var(--green); background: rgba(34,201,122,.15); }
+.me-out { font-size: 11.5px; font-weight: 700; padding: 7px 11px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; flex-shrink: 0; }
+.me-out:active { background: var(--s2); }
+.pd-locked { display: flex; align-items: center; gap: 7px; font-size: 14px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(79,142,247,.08); color: var(--text); }
+.pd-locked .lk { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+/* Cloud status */
+.cloud-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); padding: 8px 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 9px; margin-bottom: .75rem; }
+.cloud-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.cloud-dot.ok { background: var(--green); }
+.cloud-dot.off { background: var(--warn); }
+
+/* Admin panel */
+.adm-list { max-height: 46vh; overflow-y: auto; margin-bottom: .6rem; }
+.adm-item { display: flex; align-items: center; gap: 9px; padding: 10px 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 5px; }
+.adm-meta { flex: 1; min-width: 0; }
+.adm-who { font-size: 13px; font-weight: 700; }
+.adm-det { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.adm-cnt { font-size: 12px; font-weight: 800; color: var(--green); flex-shrink: 0; }
+.adm-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 1.5rem 0; line-height: 1.6; }
+.adm-note { font-size: 11px; color: var(--warn); background: rgba(240,165,0,.1); border: 1px solid rgba(240,165,0,.35); border-radius: 8px; padding: 8px 10px; margin-bottom: .6rem; line-height: 1.5; }
+
 /* ── SETUP ── */
-#setup { height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 480px; margin: 0 auto; }
+#setup { display: none; height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 480px; margin: 0 auto; }
 .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; padding-top: .5rem; }
 .logo-ic { width: 38px; height: 38px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 19px; }
 .logo h1 { font-size: 15px; font-weight: 700; }
@@ -210,12 +282,61 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 </head>
 <body>
 
+<!-- LOGIN -->
+<div id="login">
+  <div class="lg-brand">
+    <div class="lg-ic">🛤</div>
+    <h1>Уулзварын зайн хэмжилт</h1>
+    <p>Замын хэсгийн ажилтны нэвтрэлт</p>
+  </div>
+  <div class="lg-err" id="lgErr"></div>
+  <div class="lg-note" id="lgNote"></div>
+  <div class="card">
+    <div class="fg">
+      <div class="field">
+        <label>Цахим хаяг</label>
+        <input type="email" id="lgEmail" autocomplete="username" inputmode="email" placeholder="pd6.bataa@uulzvar.mn"/>
+      </div>
+      <div class="field">
+        <label>Нууц үг</label>
+        <input type="password" id="lgPass" autocomplete="current-password" placeholder="••••••••"/>
+      </div>
+    </div>
+    <button class="btn-go" id="lgBtn" onclick="doLogin()">Нэвтрэх →</button>
+    <div id="lgBusy">Шалгаж байна…</div>
+  </div>
+  <div class="lg-forgot" onclick="doReset()">Нууц үгээ мартсан уу?</div>
+</div>
+
 <!-- SETUP -->
 <div id="setup">
   <div class="logo">
     <div class="logo-ic">🛤</div>
-    <div><h1>Уулзварын зайн хэмжилт</h1><p>Замын б-р хэсэг</p></div>
+    <div><h1>Уулзварын зайн хэмжилт</h1><p id="setupSub">Замын хэсгийн хэмжилт</p></div>
   </div>
+
+  <!-- Нэвтэрсэн хэрэглэгч -->
+  <div class="me-bar" id="meBar" style="display:none">
+    <div class="me-av" id="meAv">—</div>
+    <div class="me-info">
+      <div class="me-name" id="meName">—</div>
+      <div class="me-sub"><span id="mePd">—</span> · <span class="me-role" id="meRole">—</span></div>
+    </div>
+    <button class="me-out" onclick="doLogout()">Гарах</button>
+  </div>
+
+  <!-- АДМИН САМБАР -->
+  <div class="card" id="admCard" style="display:none">
+    <div class="ct">Хэсгийн өгөгдөл (админ)</div>
+    <div class="cloud-row"><span class="cloud-dot" id="admDot"></span><span id="admStatus">Ачаалаагүй байна</span></div>
+    <div class="adm-note" id="admTtlNote">⏳ Ирсэн өгөгдөл <b>30 хоног</b> хадгалагдаад автоматаар устна. Excel-ээ цаг тухайд нь татаж авна уу.</div>
+    <div class="adm-list" id="admList"></div>
+    <div class="exp-btns">
+      <button class="eb1" onclick="loadSectionData()">🔄 Хэсгийн өгөгдөл шинэчлэх</button>
+      <button class="eb-xlsx" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+    </div>
+  </div>
+
   <div class="card">
     <div class="ct">Ерөнхий мэдээлэл</div>
     <div class="fg fg2">
@@ -224,7 +345,18 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
       <div class="field"><label>Эхлэх км</label><input type="number" id="sS" value="681" min="1"/></div>
       <div class="field"><label>Дуусах км</label><input type="number" id="sE" value="701" min="1"/></div>
     </div>
-    <div class="fg" style="margin-top:9px">
+    <div class="fg fg2" style="margin-top:9px">
+      <div class="field">
+        <label>Замын хэсэг</label>
+        <select id="sPd">
+          <option value="1">ПД-1</option><option value="2">ПД-2</option><option value="3">ПД-3</option>
+          <option value="4">ПД-4</option><option value="5">ПД-5</option><option value="6" selected>ПД-6</option>
+          <option value="7">ПД-7</option><option value="8">ПД-8</option><option value="9">ПД-9</option>
+          <option value="10">ПД-10</option><option value="11">ПД-11</option><option value="12">ПД-12</option>
+          <option value="13">ПД-13</option>
+        </select>
+        <div class="pd-locked" id="sPdLocked" style="display:none"><span id="sPdLockedTxt">ПД-6</span><span class="lk">🔒</span></div>
+      </div>
       <div class="field"><label>Хэмжилт хийсэн (нэр)</label><input type="text" id="sWorker" placeholder="Жишээ: Б.Батаа"/></div>
     </div>
   </div>
@@ -237,8 +369,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   </div>
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
   <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
-  <button class="btn-sess" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
-  <button class="btn-sess" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+  <button class="btn-sess" id="btnImport" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
+  <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
 
   <div id="installBanner">
@@ -377,6 +509,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <div class="exp-title">Өгөгдөл татах</div>
     <div class="exp-sub" id="expSub">0 хэмжилт бичигдсэн</div>
     <div class="exp-btns">
+      <button class="eb-cloud" id="btnCloudSend" style="display:none;background:var(--green);border-color:var(--green);color:#fff;" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
       <button class="eb-xlsx" onclick="exportExcel();closeExpMod()">📊 Дэлгэрэнгүй Excel татах</button>
       <button class="eb1" onclick="exportCSV();closeExpMod()">⬇ Дэлгэрэнгүй CSV татах</button>
       <button onclick="exportSum();closeExpMod()">⬇ Дүн CSV татах</button>
@@ -453,14 +586,335 @@ let C = {}, data = {}, curKm, curJ, curDir, drumCur = 0;
 let currentSessionId = null;
 let currentViewSessId = null; // ← Одоо харж буй хадгалсан session
 
+/* ══════════════════════════════════════════════════════════
+   FIREBASE — нэвтрэлт ба үүлэн хадгалалт
+   ══════════════════════════════════════════════════════════ */
+const CLOUD = {
+  on: false,          // Firebase тохируулагдсан эсэх
+  auth: null, db: null,
+  user: null,         // firebase.User
+  profile: null,      // { pd, role, name }
+  sectionSessions: [] // админ: хэсгийн бүх ирсэн өгөгдөл
+};
+
+function cloudConfigured() {
+  return !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId);
+}
+function isAdmin() { return CLOUD.profile && CLOUD.profile.role === 'admin'; }
+function myPd() { return CLOUD.profile ? CLOUD.profile.pd : null; }
+
+function initCloud() {
+  if (typeof firebase === 'undefined') {
+    showLoginError('Firebase сан ачаалагдсангүй. Интернэт холболтоо шалгаад дахин нээнэ үү.');
+    showLogin();
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  CLOUD.auth = firebase.auth();
+  CLOUD.db = firebase.firestore();
+  CLOUD.on = true;
+
+  // Офлайн кэш — талбарт интернэтгүй ч ажиллаж, холбогдмогц нийлнэ
+  CLOUD.db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+  CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
+  CLOUD.auth.onAuthStateChanged(async user => {
+    if (!user) { CLOUD.user = null; CLOUD.profile = null; showLogin(); return; }
+    CLOUD.user = user;
+    try {
+      const prof = await loadProfile(user);
+      if (!prof) return; // loadProfile өөрөө алдаагаа харуулж, гаргана
+      CLOUD.profile = prof;
+      applyProfile();
+      showSetup();
+      if (isAdmin()) loadSectionData();
+    } catch (e) {
+      showLoginError('Бүртгэл уншихад алдаа гарлаа: ' + (e && e.message ? e.message : e));
+      await CLOUD.auth.signOut();
+    }
+  });
+}
+
+async function loadProfile(user) {
+  const email = (user.email || '').toLowerCase();
+  const snap = await CLOUD.db.collection('users').doc(email).get();
+  if (!snap.exists) {
+    showLoginError(`«${email}» хаяг Firebase-д бүртгэлтэй ч эрх нь тохируулагдаагүй байна.\nАдминд хандаж «users» цуглуулгад бүртгэл нэмүүлнэ үү.`);
+    await CLOUD.auth.signOut();
+    return null;
+  }
+  const p = snap.data() || {};
+  if (p.active === false) {
+    showLoginError('Таны бүртгэлийг түр хаасан байна. Админд хандана уу.');
+    await CLOUD.auth.signOut();
+    return null;
+  }
+  const pd = parseInt(p.pd, 10);
+  if (!Number.isFinite(pd) || pd < 1 || pd > 13) {
+    showLoginError('Таны бүртгэлд замын хэсэг (pd: 1–13) буруу тохируулагдсан байна. Админд хандана уу.');
+    await CLOUD.auth.signOut();
+    return null;
+  }
+  return {
+    pd,
+    role: p.role === 'admin' ? 'admin' : 'worker',
+    name: (p.name || '').trim() || email.split('@')[0],
+    email
+  };
+}
+
+/* ── Дэлгэц солих ── */
+function showLogin() {
+  document.getElementById('login').classList.add('on');
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  setLoginBusy(false);
+}
+function showSetup() {
+  document.getElementById('login').classList.remove('on');
+  document.getElementById('setup').style.display = 'block';
+  document.getElementById('app').style.display = 'none';
+  clearLoginError();
+  document.getElementById('lgPass').value = '';
+}
+function setLoginBusy(on) {
+  document.getElementById('lgBusy').classList.toggle('on', on);
+  document.getElementById('lgBtn').disabled = on;
+  document.getElementById('lgBtn').style.opacity = on ? '.55' : '1';
+}
+function showLoginError(msg) {
+  const e = document.getElementById('lgErr');
+  e.textContent = msg;
+  e.classList.add('on');
+}
+function clearLoginError() { document.getElementById('lgErr').classList.remove('on'); }
+function showLoginNote(msg) {
+  const e = document.getElementById('lgNote');
+  e.textContent = msg;
+  e.classList.add('on');
+}
+
+/* ── Нэвтрэх / гарах ── */
+const AUTH_ERR = {
+  'auth/invalid-email': 'Цахим хаяг буруу байна.',
+  'auth/user-disabled': 'Энэ хаягийг түр хаасан байна.',
+  'auth/user-not-found': 'Ийм хаяг бүртгэлгүй байна.',
+  'auth/wrong-password': 'Нууц үг буруу байна.',
+  'auth/invalid-credential': 'Хаяг эсвэл нууц үг буруу байна.',
+  'auth/too-many-requests': 'Хэт олон удаа буруу оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.',
+  'auth/network-request-failed': 'Интернэт холболт алга байна.'
+};
+async function doLogin() {
+  const email = (document.getElementById('lgEmail').value || '').trim().toLowerCase();
+  const pass = document.getElementById('lgPass').value || '';
+  clearLoginError();
+  if (!email || !pass) { showLoginError('Хаяг болон нууц үгээ бөглөнө үү.'); return; }
+  setLoginBusy(true);
+  try {
+    await CLOUD.auth.signInWithEmailAndPassword(email, pass);
+    // Цааш нь onAuthStateChanged үргэлжлүүлнэ
+  } catch (e) {
+    setLoginBusy(false);
+    showLoginError(AUTH_ERR[e.code] || ('Нэвтэрч чадсангүй: ' + (e.message || e.code)));
+  }
+}
+async function doReset() {
+  const email = (document.getElementById('lgEmail').value || '').trim().toLowerCase();
+  if (!email) { showLoginError('Эхлээд цахим хаягаа бичнэ үү, дараа нь энд дарна уу.'); return; }
+  if (!CLOUD.auth) { showLoginError('Firebase тохируулагдаагүй байна.'); return; }
+  try {
+    await CLOUD.auth.sendPasswordResetEmail(email);
+    clearLoginError();
+    showLoginNote(`«${email}» хаяг руу нууц үг сэргээх холбоос илгээлээ. Шуудангаа шалгана уу.`);
+  } catch (e) {
+    showLoginError(AUTH_ERR[e.code] || ('Илгээж чадсангүй: ' + (e.message || e.code)));
+  }
+}
+async function doLogout() {
+  if (!CLOUD.auth) return;
+  if (!confirm('Гарах уу? Илгээгээгүй хэмжилт байвал эхлээд илгээнэ үү.')) return;
+  CLOUD.sectionSessions = [];
+  await CLOUD.auth.signOut();
+}
+
+/* ── Профайлыг дэлгэцэнд тусгах ── */
+function applyProfile() {
+  const p = CLOUD.profile;
+  document.getElementById('meBar').style.display = 'flex';
+  document.getElementById('meAv').textContent = 'ПД' + p.pd;
+  document.getElementById('meAv').className = 'me-av' + (p.role === 'admin' ? ' adm' : '');
+  document.getElementById('meName').textContent = p.name;
+  document.getElementById('mePd').textContent = 'ПД-' + p.pd;
+  const roleEl = document.getElementById('meRole');
+  roleEl.textContent = p.role === 'admin' ? 'админ' : 'ажилтан';
+  roleEl.className = 'me-role ' + (p.role === 'admin' ? 'adm' : 'wrk');
+  document.getElementById('setupSub').textContent = 'ПД-' + p.pd + ' · ' + p.name;
+
+  // ПД болон нэрийг түгжинэ
+  document.getElementById('sPd').style.display = 'none';
+  document.getElementById('sPdLocked').style.display = 'flex';
+  document.getElementById('sPdLockedTxt').textContent = 'ПД-' + p.pd;
+
+  /* Нэг хэсэгт нэг хаягийг олон ажилтан хуваалцаж хэрэглэдэг тул нэрийг
+     бүртгэлээс биш, ажилтан өөрөө бичнэ. Утсандаа хадгалагдаж, дараа нь
+     автоматаар орж ирнэ. Ингэснээр Excel дээр хэн юу хэмжсэн нь ялгарна. */
+  const w = document.getElementById('sWorker');
+  w.readOnly = false; w.style.opacity = '1';
+  w.placeholder = 'Өөрийн нэрээ бичнэ үү';
+  w.value = getDeviceName() || '';
+
+  document.getElementById('admCard').style.display = isAdmin() ? 'block' : 'none';
+  document.getElementById('btnCloudSend').style.display = 'block';
+  // Үүлэн горимд файл дамжуулах шаардлагагүй — эдгээр нь зөвхөн админд хэрэгтэй
+  document.getElementById('btnImport').style.display = isAdmin() ? 'block' : 'none';
+  document.getElementById('btnCombinedLocal').style.display = 'none';
+}
+
+/* ── Ажилчны өгөгдлийг үүлэн рүү илгээх ── */
+function kmToCloud(c, d) {
+  const out = {}, maxJ = Math.max(c.bar, c.zun);
+  for (let km = c.s; km <= c.e; km++) {
+    const bar = [], zun = [];
+    for (let j = 1; j <= maxJ; j++) {
+      bar.push(d[km] && d[km][j] && d[km][j].bar != null ? d[km][j].bar : null);
+      zun.push(d[km] && d[km][j] && d[km][j].zun != null ? d[km][j].zun : null);
+    }
+    if (bar.some(v => v !== null) || zun.some(v => v !== null)) out['k' + km] = { bar, zun };
+  }
+  return out;
+}
+function cloudToSession(id, d) {
+  const data = {};
+  Object.keys(d.km || {}).forEach(key => {
+    const km = parseInt(key.slice(1), 10);
+    if (!Number.isFinite(km)) return;
+    const bar = d.km[key].bar || [], zun = d.km[key].zun || [];
+    data[km] = {};
+    for (let j = 1; j <= Math.max(bar.length, zun.length); j++) {
+      data[km][j] = { bar: bar[j-1] == null ? null : bar[j-1], zun: zun[j-1] == null ? null : zun[j-1] };
+    }
+  });
+  const upd = d.updatedAt && d.updatedAt.toDate ? d.updatedAt.toDate().toISOString() : new Date().toISOString();
+  return {
+    id, savedAt: upd, startedAt: upd,
+    config: { date: d.date, road: d.road, worker: d.worker, s: d.s, e: d.e,
+              bar: d.bar, zun: d.zun, max: d.max || 37, pd: d.pd },
+    data
+  };
+}
+
+function countFilled(c, d) {
+  let n = 0;
+  for (let km = c.s; km <= c.e; km++) {
+    for (let j = 1; j <= c.bar; j++) if (d[km] && d[km][j] && d[km][j].bar != null) n++;
+    for (let j = 1; j <= c.zun; j++) if (d[km] && d[km][j] && d[km][j].zun != null) n++;
+  }
+  return n;
+}
+
+async function uploadCurrent(silent) {
+  if (!CLOUD.on || !CLOUD.user || !currentSessionId) {
+    if (!silent) showStatus('⚠️ Нэвтрээгүй байна', '#f0a500');
+    return false;
+  }
+  const cnt = countFilled(C, data);
+  if (!cnt) { if (!silent) showStatus('⚠️ Илгээх хэмжилт алга', '#f0a500'); return false; }
+  const docId = CLOUD.user.uid + '__' + currentSessionId;
+  const payload = {
+    pd: myPd(), road: C.road, date: C.date, s: C.s, e: C.e, bar: C.bar, zun: C.zun, max: C.max || 37,
+    worker: C.worker || CLOUD.profile.name, account: CLOUD.profile.name,
+    email: CLOUD.profile.email, uid: CLOUD.user.uid,
+    sessionId: currentSessionId, km: kmToCloud(C, data), count: cnt,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    // Firestore TTL бодлого энэ талбарыг хараад хугацаа нь дуусмагц устгана
+    expireAt: firebase.firestore.Timestamp.fromMillis(Date.now() + TTL_DAYS * 24 * 3600 * 1000)
+  };
+  try {
+    await CLOUD.db.collection('measurements').doc(docId).set(payload, { merge: true });
+    if (!silent) { showStatus(`☁️ ${cnt} хэмжилт илгээгдлээ`, '#22c97a'); closeExpMod(); }
+    return true;
+  } catch (e) {
+    if (!silent) showStatus('❌ Илгээж чадсангүй: ' + (e.code || e.message), '#f04545');
+    return false;
+  }
+}
+
+/* Автомат хадгалалт — утас унтарсан ч өгөгдөл алдагдахгүй */
+let autoUpTimer = null;
+function scheduleCloudSave() {
+  if (!CLOUD.on || !CLOUD.user || !currentSessionId) return;
+  if (autoUpTimer) clearTimeout(autoUpTimer);
+  autoUpTimer = setTimeout(() => { autoUpTimer = null; uploadCurrent(true); }, 20000);
+}
+
+/* ── Админ: хэсгийн бүх өгөгдөл татах ── */
+async function loadSectionData() {
+  if (!CLOUD.on || !isAdmin()) return;
+  const dot = document.getElementById('admDot'), st = document.getElementById('admStatus');
+  dot.className = 'cloud-dot'; st.textContent = 'Татаж байна…';
+  try {
+    const snap = await CLOUD.db.collection('measurements').where('pd', '==', myPd()).get();
+    CLOUD.sectionSessions = snap.docs.map(doc => cloudToSession(doc.id, doc.data()))
+      .sort((a, b) => new Date(a.savedAt) - new Date(b.savedAt));
+    dot.className = 'cloud-dot ok';
+    const people = new Set(CLOUD.sectionSessions.map(s => s.config.worker));
+    const total = CLOUD.sectionSessions.reduce((n, s) => n + countMeasurements(s), 0);
+    st.textContent = `ПД-${myPd()} · ${people.size} хүн · ${CLOUD.sectionSessions.length} илгээлт · ${total} хэмжилт`
+      + (snap.metadata.fromCache ? ' (офлайн кэш)' : '');
+    renderAdmList();
+  } catch (e) {
+    dot.className = 'cloud-dot off';
+    st.textContent = 'Алдаа: ' + (e.code || e.message);
+  }
+}
+
+function renderAdmList() {
+  const box = document.getElementById('admList');
+  const list = CLOUD.sectionSessions.slice().sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+  if (!list.length) {
+    box.innerHTML = '<div class="adm-empty">Одоогоор ирсэн өгөгдөл алга.<br>Ажилчид хэмжилтээ хийгээд «☁️ Илгээх» дарахад энд гарч ирнэ.</div>';
+    return;
+  }
+  box.innerHTML = list.map(s => {
+    const c = s.config;
+    return `<div class="adm-item">
+      <div class="adm-meta">
+        <div class="adm-who">${esc(c.worker || '—')}</div>
+        <div class="adm-det">Зам №${esc(String(c.road ?? '—'))} · ${c.s}–${c.e} км · ${esc(String(c.date || ''))} · ${fmtDate(s.savedAt)}</div>
+      </div>
+      <div class="adm-cnt">${countMeasurements(s)}</div>
+    </div>`;
+  }).join('');
+}
+
 /* ── Session Storage ── */
 const SESS_KEY = 'uulzvar_sessions';
+const DEV_NAME_KEY = 'uulzvar_device_name';
+
+/* Хуваалцсан хаягтай үед ажилтны нэрийг тухайн утсанд сануулна */
+function getDeviceName() {
+  try { return localStorage.getItem(DEV_NAME_KEY) || ''; } catch { return ''; }
+}
+function setDeviceName(n) {
+  try { localStorage.setItem(DEV_NAME_KEY, n); } catch {}
+}
 
 function getSessions() {
   try { return JSON.parse(localStorage.getItem(SESS_KEY) || '[]'); } catch { return []; }
 }
 function saveSessions(arr) {
   try { localStorage.setItem(SESS_KEY, JSON.stringify(arr)); } catch {}
+}
+
+/* Үүлэн дээрх TTL-тэй ижил хугацаа — утсан дээр ч 30 хоногоос хуучин нь үлдэхгүй */
+function purgeOldSessions() {
+  const cutoff = Date.now() - TTL_DAYS * 24 * 3600 * 1000;
+  const all = getSessions();
+  const kept = all.filter(s => {
+    const t = new Date(s.savedAt || s.startedAt || 0).getTime();
+    return !Number.isFinite(t) || t >= cutoff;
+  });
+  if (kept.length !== all.length) saveSessions(kept);
 }
 
 function autoSave() {
@@ -478,6 +932,7 @@ function autoSave() {
   if (idx >= 0) sessions[idx] = entry;
   else sessions.unshift(entry);
   saveSessions(sessions);
+  scheduleCloudSave();
 }
 
 function deleteSession(id, e) {
@@ -572,16 +1027,40 @@ function doRestart() {
   document.getElementById('setup').style.display = 'block';
 }
 
-document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
+/* ── Эхлүүлэх ── */
+function boot() {
+  document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
+  purgeOldSessions();
+  if (cloudConfigured()) {
+    showLogin();
+    initCloud();
+  } else {
+    // Firebase тохируулаагүй → урьдын адил офлайн горимд ажиллана
+    document.getElementById('login').classList.remove('on');
+    document.getElementById('setup').style.display = 'block';
+  }
+}
+boot();
 
 function startApp() {
   const s = parseInt(document.getElementById('sS').value)||681;
   const e = parseInt(document.getElementById('sE').value)||701;
   if (e < s) { alert('Дуусах км эхлэх км-ээс их байх ёстой'); return; }
+  // Нэг хаягийг олон хүн хуваалцдаг тул нэр заавал шаардлагатай
+  const workerName = (document.getElementById('sWorker').value||'').trim();
+  if (CLOUD.on && !workerName) {
+    alert('Өөрийн нэрээ бичнэ үү.\n\nНэг хаягаар олон ажилтан ордог тул Excel дээр хэн хэмжсэн нь нэрээр ялгагдана.');
+    document.getElementById('sWorker').focus();
+    return;
+  }
+  if (workerName) setDeviceName(workerName);
   C = {
     date: document.getElementById('sDate').value,
     road: document.getElementById('sRoad').value||'—',
-    worker: (document.getElementById('sWorker').value||'').trim(),
+    // Нэвтэрсэн бол ПД-г профайлаас авна (сонголт нь түгжээтэй)
+    pd: CLOUD.profile ? CLOUD.profile.pd : (parseInt(document.getElementById('sPd').value,10)||null),
+    worker: workerName,
+    account: CLOUD.profile ? CLOUD.profile.name : null,
     s, e,
     bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
     zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
@@ -593,7 +1072,7 @@ function startApp() {
     for (let j=1; j<=Math.max(C.bar,C.zun); j++) data[km][j]={bar:null,zun:null};
   }
   curKm=s; curJ=1; curDir='bar'; drumCur=0;
-  currentSessionId = 'sess_' + Date.now();
+  currentSessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   document.getElementById('setup').style.display='none';
   document.getElementById('app').style.display='flex';
   buildStrip();
@@ -1140,9 +1619,15 @@ async function _exportExcelCore(c, d, filename) {
    нэг хүснэгт болгож нэгтгэнэ. Мөр бүр = КМ × чиглэл,
    багана бүр = үений дугаар.
    ══════════════════════════════════════════════════════════ */
-function buildCombined() {
+/* Эх сурвалж: админ нэвтэрсэн бол хэсгийн үүлэн өгөгдөл, эсвэл утсанд хадгалагдсан нь */
+function combinedSource() {
+  if (CLOUD.on && isAdmin() && CLOUD.sectionSessions.length) return CLOUD.sectionSessions;
+  return getSessions();
+}
+
+function buildCombined(src) {
   // Хуучнаас нь шинэ рүү эрэмбэлнэ — давхардсан нүдэнд хамгийн сүүлийн утга үлдэнэ.
-  const sessions = getSessions().slice().sort((a, b) =>
+  const sessions = (src || combinedSource()).slice().sort((a, b) =>
     new Date(a.savedAt || a.startedAt || 0) - new Date(b.savedAt || b.startedAt || 0)
   );
 
@@ -1225,6 +1710,7 @@ async function exportCombinedExcel() {
     showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#f0a500');
     return;
   }
+  const pdTag = (CLOUD.on && myPd()) ? `ПД-${myPd()} · ` : '';
 
   // Апп дээр улаанаар (≥36) анхааруулдаг хэмжээг "аюултай" гэж тоолно.
   const maxJ = comb.maxJ, DANGER = 36;
@@ -1239,7 +1725,7 @@ async function exportCombinedExcel() {
   ws.mergeCells(1, 1, 1, COL_WORKER);
   const t = ws.getCell(1, 1);
   const dateList = Array.from(comb.dates).sort();
-  t.value = `Уулзварын зайн хэмжилт — нэгдсэн хүснэгт · ${comb.rows.length} км · ${comb.values} хэмжилт`
+  t.value = `Уулзварын зайн хэмжилт — ${pdTag}нэгдсэн хүснэгт · ${comb.rows.length} км · ${comb.values} хэмжилт`
     + (dateList.length ? ` · ${dateList[0]}${dateList.length > 1 ? '–' + dateList[dateList.length-1] : ''}` : '');
   t.font = { bold: true, size: 13 };
   t.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1339,7 +1825,7 @@ async function exportCombinedExcel() {
   const ws2 = wb.addWorksheet('Дүн');
   ws2.mergeCells(1, 1, 1, 9);
   const s2t = ws2.getCell(1, 1);
-  s2t.value = `Дүн — нэгдсэн (${comb.rows.length} км · ${comb.values} хэмжилт)`;
+  s2t.value = `Дүн — ${pdTag}нэгдсэн (${comb.rows.length} км · ${comb.values} хэмжилт)`;
   s2t.font = { bold: true, size: 13 };
   s2t.alignment = { horizontal: 'center', vertical: 'middle' };
   s2t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
@@ -1387,7 +1873,7 @@ async function exportCombinedExcel() {
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `нэгдсэн_уулзвар_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.download = `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${new Date().toISOString().split('T')[0]}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showStatus(`📊 ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#22c97a');
@@ -1409,6 +1895,7 @@ function showStatus(msg, bg) {
 async function shareData() {
   closeExpMod();
   const payload = { v: 1, config: C, data: data, sentAt: new Date().toISOString() };
+  if (CLOUD.on && CLOUD.user) payload.email = CLOUD.profile.email;
   const json = JSON.stringify(payload);
   const filename = `уулзвар_${C.road}зам_${C.s}-${C.e}км_${C.date}.json`;
   const blob = new Blob([json], { type: 'application/json' });
