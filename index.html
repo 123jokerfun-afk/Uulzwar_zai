@@ -151,6 +151,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sess-del { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--danger); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
 .sess-del:active { background: rgba(240,69,69,.15); }
 .sess-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 2rem 0; }
+.sess-comb { width: 100%; padding: 12px; font-size: 13px; font-weight: 700; background: var(--green); color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
+.sess-worker { font-size: 11px; font-weight: 700; color: var(--accent); }
 
 /* Session view modal (read-only) */
 #sessViewMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 210; align-items: flex-end; justify-content: center; }
@@ -222,6 +224,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
       <div class="field"><label>Эхлэх км</label><input type="number" id="sS" value="681" min="1"/></div>
       <div class="field"><label>Дуусах км</label><input type="number" id="sE" value="701" min="1"/></div>
     </div>
+    <div class="fg" style="margin-top:9px">
+      <div class="field"><label>Хэмжилт хийсэн (нэр)</label><input type="text" id="sWorker" placeholder="Жишээ: Б.Батаа"/></div>
+    </div>
   </div>
   <div class="card">
     <div class="ct">Үений тоо</div>
@@ -232,8 +237,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   </div>
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
   <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
-  <button class="btn-sess" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчны өгөгдөл нэмэх</button>
-  <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)"/>
+  <button class="btn-sess" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
+  <button class="btn-sess" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+  <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
 
   <div id="installBanner">
     <div class="ib-txt">📲 Нүүр дэлгэцэнд суулгах<span>Офлайн ажиллана</span></div>
@@ -308,6 +314,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 <div id="sessMod">
   <div class="sess-inner">
     <div class="sess-title">📂 Өмнөх хэмжилтүүд</div>
+    <button class="sess-comb" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
     <div class="sess-list" id="sessList"></div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
   </div>
@@ -350,7 +357,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <div style="background:var(--s1);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;text-align:center;">
     <div style="font-size:32px;margin-bottom:10px" id="importIcon">✅</div>
     <div style="font-size:15px;font-weight:800;margin-bottom:8px" id="importTitle"></div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.5" id="importMsg"></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.5;white-space:pre-line;text-align:left;max-height:45vh;overflow-y:auto" id="importMsg"></div>
     <button onclick="document.getElementById('importMod').style.display='none'" style="width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:10px;border:none;background:var(--accent);color:#fff;cursor:pointer;">Ойлголоо</button>
   </div>
 </div>
@@ -480,6 +487,10 @@ function deleteSession(id, e) {
   renderSessList();
 }
 
+function esc(str) {
+  return String(str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
 function fmtDate(iso) {
   const d = new Date(iso);
   const dd = s => String(s).padStart(2,'0');
@@ -507,9 +518,10 @@ function renderSessList() {
   list.innerHTML = sessions.map(s => {
     const c = s.config || {};
     const cnt = countMeasurements(s);
+    const w = (c.worker||'').trim();
     return `<div class="sess-item" onclick="viewSession('${s.id}')">
       <div class="sess-meta">
-        <div class="sess-date">${fmtDate(s.savedAt)}</div>
+        <div class="sess-date">${fmtDate(s.savedAt)}${w?` · <span class="sess-worker">${esc(w)}</span>`:''}</div>
         <div class="sess-info">Зам №${c.road||'—'} · ${c.s||'?'}-${c.e||'?'} км · ${cnt} хэмжилт</div>
       </div>
       <div class="sess-del" onclick="deleteSession('${s.id}',event)">🗑</div>
@@ -529,7 +541,8 @@ function viewSession(id) {
   currentViewSessId = id; // ← хадгалах
   const c = sess.config, d = sess.data;
   document.getElementById('sessVTitle').textContent = `Зам №${c.road} · ${c.s}-${c.e} км`;
-  document.getElementById('sessVSub').textContent = `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${c.date}`;
+  const w = (c.worker||'').trim();
+  document.getElementById('sessVSub').textContent = `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${c.date}` + (w ? ` · Хэмжигч: ${w}` : '');
 
   const maxJ = Math.max(c.bar, c.zun);
   let html = '';
@@ -568,6 +581,7 @@ function startApp() {
   C = {
     date: document.getElementById('sDate').value,
     road: document.getElementById('sRoad').value||'—',
+    worker: (document.getElementById('sWorker').value||'').trim(),
     s, e,
     bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
     zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
@@ -978,7 +992,8 @@ async function _exportExcelCore(c, d, filename) {
   // Title row
   ws1.mergeCells(1, 1, 1, maxJ + 5);
   const titleCell = ws1.getCell(1, 1);
-  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`;
+  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`
+    + ((c.worker||'').trim() ? ` · Хэмжигч: ${c.worker.trim()}` : '');
   titleCell.font = { bold: true, size: 13 };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
@@ -1119,6 +1134,265 @@ async function _exportExcelCore(c, d, filename) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/* ══════════════════════════════════════════════════════════
+   НЭГТГЭСЭН ТАТАЛТ (админ)
+   Хадгалсан бүх хэмжилтийг (өөрийн + ажилчдаас импортолсон)
+   нэг хүснэгт болгож нэгтгэнэ. Мөр бүр = КМ × чиглэл,
+   багана бүр = үений дугаар.
+   ══════════════════════════════════════════════════════════ */
+function buildCombined() {
+  // Хуучнаас нь шинэ рүү эрэмбэлнэ — давхардсан нүдэнд хамгийн сүүлийн утга үлдэнэ.
+  const sessions = getSessions().slice().sort((a, b) =>
+    new Date(a.savedAt || a.startedAt || 0) - new Date(b.savedAt || b.startedAt || 0)
+  );
+
+  const map = new Map();          // "зам|км" → мөрийн өгөгдөл
+  const workers = new Set(), dates = new Set();
+  let maxJ = 0, conflicts = 0, values = 0;
+
+  sessions.forEach(sess => {
+    const c = sess.config || {}, d = sess.data || {};
+    const worker = ((c.worker || '').trim()) || 'Нэргүй';
+    const road = String(c.road == null ? '—' : c.road);
+    maxJ = Math.max(maxJ, c.bar || 0, c.zun || 0);
+
+    Object.keys(d).forEach(kmKey => {
+      const km = parseInt(kmKey, 10);
+      if (!Number.isFinite(km)) return;
+      const joints = d[kmKey] || {};
+      const key = road + '|' + km;
+
+      Object.keys(joints).forEach(jKey => {
+        const j = parseInt(jKey, 10);
+        if (!Number.isFinite(j) || j < 1) return;
+
+        ['bar', 'zun'].forEach(dir => {
+          const raw = joints[jKey] ? joints[jKey][dir] : null;
+          if (raw === null || raw === undefined || raw === '') return;
+          const v = Number(raw);
+          if (!Number.isFinite(v)) return;
+
+          let row = map.get(key);
+          if (!row) { row = { road, km, bar: {}, zun: {}, workers: new Set(), dates: new Set() }; map.set(key, row); }
+
+          const prev = row[dir][j];
+          if (prev) {
+            if (prev.v !== v) conflicts++;
+            row[dir][j] = { v, worker, others: (prev.others || []).concat([{ v: prev.v, worker: prev.worker }]) };
+          } else {
+            row[dir][j] = { v, worker, others: [] };
+            values++;
+          }
+          maxJ = Math.max(maxJ, j);
+          row.workers.add(worker);
+          workers.add(worker);
+          if (c.date) { row.dates.add(c.date); dates.add(c.date); }
+        });
+      });
+    });
+  });
+
+  const rows = Array.from(map.values()).sort((a, b) => {
+    const na = parseFloat(a.road), nb = parseFloat(b.road);
+    const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+    if (aNum && bNum) { if (na !== nb) return na - nb; }
+    else if (aNum !== bNum) return aNum ? -1 : 1;
+    else if (a.road !== b.road) return a.road < b.road ? -1 : 1;
+    return a.km - b.km;
+  });
+
+  return { rows, maxJ: Math.max(maxJ, 1), conflicts, values, workers, dates, sessionCount: sessions.length };
+}
+
+const THIN = { style: 'thin', color: { argb: 'FFE0E0E0' } };
+function styleHeaderRow(row) {
+  row.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F8EF7' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+  });
+  row.height = 24;
+}
+
+async function exportCombinedExcel() {
+  if (typeof ExcelJS === 'undefined') {
+    alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
+    return;
+  }
+  const comb = buildCombined();
+  if (!comb.rows.length) {
+    showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#f0a500');
+    return;
+  }
+
+  // Апп дээр улаанаар (≥36) анхааруулдаг хэмжээг "аюултай" гэж тоолно.
+  const maxJ = comb.maxJ, DANGER = 36;
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'ПД-6';
+  wb.created = new Date();
+
+  /* ═══ Sheet 1: бүх км нэг хүснэгтэд ═══ */
+  const ws = wb.addWorksheet('Нэгдсэн хүснэгт');
+  const COL_TOTAL = maxJ + 6, COL_AVG = maxJ + 7, COL_OVER = maxJ + 8, COL_WORKER = maxJ + 9;
+
+  ws.mergeCells(1, 1, 1, COL_WORKER);
+  const t = ws.getCell(1, 1);
+  const dateList = Array.from(comb.dates).sort();
+  t.value = `Уулзварын зайн хэмжилт — нэгдсэн хүснэгт · ${comb.rows.length} км · ${comb.values} хэмжилт`
+    + (dateList.length ? ` · ${dateList[0]}${dateList.length > 1 ? '–' + dateList[dateList.length-1] : ''}` : '');
+  t.font = { bold: true, size: 13 };
+  t.alignment = { horizontal: 'center', vertical: 'middle' };
+  t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
+  ws.getRow(1).height = 26;
+
+  ws.mergeCells(2, 1, 2, COL_WORKER);
+  const t2 = ws.getCell(2, 1);
+  t2.value = `Хэмжигчид: ${Array.from(comb.workers).join(', ')}`
+    + (comb.conflicts ? `   ⚠️ ${comb.conflicts} нүдэнд зөрүүтэй утга ирсэн (хамгийн сүүлийн утгыг авав, тайлбарыг нүдэн дээр харна уу)` : '');
+  t2.font = { size: 10, italic: true, color: { argb: 'FF555555' } };
+  t2.alignment = { horizontal: 'left', vertical: 'middle' };
+  ws.getRow(2).height = 18;
+
+  const headers = ['№', 'Огноо', 'Зам №', 'КМ', 'Чиглэл',
+    ...Array.from({ length: maxJ }, (_, i) => `${i + 1}`),
+    'Нийт', 'Дундаж', 'Аюултай (≥36)', 'Хэмжигч'];
+  styleHeaderRow(ws.addRow(headers));
+
+  let n = 1;
+  comb.rows.forEach(r => {
+    const dateTxt = Array.from(r.dates).sort().join(', ');
+    ['bar', 'zun'].forEach((dir, di) => {
+      const cells = [];
+      for (let j = 1; j <= maxJ; j++) {
+        const c = r[dir][j];
+        cells.push(c ? c.v : null);
+      }
+      const nums = cells.filter(v => v !== null);
+      const total = nums.length ? nums.reduce((a, x) => a + x, 0) : null;
+      const avg = nums.length ? +(nums.reduce((a, x) => a + x, 0) / nums.length).toFixed(1) : null;
+      const over = nums.filter(v => v >= DANGER).length;
+      const dirWorkers = new Set();
+      for (let j = 1; j <= maxJ; j++) if (r[dir][j]) dirWorkers.add(r[dir][j].worker);
+
+      const row = ws.addRow([
+        n++, dateTxt, r.road, r.km, di === 0 ? 'баруун' : 'зүүн',
+        ...cells, total, avg, over || null, Array.from(dirWorkers).join(', ')
+      ]);
+
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+
+        // Үений утгын нүднүүд (6 → maxJ+5)
+        if (colNum >= 6 && colNum <= maxJ + 5) {
+          const v = cell.value;
+          if (typeof v === 'number') {
+            if (v >= 36) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
+              cell.font = { bold: true, color: { argb: 'FFC62828' } };
+            } else if (v >= 22) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
+              cell.font = { bold: true, color: { argb: 'FFE65100' } };
+            }
+            const src = r[dir][colNum - 5];
+            if (src && src.others.some(o => o.v !== src.v)) {
+              cell.border = { top:{style:'medium',color:{argb:'FF7B1FA2'}}, left:{style:'medium',color:{argb:'FF7B1FA2'}},
+                              bottom:{style:'medium',color:{argb:'FF7B1FA2'}}, right:{style:'medium',color:{argb:'FF7B1FA2'}} };
+              cell.note = 'Зөрүүтэй утга:\n' +
+                [{ v: src.v, worker: src.worker }].concat(src.others).map(o => `${o.worker}: ${o.v}`).join('\n');
+            }
+          }
+        }
+        if (colNum === 5) {
+          if (cell.value === 'баруун') cell.font = { bold: true, color: { argb: 'FF1565C0' } };
+          else if (cell.value === 'зүүн') cell.font = { bold: true, color: { argb: 'FF2E7D32' } };
+        }
+        if (colNum === 4) cell.font = { bold: true };
+        if (colNum === COL_TOTAL || colNum === COL_AVG) {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+        }
+        if (colNum === COL_OVER && typeof cell.value === 'number' && cell.value > 0) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
+          cell.font = { bold: true, color: { argb: 'FFC62828' } };
+        }
+        if (colNum === COL_WORKER) cell.alignment = { horizontal: 'left', vertical: 'middle' };
+      });
+    });
+  });
+
+  ws.getColumn(1).width = 5;
+  ws.getColumn(2).width = 12;
+  ws.getColumn(3).width = 8;
+  ws.getColumn(4).width = 7;
+  ws.getColumn(5).width = 9;
+  for (let i = 6; i <= maxJ + 5; i++) ws.getColumn(i).width = 4.5;
+  ws.getColumn(COL_TOTAL).width = 8;
+  ws.getColumn(COL_AVG).width = 9;
+  ws.getColumn(COL_OVER).width = 11;
+  ws.getColumn(COL_WORKER).width = 20;
+  ws.views = [{ state: 'frozen', xSplit: 5, ySplit: 3 }];
+  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: COL_WORKER } };
+
+  /* ═══ Sheet 2: Дүн ═══ */
+  const ws2 = wb.addWorksheet('Дүн');
+  ws2.mergeCells(1, 1, 1, 9);
+  const s2t = ws2.getCell(1, 1);
+  s2t.value = `Дүн — нэгдсэн (${comb.rows.length} км · ${comb.values} хэмжилт)`;
+  s2t.font = { bold: true, size: 13 };
+  s2t.alignment = { horizontal: 'center', vertical: 'middle' };
+  s2t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
+  ws2.getRow(1).height = 26;
+
+  styleHeaderRow(ws2.addRow(['Зам №', 'КМ', 'Баруун нийт', 'Баруун дундаж', 'Зүүн нийт', 'Зүүн дундаж',
+    'Хэмжилтийн тоо', 'Аюултай (≥36)', 'Хэмжигч']));
+
+  let grandOver = 0, grandCount = 0;
+  comb.rows.forEach(r => {
+    const bv = [], zv = [];
+    for (let j = 1; j <= maxJ; j++) { if (r.bar[j]) bv.push(r.bar[j].v); if (r.zun[j]) zv.push(r.zun[j].v); }
+    const bT = bv.length ? bv.reduce((a, x) => a + x, 0) : null;
+    const zT = zv.length ? zv.reduce((a, x) => a + x, 0) : null;
+    const bA = bv.length ? +(bv.reduce((a, x) => a + x, 0) / bv.length).toFixed(1) : null;
+    const zA = zv.length ? +(zv.reduce((a, x) => a + x, 0) / zv.length).toFixed(1) : null;
+    const cnt = bv.length + zv.length;
+    const over = [...bv, ...zv].filter(v => v >= DANGER).length;
+    grandOver += over; grandCount += cnt;
+
+    const row = ws2.addRow([r.road, r.km, bT, bA, zT, zA, cnt, over || null, Array.from(r.workers).join(', ')]);
+    row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      cell.alignment = { horizontal: colNum === 9 ? 'left' : 'center' };
+      cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+      if (colNum <= 2) cell.font = { bold: true };
+      if (colNum === 8 && typeof cell.value === 'number' && cell.value > 0) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
+        cell.font = { bold: true, color: { argb: 'FFC62828' } };
+      }
+    });
+  });
+
+  const totRow = ws2.addRow(['НИЙТ', '', '', '', '', '', grandCount || null, grandOver || null, '']);
+  totRow.eachCell({ includeEmpty: true }, cell => {
+    cell.font = { bold: true, size: 12, color: { argb: 'FF0E1018' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF59D' } };
+    cell.alignment = { horizontal: 'center' };
+    cell.border = { top: { style: 'medium' }, left: { style: 'thin' }, bottom: { style: 'medium' }, right: { style: 'thin' } };
+  });
+
+  [8, 8, 14, 14, 14, 14, 15, 13, 22].forEach((w, i) => { ws2.getColumn(i + 1).width = w; });
+  ws2.views = [{ state: 'frozen', ySplit: 2 }];
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `нэгдсэн_уулзвар_${new Date().toISOString().split('T')[0]}.xlsx`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  showStatus(`📊 ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#22c97a');
+}
+
 /* ── Status Toast ── */
 let statusTimer = null;
 function showStatus(msg, bg) {
@@ -1165,34 +1439,65 @@ function importData() {
   document.getElementById('importFile').click();
 }
 
-function handleImport(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+function readFileText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => resolve(ev.target.result);
+    reader.onerror = () => reject(new Error('Файл уншиж чадсангүй'));
+    reader.readAsText(file);
+  });
+}
+
+async function handleImport(e) {
+  const files = Array.from(e.target.files || []);
+  if (!files.length) return;
   e.target.value = ''; // reset so same file can be picked again
-  const reader = new FileReader();
-  reader.onload = ev => {
+
+  let okFiles = 0, failFiles = 0, totalMerged = 0;
+  const lines = [];
+
+  for (const file of files) {
     try {
-      const payload = JSON.parse(ev.target.result);
+      const payload = JSON.parse(await readFileText(file));
       if (payload.v !== 1 || !payload.config || !payload.data) throw new Error('Формат буруу');
-      mergeIntoSessions(payload);
+      const res = mergeIntoSessions(payload);
+      okFiles++;
+      totalMerged += res.merged;
+      lines.push(`${res.isNew ? '🆕' : '➕'} ${res.label} — ${res.merged} хэмжилт`);
     } catch(err) {
-      showImportModal('❌', 'Алдаа гарлаа', 'Файл буруу форматтай байна. Зөвхөн ажилчны апп-аас гаргасан .json файл байх ёстой.');
+      failFiles++;
+      lines.push(`❌ ${file.name} — файл буруу форматтай`);
     }
-  };
-  reader.readAsText(file);
+  }
+
+  if (!okFiles) {
+    showImportModal('❌', 'Алдаа гарлаа', 'Файл буруу форматтай байна. Зөвхөн ажилчны апп-аас гаргасан .json файл байх ёстой.');
+    return;
+  }
+  showImportModal(
+    failFiles ? '⚠️' : '✅',
+    `${okFiles} файл нэмэгдлээ`,
+    `Нийт ${totalMerged} хэмжилт хадгалагдлаа.\n\n${lines.join('\n')}` +
+      `\n\n📊 "Бүгдийг нэг хүснэгтээр Excel татах" товчоор нэгтгэсэн файлаа авна уу.`
+  );
+  renderSessList();
 }
 
 function mergeIntoSessions(payload) {
   const c = payload.config;
   const sessions = getSessions();
-  // Find matching session by road+range+date
+  const workerOf = cfg => ((cfg && cfg.worker) || '').trim();
+  // Find matching session by road+range+date+хэмжигч.
+  // Хэмжигч тус бүрийн өгөгдөл тусдаа хадгалагдана — нэгтгэлийг Excel дээр хийнэ.
   const matchIdx = sessions.findIndex(s =>
     s.config.road === c.road && s.config.s === c.s &&
-    s.config.e === c.e && s.config.date === c.date
+    s.config.e === c.e && s.config.date === c.date &&
+    workerOf(s.config) === workerOf(c)
   );
 
   let merged = 0;
   const maxJ = Math.max(c.bar, c.zun);
+  const label = `Зам №${c.road} · ${c.s}–${c.e} км` + (workerOf(c) ? ` · ${workerOf(c)}` : '');
 
   if (matchIdx >= 0) {
     // Merge data into existing session
@@ -1208,8 +1513,9 @@ function mergeIntoSessions(payload) {
       }
     }
     sess.savedAt = new Date().toISOString();
+    if (workerOf(c) && !workerOf(sess.config)) sess.config.worker = workerOf(c);
     saveSessions(sessions);
-    showImportModal('✅', 'Нэмэгдлээ!', `Зам №${c.road} · ${c.s}–${c.e} км\n${merged} хэмжилт нэмэгдлээ.`);
+    return { merged, isNew: false, label };
   } else {
     // New session
     const newSess = {
@@ -1230,7 +1536,7 @@ function mergeIntoSessions(payload) {
     }
     sessions.unshift(newSess);
     saveSessions(sessions);
-    showImportModal('✅', 'Шинэ хэмжилт нэмэгдлээ!', `Зам №${c.road} · ${c.s}–${c.e} км\n${merged} хэмжилт хадгалагдлаа.`);
+    return { merged, isNew: true, label };
   }
 }
 
