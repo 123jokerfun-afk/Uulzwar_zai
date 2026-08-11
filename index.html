@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0e1018">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Уулзвар">
+<link id="appManifest" rel="manifest">
+<title>Уулзварын зайн хэмжилт</title>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root {
+  --bg: #0e1018;
+  --s1: #181c28;
+  --s2: #1e2336;
+  --border: #2a304a;
+  --accent: #4f8ef7;
+  --green: #22c97a;
+  --text: #eef0ff;
+  --muted: #6b739a;
+  --warn: #f0a500;
+  --danger: #f04545;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+/* ── SETUP ── */
+#setup { height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 480px; margin: 0 auto; }
+.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; padding-top: .5rem; }
+.logo-ic { width: 38px; height: 38px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 19px; }
+.logo h1 { font-size: 15px; font-weight: 700; }
+.logo p { font-size: 11px; color: var(--muted); }
+.card { background: var(--s1); border: 1px solid var(--border); border-radius: 13px; padding: 1rem; margin-bottom: .75rem; }
+.ct { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .75rem; }
+.fg { display: grid; gap: 9px; }
+.fg2 { grid-template-columns: 1fr 1fr; }
+.fg3 { grid-template-columns: 1fr 1fr 1fr; }
+.field label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; }
+.field input, .field select { width: 100%; font-size: 14px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--s2); color: var(--text); -webkit-appearance: none; }
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+.btn-go { width: 100%; padding: 15px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; border-radius: 11px; cursor: pointer; margin-top: .5rem; }
+
+/* ── MAIN APP ── */
+#app { display: none; height: 100vh; flex-direction: column; max-width: 480px; margin: 0 auto; }
+
+/* KM bar */
+.km-bar { background: var(--s1); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.km-back { font-size: 18px; color: var(--muted); cursor: pointer; padding: 3px 6px; }
+.km-scroll-wrap { flex: 1; overflow-x: auto; display: flex; gap: 6px; scrollbar-width: none; }
+.km-scroll-wrap::-webkit-scrollbar { display: none; }
+.km-chip { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 6px 11px; border-radius: 7px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); cursor: pointer; transition: all .15s; }
+.km-chip.done { border-color: var(--green); color: var(--green); }
+.km-chip.cur { background: var(--accent); border-color: var(--accent); color: #fff; }
+.km-next-btn { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 6px 11px; border-radius: 7px; border: 1px solid var(--accent); color: var(--accent); background: transparent; cursor: pointer; }
+
+/* Progress */
+.prog { height: 3px; background: var(--border); flex-shrink: 0; }
+.prog-f { height: 100%; background: var(--accent); transition: width .25s; }
+
+/* ── MAIN BODY ── */
+.body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Joint header */
+.joint-hdr { padding: 12px 16px 8px; flex-shrink: 0; }
+.joint-hdr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.joint-title { font-size: 13px; color: var(--muted); }
+.joint-big { font-size: 28px; font-weight: 800; color: var(--text); }
+.dir-tabs { display: flex; gap: 6px; }
+.dir-tab { font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 20px; border: 1.5px solid var(--border); color: var(--muted); background: transparent; }
+.dir-tab.bar.act { background: var(--accent); border-color: var(--accent); color: #fff; }
+.dir-tab.zun.act { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* ── DRUM ── */
+.drum-area { flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 10px 8px 14px; gap: 0; position: relative; border-top: 1px solid var(--border); background: var(--bg); }
+
+.nav-side { width: 72px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.nav-side-btn { width: 62px; height: 62px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--muted); transition: all .12s; }
+.nav-side-btn:active { background: var(--s2); transform: scale(.93); }
+
+.drum-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+
+/* Selector ring */
+.drum-ring { width: 180px; height: 180px; border-radius: 50%; border: 3px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; position: relative; cursor: grab; flex-shrink: 0; }
+.drum-ring:active { cursor: grabbing; }
+.drum-val { font-size: 58px; font-weight: 900; color: var(--text); transition: all .1s; line-height: 1; }
+.drum-val.warn-v { color: var(--warn); }
+.drum-val.danger-v { color: var(--danger); }
+.drum-hint { position: absolute; bottom: -22px; font-size: 11px; color: var(--muted); text-align: center; white-space: nowrap; }
+.drum-arrows { position: absolute; right: -36px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
+.darrow { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+.darrow:active { background: var(--border); }
+
+/* Value strip below drum — hidden */
+.val-strip { display: none; }
+.vs-item { font-size: 12px; font-weight: 600; min-width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer; border: 1px solid transparent; transition: all .1s; flex-shrink: 0; }
+.vs-item.act { background: var(--accent); color: #fff; border-color: var(--accent); font-size: 13px; transform: scale(1.12); }
+.vs-item.warn-s { color: var(--warn); }
+.vs-item.danger-s { color: var(--danger); }
+.vs-item.act.warn-s { background: var(--warn); border-color: var(--warn); color: #fff; }
+.vs-item.act.danger-s { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* History panel */
+.hist-panel { background: var(--s1); border-bottom: 1px solid var(--border); flex: 1; overflow-y: auto; }
+.hist-inner { padding: 10px 14px 16px; }
+.hist-hdr { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.hist-row { display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 4px; cursor: pointer; }
+.hist-row:active { background: var(--border); }
+.hj { font-size: 12px; font-weight: 800; color: var(--muted); min-width: 20px; }
+.hd-bar { font-size: 10px; font-weight: 700; color: var(--accent); background: rgba(79,142,247,.15); padding: 2px 7px; border-radius: 4px; }
+.hd-zun { font-size: 10px; font-weight: 700; color: var(--green); background: rgba(34,201,122,.15); padding: 2px 7px; border-radius: 4px; }
+.hv { font-size: 15px; font-weight: 800; margin-left: auto; }
+.he { font-size: 10px; color: var(--muted); }
+.hist-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 1rem; }
+
+/* KM modal */
+#kmMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
+#kmMod.on { display: flex; }
+.km-mod-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; }
+.km-mod-title { font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; margin-bottom: 1rem; }
+.km-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+.km-mod-chip { font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); cursor: pointer; }
+.km-mod-chip.done { border-color: var(--green); color: var(--green); }
+.km-mod-chip.cur { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mod-close { display: block; text-align: center; margin-top: 14px; font-size: 13px; color: var(--muted); cursor: pointer; }
+
+/* Warning toast */
+#warnToast { display: none; position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 300; padding: 13px 22px; border-radius: 12px; font-size: 15px; font-weight: 800; color: #fff; text-align: center; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,.5); animation: toastIn .2s ease; }
+@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(-8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+/* Install banner */
+#installBanner { display: none; align-items: center; gap: 10px; background: var(--s2); border: 1px solid var(--accent); border-radius: 11px; padding: 11px 14px; margin-bottom: .75rem; }
+#installBanner .ib-txt { flex: 1; font-size: 13px; color: var(--text); }
+#installBanner .ib-txt span { font-size: 11px; color: var(--muted); display: block; }
+#installBanner button { font-size: 13px; font-weight: 700; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+#iosBanner { display: none; background: var(--s2); border: 1px solid var(--border); border-radius: 11px; padding: 11px 14px; margin-bottom: .75rem; font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+/* Sessions modal */
+#sessMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
+#sessMod.on { display: flex; }
+.sess-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; }
+.sess-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; flex-shrink: 0; }
+.sess-list { flex: 1; overflow-y: auto; }
+.sess-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 6px; cursor: pointer; }
+.sess-item:active { background: var(--border); }
+.sess-meta { flex: 1; }
+.sess-date { font-size: 13px; font-weight: 700; color: var(--text); }
+.sess-info { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sess-del { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--danger); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.sess-del:active { background: rgba(240,69,69,.15); }
+.sess-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 2rem 0; }
+
+/* Session view modal (read-only) */
+#sessViewMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 210; align-items: flex-end; justify-content: center; }
+#sessViewMod.on { display: flex; }
+.sessv-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column; }
+.sessv-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; flex-shrink: 0; }
+.sessv-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; flex-shrink: 0; }
+.sessv-body { flex: 1; overflow-y: auto; }
+.sessv-km { font-size: 11px; font-weight: 700; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
+.sessv-row { display: flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 3px; }
+.ro-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.ro-bar { color: var(--accent); background: rgba(79,142,247,.15); }
+.ro-zun { color: var(--green); background: rgba(34,201,122,.15); }
+
+/* Sessv action buttons */
+.sessv-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 8px; flex-shrink: 0; }
+.sessv-actions button { flex: 1; padding: 12px; font-size: 13px; font-weight: 700; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
+.sessv-actions .sv-xlsx { background: var(--green); border-color: var(--green); color: #fff; }
+.sessv-actions .sv-csv { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Restart confirm modal */
+#rstMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300; align-items: center; justify-content: center; padding: 1.5rem; }
+#rstMod.on { display: flex; }
+.rst-inner { background: var(--s1); border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 340px; text-align: center; }
+.rst-icon { font-size: 36px; margin-bottom: 10px; }
+.rst-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+.rst-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.5; }
+.rst-btns { display: flex; flex-direction: column; gap: 8px; }
+.rst-btns button { padding: 13px; font-size: 14px; font-weight: 700; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
+.rst-btns .rst-yes { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* Restart button in km-bar */
+.km-rst-btn { flex-shrink: 0; font-size: 16px; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.km-rst-btn:active { background: var(--s2); }
+
+/* Sessions button in setup */
+.btn-sess { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 11px; cursor: pointer; margin-top: .4rem; }
+
+/* Export btn row */
+.exp-btns { display: flex; flex-direction: column; gap: 8px; }
+.exp-btns button { width: 100%; padding: 13px; font-size: 14px; font-weight: 700; border: 1px solid var(--border); border-radius: 10px; background: var(--s2); color: var(--text); cursor: pointer; }
+.exp-btns .eb1 { background: var(--accent); border-color: var(--accent); color: #fff; }
+.exp-btns .eb-xlsx { background: var(--green); border-color: var(--green); color: #fff; }
+
+/* Status toast */
+#statusToast { display: none; position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 400; padding: 13px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; color: #fff; text-align: center; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,.5); white-space: nowrap; animation: toastIn .2s ease; }
+
+/* Export */
+#expMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
+#expMod.on { display: flex; }
+.exp-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1.25rem 1rem 2.5rem; width: 100%; max-width: 480px; }
+.exp-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.exp-sub { font-size: 12px; color: var(--muted); margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="logo">
+    <div class="logo-ic">🛤</div>
+    <div><h1>Уулзварын зайн хэмжилт</h1><p>Замын б-р хэсэг</p></div>
+  </div>
+  <div class="card">
+    <div class="ct">Ерөнхий мэдээлэл</div>
+    <div class="fg fg2">
+      <div class="field"><label>Огноо</label><input type="date" id="sDate"/></div>
+      <div class="field"><label>Замын №</label><input type="text" id="sRoad" placeholder="6"/></div>
+      <div class="field"><label>Эхлэх км</label><input type="number" id="sS" value="681" min="1"/></div>
+      <div class="field"><label>Дуусах км</label><input type="number" id="sE" value="701" min="1"/></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct">Үений тоо</div>
+    <div class="fg fg2">
+      <div class="field"><label>Баруун</label><input type="number" id="sBar" value="43" min="1" max="100"/></div>
+      <div class="field"><label>Зүүн</label><input type="number" id="sZun" value="43" min="1" max="100"/></div>
+    </div>
+  </div>
+  <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
+  <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
+  <button class="btn-sess" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчны өгөгдөл нэмэх</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)"/>
+
+  <div id="installBanner">
+    <div class="ib-txt">📲 Нүүр дэлгэцэнд суулгах<span>Офлайн ажиллана</span></div>
+    <button onclick="installApp()">Суулгах</button>
+  </div>
+  <div id="iosBanner">📲 <b>iPhone/iPad:</b> Safari дээр доорх <b>Share → Add to Home Screen</b> дарж суулгана уу</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- KM bar -->
+  <div class="km-bar">
+    <div class="km-back" onclick="openKmMod()">☰</div>
+    <div class="km-scroll-wrap" id="kmStrip"></div>
+    <button class="km-next-btn" onclick="nextKm()">→ км</button>
+    <button class="km-next-btn" style="border-color:var(--muted);color:var(--muted);" onclick="openExpMod()">↓</button>
+    <button class="km-rst-btn" onclick="openRstMod()" title="Дахин эхлүүлэх">⟳</button>
+  </div>
+  <div class="prog"><div class="prog-f" id="prog" style="width:0%"></div></div>
+
+  <div class="body">
+    <!-- Joint header -->
+    <div class="joint-hdr">
+      <div class="joint-hdr-top">
+        <div>
+          <div class="joint-title">Үе дугаар</div>
+          <div class="joint-big" id="jNum">1</div>
+        </div>
+        <div class="dir-tabs">
+          <div class="dir-tab bar act" id="tabBar">Баруун</div>
+          <div class="dir-tab zun" id="tabZun">Зүүн</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History (дээр) -->
+    <div class="hist-panel">
+      <div class="hist-inner">
+        <div class="hist-hdr">Оруулсан хэмжилтүүд</div>
+        <div id="histList"></div>
+      </div>
+    </div>
+
+    <!-- Drum area (доор) -->
+    <div class="drum-area">
+      <!-- LEFT = Өмнөх -->
+      <div class="nav-side" onclick="goPrev()">
+        <div class="nav-side-btn">←</div>
+      </div>
+
+      <div class="drum-wrap">
+        <div class="drum-ring" id="drumRing">
+          <div class="drum-val" id="drumVal">0</div>
+          <div class="drum-arrows">
+            <div class="darrow" onclick="drumUp()">▲</div>
+            <div class="darrow" onclick="drumDown()">▼</div>
+          </div>
+        </div>
+        <div class="drum-hint">дээш/доош гүйлгэ</div>
+        <div class="val-strip" id="valStrip"></div>
+      </div>
+
+      <!-- RIGHT = Дараах (confirm + advance) -->
+      <div class="nav-side" onclick="confirmAndNext()">
+        <div class="nav-side-btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-size:22px;">→</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sessions list modal -->
+<div id="sessMod">
+  <div class="sess-inner">
+    <div class="sess-title">📂 Өмнөх хэмжилтүүд</div>
+    <div class="sess-list" id="sessList"></div>
+    <div class="mod-close" onclick="closeSessMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Session read-only view modal -->
+<div id="sessViewMod">
+  <div class="sessv-inner">
+    <div class="sessv-title" id="sessVTitle"></div>
+    <div class="sessv-sub" id="sessVSub"></div>
+    <div class="sessv-body" id="sessVBody"></div>
+    <div class="sessv-actions">
+      <button class="sv-xlsx" onclick="exportSessionExcel()">📊 Excel татах</button>
+      <button class="sv-csv" onclick="exportSessionCSV()">📄 CSV татах</button>
+    </div>
+    <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
+  </div>
+</div>
+
+<!-- Restart confirm modal -->
+<div id="rstMod">
+  <div class="rst-inner">
+    <div class="rst-icon">🔄</div>
+    <div class="rst-title">Таны хэмжилт дууссан уу?</div>
+    <div class="rst-sub">Одоогийн хэмжилт хадгалагдах боловч шинэ хэмжилт эхлүүлнэ. Энэ үйлдлийг буцааж болохгүй.</div>
+    <div class="rst-btns">
+      <button class="rst-yes" onclick="doRestart()">Тийм, дахин эхлүүлэх</button>
+      <button onclick="closeRstMod()">Болих</button>
+    </div>
+  </div>
+</div>
+
+<!-- Warning Toast -->
+<div id="warnToast"></div>
+<!-- Status Toast -->
+<div id="statusToast"></div>
+
+<!-- Import result toast modal -->
+<div id="importMod" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:var(--s1);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:10px" id="importIcon">✅</div>
+    <div style="font-size:15px;font-weight:800;margin-bottom:8px" id="importTitle"></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.5" id="importMsg"></div>
+    <button onclick="document.getElementById('importMod').style.display='none'" style="width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:10px;border:none;background:var(--accent);color:#fff;cursor:pointer;">Ойлголоо</button>
+  </div>
+</div>
+
+<!-- KM Modal -->
+<div id="kmMod">
+  <div class="km-mod-inner">
+    <div class="km-mod-title">КМ сонгох</div>
+    <div class="km-grid" id="kmGrid"></div>
+    <div class="mod-close" onclick="closeKmMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div id="expMod">
+  <div class="exp-inner">
+    <div class="exp-title">Өгөгдөл татах</div>
+    <div class="exp-sub" id="expSub">0 хэмжилт бичигдсэн</div>
+    <div class="exp-btns">
+      <button class="eb-xlsx" onclick="exportExcel();closeExpMod()">📊 Дэлгэрэнгүй Excel татах</button>
+      <button class="eb1" onclick="exportCSV();closeExpMod()">⬇ Дэлгэрэнгүй CSV татах</button>
+      <button onclick="exportSum();closeExpMod()">⬇ Дүн CSV татах</button>
+      <button style="background:var(--green);border-color:var(--green);color:#fff;" onclick="shareData()">📤 Messenger-р явуулах</button>
+    </div>
+    <div class="mod-close" onclick="closeExpMod()">Хаах</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Manifest
+  const manifest = {
+    name: "Уулзварын зайн хэмжилт",
+    short_name: "Уулзвар",
+    description: "Замын б-р хэсэг уулзварын зайн хэмжилт",
+    start_url: "./",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#0e1018",
+    theme_color: "#0e1018",
+    icons: [{
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%230e1018'/><rect x='16' y='16' width='160' height='160' rx='24' fill='%23181c28'/><text x='96' y='120' font-size='90' text-anchor='middle' font-family='system-ui'>🛤</text></svg>`),
+      sizes: "192x192", type: "image/svg+xml", purpose: "any maskable"
+    }]
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  document.getElementById('appManifest').href = URL.createObjectURL(mBlob);
+
+  // Service Worker (offline cache)
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+const CACHE='uulzvar-v1';
+self.addEventListener('install',e=>{ self.skipWaiting(); });
+self.addEventListener('activate',e=>{ e.waitUntil(clients.claim()); });
+self.addEventListener('fetch',e=>{
+  e.respondWith(caches.open(CACHE).then(c=>
+    c.match(e.request).then(r=>r||fetch(e.request).then(res=>{ c.put(e.request,res.clone()); return res; }))
+  ).catch(()=>caches.match(e.request)));
+});`;
+    const swUrl = URL.createObjectURL(new Blob([swCode],{type:'text/javascript'}));
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  }
+
+  // iOS detection
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isInStandalone = window.navigator.standalone;
+  if (isIOS && !isInStandalone) {
+    document.getElementById('iosBanner').style.display = 'block';
+  }
+})();
+
+// Android install prompt
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').style.display = 'none';
+  deferredPrompt = null;
+});
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(() => {
+    deferredPrompt = null;
+    document.getElementById('installBanner').style.display = 'none';
+  });
+}
+
+let C = {}, data = {}, curKm, curJ, curDir, drumCur = 0;
+let currentSessionId = null;
+let currentViewSessId = null; // ← Одоо харж буй хадгалсан session
+
+/* ── Session Storage ── */
+const SESS_KEY = 'uulzvar_sessions';
+
+function getSessions() {
+  try { return JSON.parse(localStorage.getItem(SESS_KEY) || '[]'); } catch { return []; }
+}
+function saveSessions(arr) {
+  try { localStorage.setItem(SESS_KEY, JSON.stringify(arr)); } catch {}
+}
+
+function autoSave() {
+  if (!currentSessionId) return;
+  const sessions = getSessions();
+  const now = new Date();
+  const idx = sessions.findIndex(s => s.id === currentSessionId);
+  const entry = {
+    id: currentSessionId,
+    startedAt: sessions[idx]?.startedAt || now.toISOString(),
+    savedAt: now.toISOString(),
+    config: JSON.parse(JSON.stringify(C)),
+    data: JSON.parse(JSON.stringify(data))
+  };
+  if (idx >= 0) sessions[idx] = entry;
+  else sessions.unshift(entry);
+  saveSessions(sessions);
+}
+
+function deleteSession(id, e) {
+  e.stopPropagation();
+  const sessions = getSessions().filter(s => s.id !== id);
+  saveSessions(sessions);
+  renderSessList();
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const dd = s => String(s).padStart(2,'0');
+  return `${d.getFullYear()}-${dd(d.getMonth()+1)}-${dd(d.getDate())} ${dd(d.getHours())}:${dd(d.getMinutes())}`;
+}
+
+function countMeasurements(sess) {
+  let n = 0;
+  const {config: c, data: d} = sess;
+  if (!d||!c) return 0;
+  for (let km = c.s; km <= c.e; km++) {
+    for (let j=1;j<=c.bar;j++) if(d[km]?.[j]?.bar!==null&&d[km]?.[j]?.bar!==undefined) n++;
+    for (let j=1;j<=c.zun;j++) if(d[km]?.[j]?.zun!==null&&d[km]?.[j]?.zun!==undefined) n++;
+  }
+  return n;
+}
+
+function renderSessList() {
+  const list = document.getElementById('sessList');
+  const sessions = getSessions();
+  if (!sessions.length) {
+    list.innerHTML = '<div class="sess-empty">Хадгалсан хэмжилт байхгүй байна</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(s => {
+    const c = s.config || {};
+    const cnt = countMeasurements(s);
+    return `<div class="sess-item" onclick="viewSession('${s.id}')">
+      <div class="sess-meta">
+        <div class="sess-date">${fmtDate(s.savedAt)}</div>
+        <div class="sess-info">Зам №${c.road||'—'} · ${c.s||'?'}-${c.e||'?'} км · ${cnt} хэмжилт</div>
+      </div>
+      <div class="sess-del" onclick="deleteSession('${s.id}',event)">🗑</div>
+    </div>`;
+  }).join('');
+}
+
+function openSessMod() {
+  renderSessList();
+  document.getElementById('sessMod').classList.add('on');
+}
+function closeSessMod() { document.getElementById('sessMod').classList.remove('on'); }
+
+function viewSession(id) {
+  const sess = getSessions().find(s => s.id === id);
+  if (!sess) return;
+  currentViewSessId = id; // ← хадгалах
+  const c = sess.config, d = sess.data;
+  document.getElementById('sessVTitle').textContent = `Зам №${c.road} · ${c.s}-${c.e} км`;
+  document.getElementById('sessVSub').textContent = `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${c.date}`;
+
+  const maxJ = Math.max(c.bar, c.zun);
+  let html = '';
+  for (let km = c.s; km <= c.e; km++) {
+    let grp = '';
+    for (let j = maxJ; j >= 1; j--) {
+      const b = d[km]?.[j]?.bar, z = d[km]?.[j]?.zun;
+      if (b !== null && b !== undefined) grp += `<div class="sessv-row"><span class="ro-tag ro-bar">Баруун</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(b)}">${b} мм</span></div>`;
+      if (z !== null && z !== undefined) grp += `<div class="sessv-row"><span class="ro-tag ro-zun">Зүүн</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(z)}">${z} мм</span></div>`;
+    }
+    if (grp) html += `<div class="sessv-km">${km} км</div>${grp}`;
+  }
+  document.getElementById('sessVBody').innerHTML = html || '<div class="sess-empty">Хэмжилт оруулаагүй</div>';
+  document.getElementById('sessViewMod').classList.add('on');
+}
+function sessValColor(v) { return v>=36?'var(--danger)':v>=22?'var(--warn)':'var(--text)'; }
+function closeSessViewMod() { currentViewSessId = null; document.getElementById('sessViewMod').classList.remove('on'); }
+
+/* ── Restart ── */
+function openRstMod() { document.getElementById('rstMod').classList.add('on'); }
+function closeRstMod() { document.getElementById('rstMod').classList.remove('on'); }
+function doRestart() {
+  closeRstMod();
+  autoSave();
+  currentSessionId = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+}
+
+document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
+
+function startApp() {
+  const s = parseInt(document.getElementById('sS').value)||681;
+  const e = parseInt(document.getElementById('sE').value)||701;
+  if (e < s) { alert('Дуусах км эхлэх км-ээс их байх ёстой'); return; }
+  C = {
+    date: document.getElementById('sDate').value,
+    road: document.getElementById('sRoad').value||'—',
+    s, e,
+    bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
+    zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
+    max: 37,
+  };
+  data = {};
+  for (let km=s; km<=e; km++) {
+    data[km] = {};
+    for (let j=1; j<=Math.max(C.bar,C.zun); j++) data[km][j]={bar:null,zun:null};
+  }
+  curKm=s; curJ=1; curDir='bar'; drumCur=0;
+  currentSessionId = 'sess_' + Date.now();
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='flex';
+  buildStrip();
+  buildValStrip();
+  setupDrum();
+  render();
+}
+
+function kmList() {
+  const a=[];
+  for (let km=C.s; km<=C.e; km++) a.push(km);
+  return a;
+}
+
+/* ── KM strip ── */
+function buildStrip() {
+  const wrap = document.getElementById('kmStrip');
+  wrap.innerHTML='';
+  kmList().forEach(km=>{
+    const d = document.createElement('div');
+    d.className='km-chip';
+    d.dataset.km=km;
+    d.textContent=km+' км';
+    d.onclick=()=>jumpKm(km);
+    wrap.appendChild(d);
+  });
+  scrollStripTo(curKm);
+}
+function refreshStrip() {
+  document.querySelectorAll('.km-chip').forEach(c=>{
+    const km=parseInt(c.dataset.km);
+    c.className='km-chip'+(km===curKm?' cur':isKmDone(km)?' done':'');
+  });
+  scrollStripTo(curKm);
+}
+function scrollStripTo(km) {
+  const chip = document.querySelector(`.km-chip[data-km="${km}"]`);
+  if (chip) chip.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+function isKmDone(km) {
+  for (let j=1;j<=C.bar;j++) if (data[km]?.[j]?.bar===null) return false;
+  for (let j=1;j<=C.zun;j++) if (data[km]?.[j]?.zun===null) return false;
+  return true;
+}
+function nextKm() {
+  const list=kmList(), idx=list.indexOf(curKm);
+  if (idx<list.length-1) jumpKm(list[idx+1]);
+}
+function jumpKm(km) {
+  curKm=km; curJ=1; curDir='bar'; drumCur=getSaved()||0;
+  closeKmMod(); refreshStrip(); render();
+}
+
+/* ── Drum ── */
+function buildValStrip() {
+  const strip = document.getElementById('valStrip');
+  strip.innerHTML='';
+  for (let v=0;v<=37;v++){
+    const d=document.createElement('div');
+    d.className='vs-item'+(v>=36?' danger-s':v>=22?' warn-s':'');
+    d.dataset.v=v;
+    d.textContent=v;
+    d.onclick=()=>setDrum(v);
+    strip.appendChild(d);
+  }
+}
+function refreshValStrip() {
+  document.querySelectorAll('.vs-item').forEach(el=>{
+    const v=parseInt(el.dataset.v);
+    el.classList.toggle('act',v===drumCur);
+  });
+  const strip=document.getElementById('valStrip');
+  const active=strip.querySelector('.vs-item.act');
+  if (active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+/* Warning toast */
+let warnTimer = null, lastWarnZone = -1;
+function getWarnZone(v) {
+  if (v >= 36) return 3;
+  if (v >= 31) return 2;
+  if (v >= 26) return 1;
+  if (v >= 22) return 0;
+  return -1;
+}
+function showWarn(msg, bg) {
+  const t = document.getElementById('warnToast');
+  t.textContent = msg;
+  t.style.background = bg;
+  t.style.display = 'block';
+  t.style.animation = 'none';
+  void t.offsetWidth;
+  t.style.animation = 'toastIn .2s ease';
+  if (warnTimer) clearTimeout(warnTimer);
+  warnTimer = setTimeout(() => { t.style.display = 'none'; lastWarnZone = -1; }, 4000);
+}
+function checkWarn(v) {
+  const zone = getWarnZone(v);
+  if (zone !== lastWarnZone) {
+    lastWarnZone = zone;
+    if (zone === 3) showWarn('🚫 Хөдөлгөөн хаалаа', '#c0392b');
+    else if (zone === 2) showWarn('🚧 25км/цагийн хурд тогтоо', '#f04545');
+    else if (zone === 1) showWarn('⚠️ 60км/цагийн хурд тогтоох', '#f0a500');
+    else if (zone === 0) showWarn('⚠️ Байж болохгүй хэмжээнд хүрчээ', '#d97800');
+    else if (warnTimer) { clearTimeout(warnTimer); warnTimer=null; document.getElementById('warnToast').style.display='none'; }
+  }
+}
+
+function setDrum(v) {
+  drumCur=Math.max(0,Math.min(37,v));
+  checkWarn(drumCur);
+  refreshDrumDisplay();
+  refreshValStrip();
+}
+function drumUp() { setDrum(drumCur+1); }
+function drumDown() { setDrum(drumCur-1); }
+function refreshDrumDisplay() {
+  const el=document.getElementById('drumVal');
+  el.textContent=drumCur;
+  const v=drumCur;
+  if (v>=36) el.className='drum-val danger-v';
+  else if (v>=22) el.className='drum-val warn-v';
+  else el.className='drum-val';
+}
+
+function setupDrum() {
+  const ring=document.getElementById('drumRing');
+  let startY=0, startVal=0, moving=false;
+  ring.addEventListener('touchstart',e=>{
+    startY=e.touches[0].clientY; startVal=drumCur; moving=true;
+  },{passive:true});
+  ring.addEventListener('touchmove',e=>{
+    if(!moving) return;
+    const dy=startY-e.touches[0].clientY;
+    const delta=Math.round(dy/14);
+    setDrum(startVal+delta);
+  },{passive:true});
+  ring.addEventListener('touchend',()=>{ moving=false; },{passive:true});
+  // Mouse drag for desktop
+  ring.addEventListener('mousedown',e=>{
+    startY=e.clientY; startVal=drumCur; moving=true;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!moving) return;
+    const dy=startY-e.clientY;
+    const delta=Math.round(dy/14);
+    setDrum(startVal+delta);
+  });
+  document.addEventListener('mouseup',()=>{ moving=false; });
+  // Wheel
+  ring.addEventListener('wheel',e=>{
+    e.preventDefault();
+    setDrum(drumCur+(e.deltaY>0?-1:1));
+  },{passive:false});
+}
+
+function getSaved() {
+  return data[curKm]?.[curJ]?.[curDir] ?? null;
+}
+function resetWarnState() { lastWarnZone = -1; if(warnTimer){clearTimeout(warnTimer);warnTimer=null;} document.getElementById('warnToast').style.display='none'; }
+
+/* ── Navigation ── */
+function confirmAndNext() {
+  if (!data[curKm][curJ]) data[curKm][curJ]={bar:null,zun:null};
+  data[curKm][curJ][curDir]=drumCur;
+  autoSave();
+  advance();
+}
+
+function advance() {
+  resetWarnState();
+  if (curDir==='bar') {
+    if (curJ<=C.zun) { curDir='zun'; }
+    else { nextJoint(); return; }
+  } else {
+    nextJoint(); return;
+  }
+  const saved=getSaved();
+  drumCur=saved!==null?saved:0;
+  render();
+}
+
+function nextJoint() {
+  const maxJ=Math.max(C.bar,C.zun);
+  if (curJ<maxJ) {
+    curJ++; curDir='bar';
+  } else {
+    // Try next km
+    const list=kmList(), idx=list.indexOf(curKm);
+    if (idx<list.length-1) { jumpKm(list[idx+1]); return; }
+    else { alert('Бүх хэмжилт дууслаа!'); return; }
+  }
+  const saved=getSaved();
+  drumCur=saved!==null?saved:0;
+  render();
+}
+
+function goPrev() {
+  resetWarnState();
+  if (curDir==='zun') {
+    curDir='bar';
+  } else if (curJ>1) {
+    curJ--; curDir='zun';
+  } else {
+    const list=kmList(), idx=list.indexOf(curKm);
+    if (idx>0) { jumpKm(list[idx-1]); curJ=Math.max(C.bar,C.zun); curDir='zun'; render(); return; }
+    return;
+  }
+  const saved=getSaved();
+  drumCur=saved!==null?saved:0;
+  render();
+}
+
+/* ── Render ── */
+function render() {
+  document.getElementById('jNum').textContent=curJ;
+  document.getElementById('tabBar').className='dir-tab bar'+(curDir==='bar'?' act':'');
+  document.getElementById('tabZun').className='dir-tab zun'+(curDir==='zun'?' act':'');
+  refreshDrumDisplay();
+  refreshValStrip();
+  refreshStrip();
+  updateProgress();
+  renderHist();
+}
+
+function updateProgress() {
+  let total=0,filled=0;
+  kmList().forEach(km=>{
+    total+=C.bar+C.zun;
+    for(let j=1;j<=C.bar;j++) if(data[km]?.[j]?.bar!==null) filled++;
+    for(let j=1;j<=C.zun;j++) if(data[km]?.[j]?.zun!==null) filled++;
+  });
+  document.getElementById('prog').style.width=(filled/total*100).toFixed(1)+'%';
+}
+
+function valColor(v) {
+  if (v>=36) return 'var(--danger)';
+  if (v>=22) return 'var(--warn)';
+  return 'var(--text)';
+}
+
+function renderHist() {
+  const list=document.getElementById('histList');
+  const maxJ=Math.max(C.bar,C.zun);
+  let html='', any=false;
+  // Show all kms, current km first
+  const kms=[curKm,...kmList().filter(k=>k!==curKm)];
+  kms.forEach(km=>{
+    let grp='';
+    for(let j=maxJ;j>=1;j--){
+      const b=data[km]?.[j]?.bar,z=data[km]?.[j]?.zun;
+      if(b!==null&&b!==undefined) {
+        any=true;
+        grp+=`<div class="hist-row" onclick="editEntry(${km},${j},'bar')">
+          <span class="hj">${j}</span><span class="hd-bar">Баруун</span>
+          <span class="hv" style="color:${valColor(b)}">${b}</span>
+          <span class="he">засах ✎</span></div>`;
+      }
+      if(z!==null&&z!==undefined) {
+        any=true;
+        grp+=`<div class="hist-row" onclick="editEntry(${km},${j},'zun')">
+          <span class="hj">${j}</span><span class="hd-zun">Зүүн</span>
+          <span class="hv" style="color:${valColor(z)}">${z}</span>
+          <span class="he">засах ✎</span></div>`;
+      }
+    }
+    if(grp) html+=`<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">${km} км</div>${grp}</div>`;
+  });
+  list.innerHTML=any?html:'<div class="hist-empty">Хэмжилт оруулаагүй байна</div>';
+}
+
+function editEntry(km,j,dir) {
+  curKm=km; curJ=j; curDir=dir;
+  const saved=getSaved();
+  drumCur=saved!==null?saved:0;
+  refreshStrip(); render();
+  document.querySelector('.body').scrollIntoView({behavior:'smooth'});
+}
+
+/* ── KM Modal ── */
+function openKmMod() {
+  const g=document.getElementById('kmGrid');
+  g.innerHTML='';
+  kmList().forEach(km=>{
+    const d=document.createElement('div');
+    d.className='km-mod-chip'+(km===curKm?' cur':isKmDone(km)?' done':'');
+    d.textContent=km+' км';
+    d.onclick=()=>{ jumpKm(km); closeKmMod(); };
+    g.appendChild(d);
+  });
+  document.getElementById('kmMod').classList.add('on');
+}
+function closeKmMod() { document.getElementById('kmMod').classList.remove('on'); }
+
+/* ── Export Modal ── */
+function openExpMod() {
+  let filled=0;
+  kmList().forEach(km=>{
+    for(let j=1;j<=C.bar;j++) if(data[km]?.[j]?.bar!==null) filled++;
+    for(let j=1;j<=C.zun;j++) if(data[km]?.[j]?.zun!==null) filled++;
+  });
+  document.getElementById('expSub').textContent=`Нийт ${filled} хэмжилт бичигдсэн`;
+  document.getElementById('expMod').classList.add('on');
+}
+function closeExpMod() { document.getElementById('expMod').classList.remove('on'); }
+
+/* ── Export CSV ── */
+function exportCSV() { _exportCSVDetailed(C, data); }
+function exportSum() { _exportCSVSum(C, data); }
+
+function _exportCSVDetailed(c, d) {
+  const maxJ=Math.max(c.bar,c.zun);
+  const cols=Array.from({length:maxJ},(_,i)=>i+1);
+  let rows=[['№','КМ','Чиглэл',...cols,'Нийт','Дундаж'].join(',')];
+  let n=1;
+  for (let km=c.s; km<=c.e; km++) {
+    ['bar','zun'].forEach((dir,di)=>{
+      const count=dir==='bar'?c.bar:c.zun;
+      const vals=Array.from({length:maxJ},(_,i)=>{
+        if(i>=count) return '';
+        const v=d[km]?.[i+1]?.[dir];
+        return v===null||v===undefined?'':v;
+      });
+      const nums=vals.filter(v=>v!=='').map(Number);
+      const total=nums.length?Math.round(nums.reduce((a,x)=>a+x,0)):'';
+      const avg=nums.length?(nums.reduce((a,x)=>a+x,0)/nums.length).toFixed(1):'';
+      rows.push([n++,km,di===0?'баруун':'зүүн',...vals,total,avg].join(','));
+    });
+  }
+  dl(rows.join('\n'),`уулзвар_${c.s}-${c.e}км_${c.date}.csv`);
+}
+function _exportCSVSum(c, d) {
+  let rows=[['КМ','баруун нийт','баруун дундаж','зүүн нийт','зүүн дундаж','Хэтрүүлсэн'].join(',')];
+  for (let km=c.s; km<=c.e; km++) {
+    const bv=[],zv=[];
+    for(let j=1;j<=c.bar;j++){const v=d[km]?.[j]?.bar;if(v!==null&&v!==undefined)bv.push(v);}
+    for(let j=1;j<=c.zun;j++){const v=d[km]?.[j]?.zun;if(v!==null&&v!==undefined)zv.push(v);}
+    const bT=bv.length?Math.round(bv.reduce((a,x)=>a+x,0)):'';
+    const zT=zv.length?Math.round(zv.reduce((a,x)=>a+x,0)):'';
+    const bA=bv.length?(bv.reduce((a,x)=>a+x,0)/bv.length).toFixed(1):'';
+    const zA=zv.length?(zv.reduce((a,x)=>a+x,0)/zv.length).toFixed(1):'';
+    const over=[...bv,...zv].filter(v=>v>(c.max||37)).length||'';
+    rows.push([km,bT,bA,zT,zA,over].join(','));
+  }
+  dl(rows.join('\n'),`дүн_${c.date}.csv`);
+}
+function dl(content,name) {
+  const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  a.click();
+}
+
+/* ── Excel татах (active session) ── */
+async function exportExcel() {
+  await _exportExcelCore(C, data, `уулзвар_${C.s}-${C.e}км_${C.date}.xlsx`);
+}
+
+/* ── Excel татах (saved session — modal-аас) ── */
+async function exportSessionExcel() {
+  if (!currentViewSessId) return;
+  const sess = getSessions().find(s => s.id === currentViewSessId);
+  if (!sess) return;
+  const c = sess.config, d = sess.data;
+  const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
+  await _exportExcelCore(c, d, fname);
+  showStatus('📊 Excel татагдлаа', '#22c97a');
+}
+
+/* ── CSV татах (saved session — modal-аас) ── */
+function exportSessionCSV() {
+  if (!currentViewSessId) return;
+  const sess = getSessions().find(s => s.id === currentViewSessId);
+  if (!sess) return;
+  _exportCSVDetailed(sess.config, sess.data);
+  showStatus('📄 CSV татагдлаа', '#4f8ef7');
+}
+
+/* ── Excel core — өнгөтэй, 2 хуудас ── */
+async function _exportExcelCore(c, d, filename) {
+  if (typeof ExcelJS === 'undefined') {
+    alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
+    return;
+  }
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'ПД-6';
+  wb.created = new Date();
+
+  const maxJ = Math.max(c.bar, c.zun);
+  const MAX_THR = c.max || 37;
+
+  // ===== Sheet 1: Дэлгэрэнгүй =====
+  const ws1 = wb.addWorksheet('Дэлгэрэнгүй');
+
+  // Title row
+  ws1.mergeCells(1, 1, 1, maxJ + 5);
+  const titleCell = ws1.getCell(1, 1);
+  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`;
+  titleCell.font = { bold: true, size: 13 };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
+  ws1.getRow(1).height = 26;
+
+  // Header
+  const headers = ['№', 'КМ', 'Чиглэл', ...Array.from({length: maxJ}, (_,i) => `${i+1}`), 'Нийт', 'Дундаж'];
+  const headerRow = ws1.addRow(headers);
+  headerRow.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F8EF7' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+  });
+  headerRow.height = 22;
+
+  let n = 1;
+  for (let km = c.s; km <= c.e; km++) {
+    ['bar','zun'].forEach((dir, di) => {
+      const count = dir === 'bar' ? c.bar : c.zun;
+      const vals = [];
+      for (let i = 0; i < maxJ; i++) {
+        if (i >= count) { vals.push(null); continue; }
+        const v = d[km]?.[i+1]?.[dir];
+        vals.push((v === null || v === undefined) ? null : v);
+      }
+      const nums = vals.filter(v => v !== null);
+      const total = nums.length ? nums.reduce((a,x) => a+x, 0) : null;
+      const avg = nums.length ? +(nums.reduce((a,x) => a+x, 0) / nums.length).toFixed(1) : null;
+      const row = ws1.addRow([n++, km, di === 0 ? 'баруун' : 'зүүн', ...vals, total, avg]);
+
+      row.eachCell({includeEmpty: true}, (cell, colNum) => {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { top:{style:'thin', color:{argb:'FFE0E0E0'}}, left:{style:'thin', color:{argb:'FFE0E0E0'}}, bottom:{style:'thin', color:{argb:'FFE0E0E0'}}, right:{style:'thin', color:{argb:'FFE0E0E0'}} };
+        // Joint value cells (cols 4 to maxJ+3)
+        if (colNum >= 4 && colNum <= maxJ + 3) {
+          const v = cell.value;
+          if (typeof v === 'number') {
+            if (v >= 36) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
+              cell.font = { bold: true, color: { argb: 'FFC62828' } };
+            } else if (v >= 22) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
+              cell.font = { bold: true, color: { argb: 'FFE65100' } };
+            }
+          }
+        }
+        // Direction column color
+        if (colNum === 3) {
+          if (cell.value === 'баруун') cell.font = { bold: true, color: { argb: 'FF1565C0' } };
+          else if (cell.value === 'зүүн') cell.font = { bold: true, color: { argb: 'FF2E7D32' } };
+        }
+        // Total/Avg
+        if (colNum === maxJ + 4 || colNum === maxJ + 5) {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
+        }
+      });
+    });
+  }
+
+  // Column widths
+  ws1.getColumn(1).width = 5;
+  ws1.getColumn(2).width = 7;
+  ws1.getColumn(3).width = 9;
+  for (let i = 4; i <= maxJ + 3; i++) ws1.getColumn(i).width = 4.5;
+  ws1.getColumn(maxJ + 4).width = 8;
+  ws1.getColumn(maxJ + 5).width = 9;
+  ws1.views = [{ state: 'frozen', xSplit: 3, ySplit: 2 }];
+
+  // ===== Sheet 2: Дүн =====
+  const ws2 = wb.addWorksheet('Дүн');
+  ws2.mergeCells(1, 1, 1, 6);
+  const t2 = ws2.getCell(1,1);
+  t2.value = `Дүн — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`;
+  t2.font = { bold: true, size: 13 };
+  t2.alignment = { horizontal: 'center', vertical: 'middle' };
+  t2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
+  ws2.getRow(1).height = 26;
+
+  const h2 = ws2.addRow(['КМ', 'Баруун нийт', 'Баруун дундаж', 'Зүүн нийт', 'Зүүн дундаж', 'Хэтрүүлсэн']);
+  h2.eachCell(cell => {
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F8EF7' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+  });
+  h2.height = 22;
+
+  let totBOver = 0, totZOver = 0;
+  for (let km = c.s; km <= c.e; km++) {
+    const bv = [], zv = [];
+    for (let j = 1; j <= c.bar; j++) { const v = d[km]?.[j]?.bar; if (v !== null && v !== undefined) bv.push(v); }
+    for (let j = 1; j <= c.zun; j++) { const v = d[km]?.[j]?.zun; if (v !== null && v !== undefined) zv.push(v); }
+    const bT = bv.length ? bv.reduce((a,x)=>a+x,0) : null;
+    const zT = zv.length ? zv.reduce((a,x)=>a+x,0) : null;
+    const bA = bv.length ? +(bv.reduce((a,x)=>a+x,0)/bv.length).toFixed(1) : null;
+    const zA = zv.length ? +(zv.reduce((a,x)=>a+x,0)/zv.length).toFixed(1) : null;
+    const over = [...bv, ...zv].filter(v => v > MAX_THR).length;
+    totBOver += bv.filter(v=>v>MAX_THR).length;
+    totZOver += zv.filter(v=>v>MAX_THR).length;
+    const row = ws2.addRow([km, bT, bA, zT, zA, over || null]);
+    row.eachCell({includeEmpty:true}, (cell, colNum) => {
+      cell.alignment = { horizontal: 'center' };
+      cell.border = { top:{style:'thin', color:{argb:'FFE0E0E0'}}, left:{style:'thin', color:{argb:'FFE0E0E0'}}, bottom:{style:'thin', color:{argb:'FFE0E0E0'}}, right:{style:'thin', color:{argb:'FFE0E0E0'}} };
+      if (colNum === 1) cell.font = { bold: true };
+      if (colNum === 6 && typeof cell.value === 'number' && cell.value > 0) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
+        cell.font = { bold: true, color: { argb: 'FFC62828' } };
+      }
+    });
+  }
+
+  // Totals row
+  const totRow = ws2.addRow(['НИЙТ', '', '', '', '', totBOver + totZOver || null]);
+  totRow.eachCell({includeEmpty:true}, (cell, colNum) => {
+    cell.font = { bold: true, size: 12, color: { argb: 'FF0E1018' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF59D' } };
+    cell.alignment = { horizontal: 'center' };
+    cell.border = { top:{style:'medium'}, left:{style:'thin'}, bottom:{style:'medium'}, right:{style:'thin'} };
+  });
+
+  ws2.getColumn(1).width = 8;
+  ws2.getColumn(2).width = 14;
+  ws2.getColumn(3).width = 14;
+  ws2.getColumn(4).width = 14;
+  ws2.getColumn(5).width = 14;
+  ws2.getColumn(6).width = 13;
+  ws2.views = [{ state: 'frozen', ySplit: 2 }];
+
+  // Save
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ── Status Toast ── */
+let statusTimer = null;
+function showStatus(msg, bg) {
+  const t = document.getElementById('statusToast');
+  t.textContent = msg;
+  t.style.background = bg;
+  t.style.display = 'block';
+  t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'toastIn .2s ease';
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+/* ── Share via Messenger (Web Share API) ── */
+async function shareData() {
+  closeExpMod();
+  const payload = { v: 1, config: C, data: data, sentAt: new Date().toISOString() };
+  const json = JSON.stringify(payload);
+  const filename = `уулзвар_${C.road}зам_${C.s}-${C.e}км_${C.date}.json`;
+  const blob = new Blob([json], { type: 'application/json' });
+  const file = new File([blob], filename, { type: 'application/json' });
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: `Уулзвар: Зам №${C.road} · ${C.s}–${C.e} км`,
+        text: `Огноо: ${C.date}`
+      });
+    } catch(e) {
+      if (e.name !== 'AbortError') showStatus('❌ Явуулж чадсангүй', '#f04545');
+    }
+  } else {
+    // Fallback: download the file
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    showStatus('📁 Файл татагдлаа — Messenger-т илгээнэ үү', '#4f8ef7');
+  }
+}
+
+/* ── Import from file ── */
+function importData() {
+  document.getElementById('importFile').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // reset so same file can be picked again
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const payload = JSON.parse(ev.target.result);
+      if (payload.v !== 1 || !payload.config || !payload.data) throw new Error('Формат буруу');
+      mergeIntoSessions(payload);
+    } catch(err) {
+      showImportModal('❌', 'Алдаа гарлаа', 'Файл буруу форматтай байна. Зөвхөн ажилчны апп-аас гаргасан .json файл байх ёстой.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function mergeIntoSessions(payload) {
+  const c = payload.config;
+  const sessions = getSessions();
+  // Find matching session by road+range+date
+  const matchIdx = sessions.findIndex(s =>
+    s.config.road === c.road && s.config.s === c.s &&
+    s.config.e === c.e && s.config.date === c.date
+  );
+
+  let merged = 0;
+  const maxJ = Math.max(c.bar, c.zun);
+
+  if (matchIdx >= 0) {
+    // Merge data into existing session
+    const sess = sessions[matchIdx];
+    for (let km = c.s; km <= c.e; km++) {
+      if (!sess.data[km]) sess.data[km] = {};
+      for (let j = 1; j <= maxJ; j++) {
+        if (!sess.data[km][j]) sess.data[km][j] = { bar: null, zun: null };
+        const nb = payload.data[km]?.[j]?.bar;
+        const nz = payload.data[km]?.[j]?.zun;
+        if (nb !== null && nb !== undefined) { sess.data[km][j].bar = nb; merged++; }
+        if (nz !== null && nz !== undefined) { sess.data[km][j].zun = nz; merged++; }
+      }
+    }
+    sess.savedAt = new Date().toISOString();
+    saveSessions(sessions);
+    showImportModal('✅', 'Нэмэгдлээ!', `Зам №${c.road} · ${c.s}–${c.e} км\n${merged} хэмжилт нэмэгдлээ.`);
+  } else {
+    // New session
+    const newSess = {
+      id: 'sess_import_' + Date.now(),
+      startedAt: payload.sentAt || new Date().toISOString(),
+      savedAt: new Date().toISOString(),
+      config: c,
+      data: payload.data
+    };
+    // Count
+    for (let km = c.s; km <= c.e; km++) {
+      for (let j = 1; j <= maxJ; j++) {
+        const b = payload.data[km]?.[j]?.bar;
+        const z = payload.data[km]?.[j]?.zun;
+        if (b !== null && b !== undefined) merged++;
+        if (z !== null && z !== undefined) merged++;
+      }
+    }
+    sessions.unshift(newSess);
+    saveSessions(sessions);
+    showImportModal('✅', 'Шинэ хэмжилт нэмэгдлээ!', `Зам №${c.road} · ${c.s}–${c.e} км\n${merged} хэмжилт хадгалагдлаа.`);
+  }
+}
+
+function showImportModal(icon, title, msg) {
+  document.getElementById('importIcon').textContent = icon;
+  document.getElementById('importTitle').textContent = title;
+  document.getElementById('importMsg').textContent = msg;
+  document.getElementById('importMod').style.display = 'flex';
+}
+</script>
+</body>
+</html>
