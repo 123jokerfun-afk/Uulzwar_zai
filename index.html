@@ -24,13 +24,17 @@
    (нэвтрэх шаардлагагүй, өгөгдөл утсанд хадгалагдана).
    ═══════════════════════════════════════════════════════════════ */
 const FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAv59l-koXmXCOZ8Enxr3APEJa9CQbgfBw",
+  authDomain: "uulzwar-zai.firebaseapp.com",
+  projectId: "uulzwar-zai",
+  storageBucket: "uulzwar-zai.firebasestorage.app",
+  messagingSenderId: "1024973519879",
+  appId: "1:1024973519879:web:739dae81ea685df4bdbea2"
 };
+
+/* Өгөгдөл хэдэн хоног хадгалагдах вэ. Энэ хугацаа өнгөрөнгүүт Firestore
+   өөрөө устгана (Console → Firestore → TTL бодлого, талбар: expireAt). */
+const TTL_DAYS = 30;
 </script>
 <style>
 :root {
@@ -93,6 +97,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .adm-det { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .adm-cnt { font-size: 12px; font-weight: 800; color: var(--green); flex-shrink: 0; }
 .adm-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 1.5rem 0; line-height: 1.6; }
+.adm-note { font-size: 11px; color: var(--warn); background: rgba(240,165,0,.1); border: 1px solid rgba(240,165,0,.35); border-radius: 8px; padding: 8px 10px; margin-bottom: .6rem; line-height: 1.5; }
 
 /* ── SETUP ── */
 #setup { display: none; height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 480px; margin: 0 auto; }
@@ -324,6 +329,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <div class="card" id="admCard" style="display:none">
     <div class="ct">Хэсгийн өгөгдөл (админ)</div>
     <div class="cloud-row"><span class="cloud-dot" id="admDot"></span><span id="admStatus">Ачаалаагүй байна</span></div>
+    <div class="adm-note" id="admTtlNote">⏳ Ирсэн өгөгдөл <b>30 хоног</b> хадгалагдаад автоматаар устна. Excel-ээ цаг тухайд нь татаж авна уу.</div>
     <div class="adm-list" id="admList"></div>
     <div class="exp-btns">
       <button class="eb1" onclick="loadSectionData()">🔄 Хэсгийн өгөгдөл шинэчлэх</button>
@@ -748,8 +754,14 @@ function applyProfile() {
   document.getElementById('sPd').style.display = 'none';
   document.getElementById('sPdLocked').style.display = 'flex';
   document.getElementById('sPdLockedTxt').textContent = 'ПД-' + p.pd;
+
+  /* Нэг хэсэгт нэг хаягийг олон ажилтан хуваалцаж хэрэглэдэг тул нэрийг
+     бүртгэлээс биш, ажилтан өөрөө бичнэ. Утсандаа хадгалагдаж, дараа нь
+     автоматаар орж ирнэ. Ингэснээр Excel дээр хэн юу хэмжсэн нь ялгарна. */
   const w = document.getElementById('sWorker');
-  w.value = p.name; w.readOnly = true; w.style.opacity = '.7';
+  w.readOnly = false; w.style.opacity = '1';
+  w.placeholder = 'Өөрийн нэрээ бичнэ үү';
+  w.value = getDeviceName() || '';
 
   document.getElementById('admCard').style.display = isAdmin() ? 'block' : 'none';
   document.getElementById('btnCloudSend').style.display = 'block';
@@ -810,9 +822,12 @@ async function uploadCurrent(silent) {
   const docId = CLOUD.user.uid + '__' + currentSessionId;
   const payload = {
     pd: myPd(), road: C.road, date: C.date, s: C.s, e: C.e, bar: C.bar, zun: C.zun, max: C.max || 37,
-    worker: CLOUD.profile.name, email: CLOUD.profile.email, uid: CLOUD.user.uid,
+    worker: C.worker || CLOUD.profile.name, account: CLOUD.profile.name,
+    email: CLOUD.profile.email, uid: CLOUD.user.uid,
     sessionId: currentSessionId, km: kmToCloud(C, data), count: cnt,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    // Firestore TTL бодлого энэ талбарыг хараад хугацаа нь дуусмагц устгана
+    expireAt: firebase.firestore.Timestamp.fromMillis(Date.now() + TTL_DAYS * 24 * 3600 * 1000)
   };
   try {
     await CLOUD.db.collection('measurements').doc(docId).set(payload, { merge: true });
@@ -874,12 +889,32 @@ function renderAdmList() {
 
 /* ── Session Storage ── */
 const SESS_KEY = 'uulzvar_sessions';
+const DEV_NAME_KEY = 'uulzvar_device_name';
+
+/* Хуваалцсан хаягтай үед ажилтны нэрийг тухайн утсанд сануулна */
+function getDeviceName() {
+  try { return localStorage.getItem(DEV_NAME_KEY) || ''; } catch { return ''; }
+}
+function setDeviceName(n) {
+  try { localStorage.setItem(DEV_NAME_KEY, n); } catch {}
+}
 
 function getSessions() {
   try { return JSON.parse(localStorage.getItem(SESS_KEY) || '[]'); } catch { return []; }
 }
 function saveSessions(arr) {
   try { localStorage.setItem(SESS_KEY, JSON.stringify(arr)); } catch {}
+}
+
+/* Үүлэн дээрх TTL-тэй ижил хугацаа — утсан дээр ч 30 хоногоос хуучин нь үлдэхгүй */
+function purgeOldSessions() {
+  const cutoff = Date.now() - TTL_DAYS * 24 * 3600 * 1000;
+  const all = getSessions();
+  const kept = all.filter(s => {
+    const t = new Date(s.savedAt || s.startedAt || 0).getTime();
+    return !Number.isFinite(t) || t >= cutoff;
+  });
+  if (kept.length !== all.length) saveSessions(kept);
 }
 
 function autoSave() {
@@ -995,6 +1030,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 function boot() {
   document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
+  purgeOldSessions();
   if (cloudConfigured()) {
     showLogin();
     initCloud();
@@ -1010,12 +1046,21 @@ function startApp() {
   const s = parseInt(document.getElementById('sS').value)||681;
   const e = parseInt(document.getElementById('sE').value)||701;
   if (e < s) { alert('Дуусах км эхлэх км-ээс их байх ёстой'); return; }
+  // Нэг хаягийг олон хүн хуваалцдаг тул нэр заавал шаардлагатай
+  const workerName = (document.getElementById('sWorker').value||'').trim();
+  if (CLOUD.on && !workerName) {
+    alert('Өөрийн нэрээ бичнэ үү.\n\nНэг хаягаар олон ажилтан ордог тул Excel дээр хэн хэмжсэн нь нэрээр ялгагдана.');
+    document.getElementById('sWorker').focus();
+    return;
+  }
+  if (workerName) setDeviceName(workerName);
   C = {
     date: document.getElementById('sDate').value,
     road: document.getElementById('sRoad').value||'—',
     // Нэвтэрсэн бол ПД-г профайлаас авна (сонголт нь түгжээтэй)
     pd: CLOUD.profile ? CLOUD.profile.pd : (parseInt(document.getElementById('sPd').value,10)||null),
-    worker: CLOUD.profile ? CLOUD.profile.name : (document.getElementById('sWorker').value||'').trim(),
+    worker: workerName,
+    account: CLOUD.profile ? CLOUD.profile.name : null,
     s, e,
     bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
     zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
@@ -1027,7 +1072,7 @@ function startApp() {
     for (let j=1; j<=Math.max(C.bar,C.zun); j++) data[km][j]={bar:null,zun:null};
   }
   curKm=s; curJ=1; curDir='bar'; drumCur=0;
-  currentSessionId = 'sess_' + Date.now();
+  currentSessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   document.getElementById('setup').style.display='none';
   document.getElementById('app').style.display='flex';
   buildStrip();
