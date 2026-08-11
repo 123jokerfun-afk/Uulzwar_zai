@@ -229,20 +229,46 @@ Firestore-ийн TTL тохиргоо ихэвчлэн **Google Cloud Console** 
   https://console.cloud.google.com/firestore/databases/-default-/ttl?project=uulzwar-zai
   ```
 
+### ⚠️ Энэ алхмыг ХАМГИЙН СҮҮЛД хийнэ
+
+**Collection group** нь унадаг жагсаалт бөгөөд **аль хэдийн үүссэн**
+цуглуулгуудыг л харуулдаг. `measurements` цуглуулга нь эхний хэмжилт
+илгээгдэх үед сая үүснэ.
+
+Тиймээс: 6-р алхмаа дуусгаад → аппаараа **нэг туршилтын хэмжилт илгээгээд**
+→ дараа нь энд эргэж ирнэ. Эс тэгвээс жагсаалт хоосон байна.
+
 ### Тохиргоо
 
 1. **CREATE POLICY** дарна.
-2. Бөглөнө:
+2. Дөрвөн талбарыг бөглөнө:
 
-   | Талбар | Утга |
-   |---|---|
-   | Collection group | `measurements` |
-   | Timestamp field | `expireAt` |
+   ```
+   Collection group *  [ measurements  ▾ ]
+   Timestamp field  *  [ updatedAt       ]
+   Expiry offset    *  [ 30              ]
+   Unit             *  [ days          ▾ ]
+   ```
+
+   | Талбар | Утга | Тайлбар |
+   |---|---|---|
+   | Collection group | `measurements` | жагсаалтаас сонгоно |
+   | Timestamp field | `updatedAt` | цагийн талбарын нэр |
+   | Expiry offset | `30` | хэдэн нэгжийн дараа устгах |
+   | Unit | `days` | нэгж |
 
 3. **CREATE** дарна. Статус эхлээд *Creating*, хэдэн минутын дараа *Active*
    болно.
 
-> ⚠️ `expireAt`-ийн **`A` нь том үсэг**. Бусад нь бүгд жижиг.
+> **Unit-д `days` байхгүй бол:** Offset = `2592000`, Unit = `seconds`
+> (30 хоног = 2,592,000 секунд).
+>
+> **Өөр хувилбар:** Timestamp field = `expireAt`, Expiry offset = `0`.
+> Апп `expireAt`-ыг аль хэдийн «одоо + 30 хоног» гэж бичдэг тул үр дүн ижил.
+>
+> Хуучин хувилбарын Console дээр зөвхөн **Collection group** ба
+> **Timestamp field** гэсэн 2 талбар байдаг. Тэр тохиолдолд
+> `measurements` / `expireAt` гэж бөглөнө.
 
 ### Юу болох вэ
 
@@ -355,6 +381,10 @@ Firebase-ийн үнэгүй багц (Spark):
 **TTL таб олдохгүй байна**
 → Firebase Console дээр байхгүй байж болно. Google Cloud Console-ийн шууд
 линкийг ашиглана (7-р алхам).
+
+**TTL-ийн Collection group жагсаалт хоосон байна**
+→ `measurements` цуглуулга хараахан үүсээгүй байна. Аппаараа нэг хэмжилт
+илгээсний дараа эргэж ирнэ (7-р алхам).
 
 **«Firebase сан ачаалагдсангүй»**
 → Тухайн утас анх удаа интернэтгүй нээгдсэн. Нэг удаа интернэттэй үед нээвэл
