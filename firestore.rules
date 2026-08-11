@@ -40,7 +40,18 @@ service cloud.firestore {
        ажиллана — тоо болгож хөрвүүлээд харьцуулна. */
     function asPd(v) { return v is int ? v : int(v); }
     function myPd() { return asPd(profile().pd); }
-    function isAdmin() { return activeUser() && profile().role == 'admin'; }
+    /* role-ийг том/жижиг үсэг, англи/монгол хамаарахгүйгээр таньна:
+       "admin", "Admin", "ADMIN", "админ", "Админ", "АДМИН" — бүгд админ.
+       Тайлбар: дүрмийн .lower() нь зөвхөн латин үсэгт ажилладаг тул
+       кирилл хувилбаруудыг тусад нь бичив. */
+    function isAdmin() {
+      return activeUser() && (
+        profile().role.lower() == 'admin'
+        || profile().role == 'админ'
+        || profile().role == 'Админ'
+        || profile().role == 'АДМИН'
+      );
+    }
 
     /* ── Хэрэглэгчийн эрх ──
        Баримтын ID = цахим хаяг (жижиг үсгээр). Жишээ: pd6.bataa@uulzvar.mn

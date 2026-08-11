@@ -655,9 +655,11 @@ async function loadProfile(user) {
     await CLOUD.auth.signOut();
     return null;
   }
+  // role-ийг том/жижиг үсэг, англи/монгол хамаарахгүйгээр таньна
+  const rawRole = String(p.role || '').trim().toLowerCase();
   return {
     pd,
-    role: p.role === 'admin' ? 'admin' : 'worker',
+    role: (rawRole === 'admin' || rawRole === 'админ') ? 'admin' : 'worker',
     name: (p.name || '').trim() || email.split('@')[0],
     email
   };
