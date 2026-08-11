@@ -35,8 +35,23 @@ service cloud.firestore {
     function activeUser() {
       return hasProfile() && profile().get('active', true) != false;
     }
-    function myPd() { return profile().pd; }
-    function isAdmin() { return activeUser() && profile().role == 'admin'; }
+    /* ПД дугаарыг тоо болгож жигдрүүлнэ.
+       Console дээр pd-г санамсаргүйгээр string ("6") болгож хадгалсан ч
+       ажиллана — тоо болгож хөрвүүлээд харьцуулна. */
+    function asPd(v) { return v is int ? v : int(v); }
+    function myPd() { return asPd(profile().pd); }
+    /* role-ийг том/жижиг үсэг, англи/монгол хамаарахгүйгээр таньна:
+       "admin", "Admin", "ADMIN", "админ", "Админ", "АДМИН" — бүгд админ.
+       Тайлбар: дүрмийн .lower() нь зөвхөн латин үсэгт ажилладаг тул
+       кирилл хувилбаруудыг тусад нь бичив. */
+    function isAdmin() {
+      return activeUser() && (
+        profile().role.lower() == 'admin'
+        || profile().role == 'админ'
+        || profile().role == 'Админ'
+        || profile().role == 'АДМИН'
+      );
+    }
 
     /* ── Хэрэглэгчийн эрх ──
        Баримтын ID = цахим хаяг (жижиг үсгээр). Жишээ: pd6.bataa@uulzvar.mn
@@ -46,7 +61,7 @@ service cloud.firestore {
       // Өөрийн бүртгэлээ уншина. Админ өөрийн ПД-ийн хүмүүсийг уншина.
       allow read: if signedIn() && (
                     email == myEmail() ||
-                    (isAdmin() && resource.data.pd == myPd())
+                    (isAdmin() && asPd(resource.data.pd) == myPd())
                   );
       // Эрх олгох/өөрчлөхийг зөвхөн Firebase Console-оос хийнэ.
       allow write: if false;
@@ -68,14 +83,14 @@ service cloud.firestore {
             && request.resource.data.count is int;
       }
 
-      allow read:   if activeUser() && (mine() || (isAdmin() && resource.data.pd == myPd()));
+      allow read:   if activeUser() && (mine() || (isAdmin() && asPd(resource.data.pd) == myPd()));
       allow create: if activeUser() && validNew();
       // Зөвхөн өөрийн илгээлтээ шинэчилнэ. ПД, хаяг, uid-г солих боломжгүй.
       allow update: if activeUser() && mine() && validNew()
                     && request.resource.data.pd == resource.data.pd
                     && request.resource.data.uid == resource.data.uid;
       // Устгах эрх зөвхөн тухайн ПД-ийн админд.
-      allow delete: if isAdmin() && resource.data.pd == myPd();
+      allow delete: if isAdmin() && asPd(resource.data.pd) == myPd();
     }
 
     // Бусад бүх зам хаалттай.
