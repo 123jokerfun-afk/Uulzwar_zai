@@ -1,0 +1,86 @@
+rules_version = '2';
+
+/*
+  Уулзварын зайн хэмжилт — Firestore аюулгүй байдлын дүрэм
+
+  Зарчим:
+    • Нэвтрээгүй хүн юу ч уншиж, бичиж чадахгүй.
+    • Хэрэглэгчийн эрх (ПД дугаар, role) нь ЗӨВХӨН users/{email} баримтад
+      тодорхойлогдоно. Түүнийг апп-аас өөрчлөх боломжгүй (write: false) —
+      зөвхөн Firebase Console-оос админ гараар үүсгэнэ.
+    • Ажилтан зөвхөн ӨӨРИЙН илгээлтээ уншиж/бичнэ.
+    • Админ зөвхөн ӨӨРИЙН ПД-ийн илгээлтүүдийг уншиж/устгана.
+    • Хэн ч өөр ПД-ийн өгөгдөлд хүрэхгүй.
+
+  Суулгах: Firebase Console → Firestore Database → Rules → энэ файлыг
+  бүхэлд нь хуулж тавиад Publish дарна.
+*/
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(myEmail())).data;
+    }
+    function hasProfile() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(myEmail()));
+    }
+    // active талбар байхгүй бол идэвхтэйд тооцно (.get-гүй бол дүрэм алдаа өгнө)
+    function activeUser() {
+      return hasProfile() && profile().get('active', true) != false;
+    }
+    function myPd() { return profile().pd; }
+    function isAdmin() { return activeUser() && profile().role == 'admin'; }
+
+    /* ── Хэрэглэгчийн эрх ──
+       Баримтын ID = цахим хаяг (жижиг үсгээр). Жишээ: pd6.bataa@uulzvar.mn
+       Талбарууд: pd (1-13, тоо), role ('admin'|'worker'), name (текст),
+                  active (true/false, заавал биш)                          */
+    match /users/{email} {
+      // Өөрийн бүртгэлээ уншина. Админ өөрийн ПД-ийн хүмүүсийг уншина.
+      allow read: if signedIn() && (
+                    email == myEmail() ||
+                    (isAdmin() && resource.data.pd == myPd())
+                  );
+      // Эрх олгох/өөрчлөхийг зөвхөн Firebase Console-оос хийнэ.
+      allow write: if false;
+    }
+
+    /* ── Хэмжилтийн илгээлтүүд ──
+       Баримтын ID = {uid}__{sessionId}                                     */
+    match /measurements/{docId} {
+
+      function mine() {
+        return resource.data.email == myEmail();
+      }
+      // Бичиж буй өгөгдөл өөрийн ПД, өөрийн хаягтай таарч байгаа эсэх
+      function validNew() {
+        return request.resource.data.pd == myPd()
+            && request.resource.data.email == myEmail()
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.pd is int
+            && request.resource.data.count is int;
+      }
+
+      allow read:   if activeUser() && (mine() || (isAdmin() && resource.data.pd == myPd()));
+      allow create: if activeUser() && validNew();
+      // Зөвхөн өөрийн илгээлтээ шинэчилнэ. ПД, хаяг, uid-г солих боломжгүй.
+      allow update: if activeUser() && mine() && validNew()
+                    && request.resource.data.pd == resource.data.pd
+                    && request.resource.data.uid == resource.data.uid;
+      // Устгах эрх зөвхөн тухайн ПД-ийн админд.
+      allow delete: if isAdmin() && resource.data.pd == myPd();
+    }
+
+    // Бусад бүх зам хаалттай.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
