@@ -236,6 +236,24 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sess-badge.pend { color: var(--warn); background: rgba(240,165,0,.15); }
 .sess-hint { font-size: 11px; color: var(--muted); text-align: center; padding: 6px 0 2px; }
 
+/* Excel-д нэгтгэх огноо сонгох цонх */
+#dpMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 230; align-items: flex-end; justify-content: center; }
+#dpMod.on { display: flex; }
+.dp-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 88vh; display: flex; flex-direction: column; }
+.dp-title { font-size: 15px; font-weight: 800; margin-bottom: 3px; flex-shrink: 0; }
+.dp-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; flex-shrink: 0; }
+.dp-tools { display: flex; gap: 8px; margin-bottom: 8px; flex-shrink: 0; }
+.dp-tools button { flex: 1; padding: 9px; font-size: 12px; font-weight: 700; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
+.dp-tools button:active { background: var(--border); }
+.dp-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.dp-item { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 6px; cursor: pointer; }
+.dp-item.sel { border-color: var(--green); background: rgba(34,201,122,.10); }
+.dp-item input { width: 20px; height: 20px; accent-color: var(--green); flex-shrink: 0; }
+.dp-date { font-size: 13.5px; font-weight: 800; }
+.dp-det { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.dp-go { width: 100%; padding: 14px; font-size: 14px; font-weight: 800; border-radius: 10px; border: none; background: var(--green); color: #fff; cursor: pointer; margin-top: 10px; flex-shrink: 0; }
+.dp-go:disabled { opacity: .5; cursor: default; }
+
 /* Удаан дарахад гарах сонголтын цэс */
 #sessActMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 220; align-items: flex-end; justify-content: center; }
 #sessActMod.on { display: flex; }
@@ -358,7 +376,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <div class="adm-list" id="admList"></div>
     <div class="exp-btns">
       <button class="eb1" onclick="loadSectionData()">🔄 Хэсгийн өгөгдөл шинэчлэх</button>
-      <button class="eb-xlsx" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+      <button class="eb-xlsx" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
     </div>
   </div>
 
@@ -395,7 +413,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
   <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
   <button class="btn-sess" id="btnImport" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
-  <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+  <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
 
   <div id="installBanner">
@@ -472,10 +490,25 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <div class="sess-inner">
     <div class="sess-title">📂 Өмнөх хэмжилтүүд</div>
     <button class="sess-sendall" id="btnSendAll" style="display:none" onclick="uploadAllSessions()">☁️ Илгээгээгүй хэмжилтүүдийг илгээх</button>
-    <button class="sess-comb" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+    <button class="sess-comb" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
     <div class="sess-list" id="sessList"></div>
     <div class="sess-hint">Мөрөн дээр удаан дарж сонголтын цэс нээнэ</div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Excel-д нэгтгэх огноо сонгох цонх -->
+<div id="dpMod">
+  <div class="dp-inner">
+    <div class="dp-title">📊 Аль өдрүүдийг нэгтгэх вэ?</div>
+    <div class="dp-sub" id="dpSub"></div>
+    <div class="dp-tools">
+      <button onclick="dpSelectAll(true)">Бүгдийг сонгох</button>
+      <button onclick="dpSelectAll(false)">Сонголт цуцлах</button>
+    </div>
+    <div class="dp-list" id="dpList"></div>
+    <button class="dp-go" id="dpGo" onclick="dpDownload()">📊 Нэгтгэж татах</button>
+    <div class="mod-close" onclick="closeDatePickMod()">Болих</div>
   </div>
 </div>
 
@@ -1970,6 +2003,80 @@ function combinedSource() {
   return getSessions();
 }
 
+/* ══ Excel-д нэгтгэх огноо сонгох ══
+   Хэмжилтүүдийг хэмжсэн огноогоор нь бүлэглээд, сонгосон өдрүүдийг нь
+   ганц хүснэгтэд нийлүүлж татна. */
+const DP_NODATE = '—';   // огноогүй хуучин бичлэгүүдийн түлхүүр
+
+function dpGroups() {
+  const m = new Map();
+  combinedSource().forEach(s => {
+    const c = s.config || {};
+    const key = (c.date || '').trim() || DP_NODATE;
+    let g = m.get(key);
+    if (!g) { g = { date: key, sessions: 0, values: 0, workers: new Set(), roads: new Set() }; m.set(key, g); }
+    g.sessions++;
+    g.values += countMeasurements(s);
+    const w = (c.worker || '').trim(); if (w) g.workers.add(w);
+    if (c.road != null && c.road !== '') g.roads.add(String(c.road));
+    return g;
+  });
+  // Шинэ өдөр нь дээрээ
+  return Array.from(m.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function openDatePickMod() {
+  const groups = dpGroups();
+  if (!groups.length || !groups.some(g => g.values)) {
+    showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#f0a500');
+    return;
+  }
+  document.getElementById('dpList').innerHTML = groups.map(g => `
+    <label class="dp-item sel">
+      <input type="checkbox" value="${esc(g.date)}" checked onchange="dpUpdate()">
+      <div style="flex:1">
+        <div class="dp-date">${g.date === DP_NODATE ? 'Огноогүй' : esc(g.date)}</div>
+        <div class="dp-det">${g.sessions} хэмжилт · ${g.values} утга${g.roads.size ? ' · Зам ' + esc(Array.from(g.roads).sort().join(', ')) : ''}${g.workers.size ? ' · ' + esc(Array.from(g.workers).join(', ')) : ''}</div>
+      </div>
+    </label>`).join('');
+  dpUpdate();
+  document.getElementById('dpMod').classList.add('on');
+}
+function closeDatePickMod() { document.getElementById('dpMod').classList.remove('on'); }
+
+function dpSelected() {
+  return Array.from(document.querySelectorAll('#dpList input:checked')).map(i => i.value);
+}
+function dpUpdate() {
+  const groups = dpGroups(), sel = new Set(dpSelected());
+  let vals = 0, sess = 0;
+  groups.forEach(g => { if (sel.has(g.date)) { vals += g.values; sess += g.sessions; } });
+  document.querySelectorAll('#dpList .dp-item').forEach(el => {
+    el.classList.toggle('sel', el.querySelector('input').checked);
+  });
+  document.getElementById('dpSub').textContent = sel.size
+    ? `${sel.size} өдөр · ${sess} хэмжилт · ${vals} утга нэг хүснэгтэд нийлнэ`
+    : 'Дор хаяж нэг өдөр сонгоно уу';
+  document.getElementById('dpGo').disabled = !sel.size;
+}
+function dpSelectAll(on) {
+  document.querySelectorAll('#dpList input').forEach(i => { i.checked = on; });
+  dpUpdate();
+}
+async function dpDownload() {
+  const dates = dpSelected();
+  if (!dates.length) return;
+  closeDatePickMod();
+  await exportCombinedExcel(dates);
+}
+
+/* Сонгосон огноонуудад тохирох хэмжилтүүд */
+function sessionsForDates(dates) {
+  if (!dates || !dates.length) return combinedSource();
+  const set = new Set(dates);
+  return combinedSource().filter(s => set.has(((s.config || {}).date || '').trim() || DP_NODATE));
+}
+
 function buildCombined(src) {
   // Хуучнаас нь шинэ рүү эрэмбэлнэ — давхардсан нүдэнд хамгийн сүүлийн утга үлдэнэ.
   const sessions = (src || combinedSource()).slice().sort((a, b) =>
@@ -2045,12 +2152,13 @@ function styleHeaderRow(row) {
   row.height = 24;
 }
 
-async function exportCombinedExcel() {
+/* dates — сонгосон огноонууд. Хоосон бол бүх хэмжилтийг нэгтгэнэ. */
+async function exportCombinedExcel(dates) {
   if (typeof ExcelJS === 'undefined') {
     alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
     return;
   }
-  const comb = buildCombined();
+  const comb = buildCombined(sessionsForDates(dates));
   if (!comb.rows.length) {
     showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#f0a500');
     return;
@@ -2218,10 +2326,15 @@ async function exportCombinedExcel() {
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${new Date().toISOString().split('T')[0]}.xlsx`;
+  // Файлын нэрэнд нэгтгэсэн өдрүүд нь тусгагдана
+  const dl = Array.from(comb.dates).sort();
+  const dTag = dl.length
+    ? (dl.length > 1 ? `${dl[0]}_${dl[dl.length - 1]}` : dl[0])
+    : new Date().toISOString().split('T')[0];
+  a.download = `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${dTag}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  showStatus(`📊 ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#22c97a');
+  showStatus(`📊 ${dl.length || 1} өдөр · ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#22c97a');
 }
 
 /* ── Status Toast ── */
