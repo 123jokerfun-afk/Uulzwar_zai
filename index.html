@@ -304,6 +304,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .km-rst-btn:active { background: var(--s2); }
 
 /* Sessions button in setup */
+.ver-tag { text-align: center; font-size: 10.5px; color: var(--muted); opacity: .6; margin-top: 1rem; }
 .btn-sess { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 11px; cursor: pointer; margin-top: .4rem; }
 
 /* Export btn row */
@@ -415,6 +416,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <button class="btn-sess" id="btnImport" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
   <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
+  <!-- Утсан дээр аль хувилбар ажиллаж байгааг шалгах -->
+  <div class="ver-tag" id="verTag"></div>
 
   <div id="installBanner">
     <div class="ib-txt">📲 Нүүр дэлгэцэнд суулгах<span>Офлайн ажиллана</span></div>
@@ -709,25 +712,69 @@ function initCloud() {
   CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 
   CLOUD.auth.onAuthStateChanged(async user => {
-    if (!user) { CLOUD.user = null; CLOUD.profile = null; showLogin(); return; }
+    if (!user) {
+      // Үнэхээр гарсан (эсвэл эрх нь хүчингүй болсон) — дараагийн удаа
+      // нэвтрэх дэлгэц гарна
+      CLOUD.user = null; CLOUD.profile = null;
+      clearCachedProfile();
+      showLogin();
+      return;
+    }
     CLOUD.user = user;
     try {
       const prof = await loadProfile(user);
-      if (!prof) return; // loadProfile өөрөө алдаагаа харуулж, гаргана
+      if (!prof) return; // loadProfile өөрөө алдаагаа харуулна
       CLOUD.profile = prof;
       applyProfile();
       showSetup();
       if (isAdmin()) loadSectionData();
     } catch (e) {
-      showLoginError('Бүртгэл уншихад алдаа гарлаа: ' + (e && e.message ? e.message : e));
-      await CLOUD.auth.signOut();
+      // Санаандгүй алдаа — бүртгэлээс гаргахгүй, хадгалсан эрхээрээ үргэлжилнэ
+      const cached = getCachedProfile();
+      if (cached && cached.email === (user.email || '').toLowerCase()) {
+        CLOUD.profile = cached; applyProfile(); showSetup();
+      } else {
+        showLoginError('Бүртгэл уншихад алдаа гарлаа: ' + (e && e.message ? e.message : e));
+        showLogin();
+      }
     }
   });
 }
 
+/* ── Нэвтэрсэн бүртгэлийн кэш ──
+   Хаяг, ПД, эрхийг утсанд хадгална. Ингэснээр дараагийн удаа апп нээхэд
+   нэвтрэх дэлгэц харуулахгүй шууд ажлын дэлгэц гарч, сүлжээгүй үед ч
+   өмнөх хаягаараа үргэлжлүүлж ажиллана. «Гарах» дарсан үед л цэвэрлэнэ. */
+const PROF_KEY = 'uulzvar_profile';
+function getCachedProfile() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROF_KEY) || 'null');
+    return (p && p.email && Number.isFinite(p.pd)) ? p : null;
+  } catch { return null; }
+}
+function saveCachedProfile(p) {
+  try { localStorage.setItem(PROF_KEY, JSON.stringify(p)); } catch {}
+}
+function clearCachedProfile() {
+  try { localStorage.removeItem(PROF_KEY); } catch {}
+}
+
 async function loadProfile(user) {
   const email = (user.email || '').toLowerCase();
-  const snap = await CLOUD.db.collection('users').doc(email).get();
+  const cached = getCachedProfile();
+  let snap;
+  try {
+    // Сүлжээ удаан бол хэт удаан хүлээхгүй — кэшилсэн эрхээрээ үргэлжилнэ
+    snap = await Promise.race([
+      CLOUD.db.collection('users').doc(email).get(),
+      new Promise((_, rej) => setTimeout(() => rej({ code: '__timeout' }), 8000))
+    ]);
+  } catch (e) {
+    if (cached && cached.email === email) return cached;   // офлайн — өмнөх эрхээрээ
+    showLoginError('Бүртгэл шалгаж чадсангүй. Интернэт холболтоо шалгаад дахин оролдоно уу.');
+    showLogin();
+    return null;
+  }
   if (!snap.exists) {
     showLoginError(`«${email}» хаяг Firebase-д бүртгэлтэй ч эрх нь тохируулагдаагүй байна.\nАдминд хандаж «users» цуглуулгад бүртгэл нэмүүлнэ үү.`);
     await CLOUD.auth.signOut();
@@ -747,12 +794,14 @@ async function loadProfile(user) {
   }
   // role-ийг том/жижиг үсэг, англи/монгол хамаарахгүйгээр таньна
   const rawRole = String(p.role || '').trim().toLowerCase();
-  return {
+  const prof = {
     pd,
     role: (rawRole === 'admin' || rawRole === 'админ') ? 'admin' : 'worker',
     name: (p.name || '').trim() || email.split('@')[0],
     email
   };
+  saveCachedProfile(prof);   // дараагийн нээлтэд шууд ашиглана
+  return prof;
 }
 
 /* ── Дэлгэц солих ── */
@@ -1096,10 +1145,13 @@ function isSessionSent(s) {
 }
 function canUpload() { return !!(CLOUD.on && CLOUD.user && CLOUD.profile); }
 
-/* Илгээгээгүй хадгалсан хэмжилт байвал сануулах */
+/* Илгээгээгүй хадгалсан хэмжилт байвал сануулах (нэг л удаа) */
+let pendingNotified = false;
 function notifyPendingSessions() {
+  if (pendingNotified) return;
   const n = getSessions().filter(s => countMeasurements(s) > 0 && !isSessionSent(s)).length;
   if (!n) return;
+  pendingNotified = true;
   setTimeout(() => showStatus(`⏳ ${n} илгээгээгүй хэмжилт байна — «📂 Өмнөх хэмжилтүүд»-ээс илгээнэ үү`, '#f0a500'), 900);
 }
 
@@ -1425,25 +1477,33 @@ function measuring() {
 
 /* Ухрах товчийг барих ганц «хамгаалалтын» бичлэг history-д тавина.
    Хаах юм үлдээгүй бол буцааж авна — ингэснээр ухрах товч хоосон
-   дарагдахгүй, дараагийн даралт нь аппаас хэвийн гаргана. */
-let backGuard = false, backSkip = false;
+   дарагдахгүй, дараагийн даралт нь аппаас хэвийн гаргана.
+
+   Тэмдэглэл: хамгаалалт байгаа эсэхийг тусдаа хувьсагчаар бус ЯГ
+   history.state-ээс уншина. pushState нь ямар нэг шалтгаанаар (хөтчийн
+   хязгаарлалт г.м) биелээгүй үед хувьсагч нь худал үнэн болж, дараа нь
+   history.back() дуудагдан аппаас гарч байсан. */
+let backSkip = false;
+function backGuardOn() { return !!(history.state && history.state.uz === 1); }
 function syncBackGuard() {
+  /* history.back() нь шууд биелдэггүй (popstate дараагийн ээлжинд ирнэ).
+     Тэр хооронд дахин дуудагдвал хоёр алхам ухарч, аппаас гарч болзошгүй
+     тул биелж дуустал нь хүлээнэ. */
+  if (backSkip) return;
   const need = !!ovTop() || measuring();
-  if (need && !backGuard) {
-    backGuard = true;
+  if (need && !backGuardOn()) {
     try { history.pushState({ uz: 1 }, ''); } catch {}
-  } else if (!need && backGuard) {
-    backGuard = false; backSkip = true;
+  } else if (!need && backGuardOn()) {
+    backSkip = true;
     try { history.back(); } catch { backSkip = false; }
   }
 }
 window.addEventListener('popstate', () => {
   if (backSkip) { backSkip = false; return; }   // өөрсдөө буцаасан
-  backGuard = false;                            // хамгаалалт зарцуулагдав
   const top = ovTop();
   if (top) top.close();
   else if (measuring()) openRstMod();           // хэмжилтээс тохируулга руу
-  syncBackGuard();
+  syncBackGuard();                              // үлдсэн цонхонд шинэ хамгаалалт
 });
 /* Цонх нээх/хаах бүрийг дагах — нээгдэх, хаагдах бүх замыг барина */
 (function watchOverlays() {
@@ -1452,6 +1512,13 @@ window.addEventListener('popstate', () => {
   OVERLAYS.forEach(o => { const el = document.getElementById(o.id); if (el) obs.observe(el, opts); });
   const app = document.getElementById('app');
   if (app) obs.observe(app, opts);
+  /* Хэрэглэгчийн шууд үйлдлийн үед бас шалгана. Хөтөч нь «хэрэглэгчийн
+     үйлдэлгүй» нэмэгдсэн history бичлэгийг ухрах үед алгасдаг тул
+     хамгаалалтыг товшилтын мөчид нь баталгаажуулж тавьсан нь найдвартай. */
+  ['click', 'touchend', 'pointerup'].forEach(ev =>
+    document.addEventListener(ev, () => syncBackGuard(), { passive: true }));
+  // Хөтчийн санах ойгоос (bfcache) сэргэхэд дахин шалгана
+  window.addEventListener('pageshow', () => syncBackGuard());
 })();
 
 /* ── Restart ── */
@@ -1466,11 +1533,25 @@ function doRestart() {
 }
 
 /* ── Эхлүүлэх ── */
+/* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
+   Өөрчлөлт хийх бүрд шинэчилнэ. */
+const APP_VERSION = '2026-08-13.3';
 function boot() {
+  document.getElementById('verTag').textContent = 'хувилбар ' + APP_VERSION;
   document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
   purgeOldSessions();
   if (cloudConfigured()) {
-    showLogin();
+    /* Өмнө нэвтэрсэн бол нэвтрэх дэлгэцийг огт харуулахгүй — хадгалсан
+       бүртгэлээр нь шууд ажлын дэлгэц рүү оруулаад, ард нь Firebase-ийн
+       нэвтрэлтийг сэргээнэ. Сүлжээгүй ч ажиллана. */
+    const cached = getCachedProfile();
+    if (cached) {
+      CLOUD.profile = cached;
+      applyProfile();
+      showSetup();
+    } else {
+      showLogin();
+    }
     initCloud();
   } else {
     // Firebase тохируулаагүй → урьдын адил офлайн горимд ажиллана
