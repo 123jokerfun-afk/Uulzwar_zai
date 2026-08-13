@@ -215,13 +215,13 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sess-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; }
 .sess-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; flex-shrink: 0; }
 .sess-list { flex: 1; overflow-y: auto; }
-.sess-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 6px; cursor: pointer; }
+/* Удаан дарахад сонголтын цэс гарна — тиймээс текст сонгогдох/хуулах цэсийг хаав */
+.sess-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 6px; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .sess-item:active { background: var(--border); }
+.sess-item.lp { background: var(--border); border-color: var(--accent); }
 .sess-meta { flex: 1; }
 .sess-date { font-size: 13px; font-weight: 700; color: var(--text); }
 .sess-info { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.sess-del { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--danger); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-.sess-del:active { background: rgba(240,69,69,.15); }
 .sess-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 2rem 0; }
 .sess-comb { width: 100%; padding: 12px; font-size: 13px; font-weight: 700; background: var(--green); color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
 .sess-worker { font-size: 11px; font-weight: 700; color: var(--accent); }
@@ -234,6 +234,19 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sess-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; white-space: nowrap; }
 .sess-badge.sent { color: var(--green); background: rgba(34,201,122,.15); }
 .sess-badge.pend { color: var(--warn); background: rgba(240,165,0,.15); }
+.sess-hint { font-size: 11px; color: var(--muted); text-align: center; padding: 6px 0 2px; }
+
+/* Удаан дарахад гарах сонголтын цэс */
+#sessActMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 220; align-items: flex-end; justify-content: center; }
+#sessActMod.on { display: flex; }
+.sact-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; }
+.sact-title { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+.sact-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+.sact-btns { display: flex; flex-direction: column; gap: 8px; }
+.sact-btns button { width: 100%; padding: 14px; font-size: 14px; font-weight: 700; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; text-align: left; }
+.sact-btns button:active { background: var(--border); }
+.sact-btns .sa-send { background: var(--green); border-color: var(--green); color: #fff; }
+.sact-btns .sa-del { background: transparent; border-color: var(--danger); color: var(--danger); }
 
 /* Session view modal (read-only) */
 #sessViewMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 210; align-items: flex-end; justify-content: center; }
@@ -257,8 +270,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sessv-cloud:disabled { opacity: .55; cursor: default; }
 
 /* Restart confirm modal */
-#rstMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300; align-items: center; justify-content: center; padding: 1.5rem; }
-#rstMod.on { display: flex; }
+#rstMod, #delMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300; align-items: center; justify-content: center; padding: 1.5rem; }
+#rstMod.on, #delMod.on { display: flex; }
+#delMod { z-index: 320; }
 .rst-inner { background: var(--s1); border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 340px; text-align: center; }
 .rst-icon { font-size: 36px; margin-bottom: 10px; }
 .rst-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
@@ -460,7 +474,37 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <button class="sess-sendall" id="btnSendAll" style="display:none" onclick="uploadAllSessions()">☁️ Илгээгээгүй хэмжилтүүдийг илгээх</button>
     <button class="sess-comb" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
     <div class="sess-list" id="sessList"></div>
+    <div class="sess-hint">Мөрөн дээр удаан дарж сонголтын цэс нээнэ</div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Session action sheet (удаан дарахад) -->
+<div id="sessActMod">
+  <div class="sact-inner">
+    <div class="sact-title" id="sactTitle"></div>
+    <div class="sact-sub" id="sactSub"></div>
+    <div class="sact-btns">
+      <button class="sa-send" id="sactSend" onclick="sactSend()">☁️ Админ руу илгээх</button>
+      <button onclick="sactOpen()">👁 Хэмжилтийг харах</button>
+      <button onclick="sactExcel()">📊 Excel татах</button>
+      <button onclick="sactCSV()">📄 CSV татах</button>
+      <button class="sa-del" onclick="sactDelete()">🗑 Устгах</button>
+    </div>
+    <div class="mod-close" onclick="closeSessActMod()">Болих</div>
+  </div>
+</div>
+
+<!-- Delete confirm modal -->
+<div id="delMod">
+  <div class="rst-inner">
+    <div class="rst-icon">🗑</div>
+    <div class="rst-title">Энэ хэмжилтийг устгах уу?</div>
+    <div class="rst-sub" id="delSub" style="white-space:pre-line"></div>
+    <div class="rst-btns">
+      <button class="rst-yes" onclick="doDeleteSession()">Тийм, устгах</button>
+      <button onclick="closeDelMod()">Болих</button>
+    </div>
   </div>
 </div>
 
@@ -1091,11 +1135,132 @@ async function uploadAllSessions() {
   else if (fail) showStatus('❌ Илгээж чадсангүй: ' + fail, '#f04545');
 }
 
-function deleteSession(id, e) {
-  e.stopPropagation();
-  const sessions = getSessions().filter(s => s.id !== id);
-  saveSessions(sessions);
+/* ══ Удаан дарж гарах сонголтын цэс (илгээх / харах / татах / устгах) ══ */
+let sactId = null;          // цэс нээгдсэн session
+let delId = null;           // устгахаар сонгосон session
+let lpTimer = null, lpFired = false, lpStart = null, lpEl = null;
+
+function lpCancel() {
+  if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+  if (lpEl) { lpEl.classList.remove('lp'); lpEl = null; }
+  lpStart = null;
+}
+function sessPressStart(id, ev, el) {
+  lpCancel();
+  lpFired = false;
+  const t = ev.touches ? ev.touches[0] : ev;
+  lpStart = { x: t.clientX, y: t.clientY };
+  lpEl = el;
+  lpTimer = setTimeout(() => {
+    lpTimer = null;
+    if (lpEl) { lpEl.classList.remove('lp'); lpEl = null; }
+    lpFired = true;
+    if (navigator.vibrate) { try { navigator.vibrate(25); } catch {} }
+    openSessActMod(id);
+  }, 500);
+  el.classList.add('lp');
+}
+/* Хуруу гулсвал (жагсаалт гүйлгэж байна) удаан дарсанд тооцохгүй */
+function sessPressMove(ev) {
+  if (!lpTimer || !lpStart) return;
+  const t = ev.touches ? ev.touches[0] : ev;
+  if (Math.abs(t.clientX - lpStart.x) > 10 || Math.abs(t.clientY - lpStart.y) > 10) lpCancel();
+}
+function sessPressEnd() { lpCancel(); }
+/* Товшилт — цэс нээгдсэн бол дараах click-ийг үл тоох */
+function sessTap(id) {
+  if (lpFired) { lpFired = false; return; }
+  viewSession(id);
+}
+/* Хөтөч/Android-ийн өөрийн «удаан дарах» цэсний оронд манайхыг гаргана */
+function sessCtxMenu(id, ev) {
+  ev.preventDefault();
+  lpCancel();
+  lpFired = true;
+  openSessActMod(id);
+  return false;
+}
+
+function openSessActMod(id) {
+  const s = getSessions().find(x => x.id === id);
+  if (!s) return;
+  sactId = id;
+  const c = s.config || {};
+  const w = (c.worker || '').trim();
+  document.getElementById('sactTitle').textContent = `Зам №${c.road || '—'} · ${c.s || '?'}-${c.e || '?'} км`;
+  document.getElementById('sactSub').textContent =
+    `${fmtDate(s.savedAt)} · ${countMeasurements(s)} хэмжилт` + (w ? ` · ${w}` : '');
+  const sendBtn = document.getElementById('sactSend');
+  if (canUpload() && countMeasurements(s) > 0) {
+    sendBtn.style.display = 'block';
+    sendBtn.textContent = isSessionSent(s) ? '✅ Илгээсэн — дахин илгээх' : '☁️ Админ руу илгээх';
+  } else {
+    sendBtn.style.display = 'none';
+  }
+  /* Хуруу дарж байх зуур цэс нээгддэг тул хуруугаа авахад доорх товч
+     санамсаргүй дарагдахаас сэргийлж хагас секунд идэвхгүй байлгана */
+  const mod = document.getElementById('sessActMod');
+  mod.classList.add('on');
+  mod.style.pointerEvents = 'none';
+  setTimeout(() => { mod.style.pointerEvents = ''; }, 350);
+}
+function closeSessActMod() {
+  sactId = null;
+  document.getElementById('sessActMod').classList.remove('on');
+}
+
+async function sactSend() {
+  const id = sactId;
+  closeSessActMod();
+  await uploadSessionById(id);
+}
+function sactOpen() {
+  const id = sactId;
+  closeSessActMod();
+  viewSession(id);
+}
+async function sactExcel() {
+  const id = sactId;
+  closeSessActMod();
+  await exportSessionExcel(id);
+}
+function sactCSV() {
+  const id = sactId;
+  closeSessActMod();
+  exportSessionCSV(id);
+}
+function sactDelete() {
+  const id = sactId;
+  closeSessActMod();
+  askDeleteSession(id);
+}
+
+/* ── Устгахын өмнө баталгаажуулах ── */
+function askDeleteSession(id) {
+  const s = getSessions().find(x => x.id === id);
+  if (!s) return;
+  delId = id;
+  const c = s.config || {};
+  const cnt = countMeasurements(s);
+  const sent = isSessionSent(s);
+  document.getElementById('delSub').textContent =
+    `Зам №${c.road || '—'} · ${c.s || '?'}-${c.e || '?'} км · ${fmtDate(s.savedAt)}\n` +
+    `${cnt} хэмжилт устана. Энэ үйлдлийг буцааж болохгүй.` +
+    (canUpload() && cnt && !sent ? ' Энэ хэмжилт үүлэн рүү илгээгдээгүй байгааг анхаарна уу.' : '');
+  document.getElementById('delMod').classList.add('on');
+}
+function closeDelMod() {
+  delId = null;
+  document.getElementById('delMod').classList.remove('on');
+}
+function doDeleteSession() {
+  const id = delId;
+  closeDelMod();
+  if (!id) return;
+  saveSessions(getSessions().filter(s => s.id !== id));
+  if (currentViewSessId === id) closeSessViewMod();
   renderSessList();
+  showStatus('🗑 Хэмжилт устгагдлаа', '#f04545');
 }
 
 function esc(str) {
@@ -1143,13 +1308,18 @@ function renderSessList() {
     const upBtn = up && cnt
       ? `<div class="sess-up${sent?' done':''}" title="Админ руу илгээх" onclick="uploadSessionById('${s.id}',event)">${sent?'✅':'☁️'}</div>`
       : '';
-    return `<div class="sess-item" onclick="viewSession('${s.id}')">
+    /* Товших → нээх, удаан дарах → сонголтын цэс */
+    return `<div class="sess-item" onclick="sessTap('${s.id}')"
+      ontouchstart="sessPressStart('${s.id}',event,this)" ontouchmove="sessPressMove(event)"
+      ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
+      onmousedown="sessPressStart('${s.id}',event,this)" onmousemove="sessPressMove(event)"
+      onmouseup="sessPressEnd()" onmouseleave="sessPressEnd()"
+      oncontextmenu="return sessCtxMenu('${s.id}',event)">
       <div class="sess-meta">
         <div class="sess-date">${fmtDate(s.savedAt)}${w?` · <span class="sess-worker">${esc(w)}</span>`:''}</div>
         <div class="sess-info">Зам №${c.road||'—'} · ${c.s||'?'}-${c.e||'?'} км · ${cnt} хэмжилт${badge}</div>
       </div>
       ${upBtn}
-      <div class="sess-del" onclick="deleteSession('${s.id}',event)">🗑</div>
     </div>`;
   }).join('');
 }
@@ -1605,10 +1775,11 @@ async function exportExcel() {
   await _exportExcelCore(C, data, `уулзвар_${C.s}-${C.e}км_${C.date}.xlsx`);
 }
 
-/* ── Excel татах (saved session — modal-аас) ── */
-async function exportSessionExcel() {
-  if (!currentViewSessId) return;
-  const sess = getSessions().find(s => s.id === currentViewSessId);
+/* ── Excel татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
+async function exportSessionExcel(id) {
+  const sid = id || currentViewSessId;
+  if (!sid) return;
+  const sess = getSessions().find(s => s.id === sid);
   if (!sess) return;
   const c = sess.config, d = sess.data;
   const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
@@ -1616,10 +1787,11 @@ async function exportSessionExcel() {
   showStatus('📊 Excel татагдлаа', '#22c97a');
 }
 
-/* ── CSV татах (saved session — modal-аас) ── */
-function exportSessionCSV() {
-  if (!currentViewSessId) return;
-  const sess = getSessions().find(s => s.id === currentViewSessId);
+/* ── CSV татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
+function exportSessionCSV(id) {
+  const sid = id || currentViewSessId;
+  if (!sid) return;
+  const sess = getSessions().find(s => s.id === sid);
   if (!sess) return;
   _exportCSVDetailed(sess.config, sess.data);
   showStatus('📄 CSV татагдлаа', '#4f8ef7');
