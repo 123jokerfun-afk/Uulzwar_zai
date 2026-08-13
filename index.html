@@ -1392,6 +1392,68 @@ function viewSession(id) {
 function sessValColor(v) { return v>=36?'var(--danger)':v>=22?'var(--warn)':'var(--text)'; }
 function closeSessViewMod() { currentViewSessId = null; document.getElementById('sessViewMod').classList.remove('on'); }
 
+/* ══════════════════════════════════════════════════════════
+   УТАСНЫ «УХРАХ» ТОВЧ
+   Ухрахад аппаас гарах биш, нээлттэй цонхыг нь хаана. Цонх
+   байхгүй бөгөөд хэмжилт хийж байвал «дахин эхлүүлэх» асуултыг
+   гаргаж, тэндээс тохируулга руу буцна. Тохируулга/нэвтрэх
+   дэлгэц дээр ухрах нь урьдын адил аппаас гаргана.
+   ══════════════════════════════════════════════════════════ */
+/* Дээрээсээ доош — z-index-ийн дараалал */
+const OVERLAYS = [
+  { id: 'delMod',      close: () => closeDelMod() },
+  { id: 'rstMod',      close: () => closeRstMod() },
+  { id: 'importMod',   close: () => { document.getElementById('importMod').style.display = 'none'; } },
+  { id: 'dpMod',       close: () => closeDatePickMod() },
+  { id: 'sessActMod',  close: () => closeSessActMod() },
+  { id: 'sessViewMod', close: () => closeSessViewMod() },
+  { id: 'sessMod',     close: () => closeSessMod() },
+  { id: 'kmMod',       close: () => closeKmMod() },
+  { id: 'expMod',      close: () => closeExpMod() }
+];
+function ovOpen(o) {
+  const el = document.getElementById(o.id);
+  if (!el) return false;
+  // Ихэнх цонх «on» ангиар, importMod нь inline style-аар нээгддэг
+  return el.classList.contains('on') || (el.style.display && el.style.display !== 'none');
+}
+function ovTop() { return OVERLAYS.find(ovOpen) || null; }
+function measuring() {
+  const el = document.getElementById('app');
+  return !!el && el.style.display && el.style.display !== 'none';
+}
+
+/* Ухрах товчийг барих ганц «хамгаалалтын» бичлэг history-д тавина.
+   Хаах юм үлдээгүй бол буцааж авна — ингэснээр ухрах товч хоосон
+   дарагдахгүй, дараагийн даралт нь аппаас хэвийн гаргана. */
+let backGuard = false, backSkip = false;
+function syncBackGuard() {
+  const need = !!ovTop() || measuring();
+  if (need && !backGuard) {
+    backGuard = true;
+    try { history.pushState({ uz: 1 }, ''); } catch {}
+  } else if (!need && backGuard) {
+    backGuard = false; backSkip = true;
+    try { history.back(); } catch { backSkip = false; }
+  }
+}
+window.addEventListener('popstate', () => {
+  if (backSkip) { backSkip = false; return; }   // өөрсдөө буцаасан
+  backGuard = false;                            // хамгаалалт зарцуулагдав
+  const top = ovTop();
+  if (top) top.close();
+  else if (measuring()) openRstMod();           // хэмжилтээс тохируулга руу
+  syncBackGuard();
+});
+/* Цонх нээх/хаах бүрийг дагах — нээгдэх, хаагдах бүх замыг барина */
+(function watchOverlays() {
+  const obs = new MutationObserver(() => syncBackGuard());
+  const opts = { attributes: true, attributeFilter: ['class', 'style'] };
+  OVERLAYS.forEach(o => { const el = document.getElementById(o.id); if (el) obs.observe(el, opts); });
+  const app = document.getElementById('app');
+  if (app) obs.observe(app, opts);
+})();
+
 /* ── Restart ── */
 function openRstMod() { document.getElementById('rstMod').classList.add('on'); }
 function closeRstMod() { document.getElementById('rstMod').classList.remove('on'); }
