@@ -225,6 +225,15 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sess-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 2rem 0; }
 .sess-comb { width: 100%; padding: 12px; font-size: 13px; font-weight: 700; background: var(--green); color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
 .sess-worker { font-size: 11px; font-weight: 700; color: var(--accent); }
+/* Хадгалсан хэмжилтийг үүлэн рүү илгээх */
+.sess-sendall { width: 100%; padding: 12px; font-size: 13px; font-weight: 700; background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
+.sess-sendall:disabled { opacity: .55; cursor: default; }
+.sess-up { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; font-size: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.sess-up:active { background: rgba(79,142,247,.15); }
+.sess-up.done { opacity: .55; }
+.sess-badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; white-space: nowrap; }
+.sess-badge.sent { color: var(--green); background: rgba(34,201,122,.15); }
+.sess-badge.pend { color: var(--warn); background: rgba(240,165,0,.15); }
 
 /* Session view modal (read-only) */
 #sessViewMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 210; align-items: flex-end; justify-content: center; }
@@ -244,6 +253,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sessv-actions button { flex: 1; padding: 12px; font-size: 13px; font-weight: 700; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
 .sessv-actions .sv-xlsx { background: var(--green); border-color: var(--green); color: #fff; }
 .sessv-actions .sv-csv { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sessv-cloud { display: none; width: 100%; padding: 13px; font-size: 13.5px; font-weight: 800; border-radius: 10px; border: none; background: var(--green); color: #fff; cursor: pointer; margin-top: 10px; flex-shrink: 0; }
+.sessv-cloud:disabled { opacity: .55; cursor: default; }
 
 /* Restart confirm modal */
 #rstMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300; align-items: center; justify-content: center; padding: 1.5rem; }
@@ -446,6 +457,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 <div id="sessMod">
   <div class="sess-inner">
     <div class="sess-title">📂 Өмнөх хэмжилтүүд</div>
+    <button class="sess-sendall" id="btnSendAll" style="display:none" onclick="uploadAllSessions()">☁️ Илгээгээгүй хэмжилтүүдийг илгээх</button>
     <button class="sess-comb" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
     <div class="sess-list" id="sessList"></div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
@@ -462,6 +474,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
       <button class="sv-xlsx" onclick="exportSessionExcel()">📊 Excel татах</button>
       <button class="sv-csv" onclick="exportSessionCSV()">📄 CSV татах</button>
     </div>
+    <button class="sessv-cloud" id="btnSessCloud" onclick="uploadViewedSession()">☁️ Энэ хэмжилтийг админ руу илгээх</button>
     <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
   </div>
 </div>
@@ -767,6 +780,8 @@ function applyProfile() {
 
   document.getElementById('admCard').style.display = isAdmin() ? 'block' : 'none';
   document.getElementById('btnCloudSend').style.display = 'block';
+  // Нэвтрэхээс өмнө утсанд хуримтлагдсан хэмжилт байвал сануулна
+  notifyPendingSessions();
   // Үүлэн горимд файл дамжуулах шаардлагагүй — эдгээр нь зөвхөн админд хэрэгтэй
   document.getElementById('btnImport').style.display = isAdmin() ? 'block' : 'none';
   document.getElementById('btnCombinedLocal').style.display = 'none';
@@ -807,11 +822,59 @@ function cloudToSession(id, d) {
 
 function countFilled(c, d) {
   let n = 0;
+  if (!c || !d) return 0;
   for (let km = c.s; km <= c.e; km++) {
-    for (let j = 1; j <= c.bar; j++) if (d[km] && d[km][j] && d[km][j].bar != null) n++;
-    for (let j = 1; j <= c.zun; j++) if (d[km] && d[km][j] && d[km][j].zun != null) n++;
+    for (let j = 1; j <= (c.bar || 0); j++) if (d[km] && d[km][j] && d[km][j].bar != null) n++;
+    for (let j = 1; j <= (c.zun || 0); j++) if (d[km] && d[km][j] && d[km][j].zun != null) n++;
   }
   return n;
+}
+
+/* ── Дурын session-ийг (одоо хэмжиж буй эсвэл утсанд хадгалагдсан) илгээх ──
+   Буцаах утга: { ok, count, err }
+     err = 'auth'   → нэвтрээгүй
+           'empty'  → илгээх хэмжилт алга
+           'offline'→ сүлжээгүй; бичилт дараалалд орсон, холбогдмогц өөрөө очно
+           бусад    → Firestore-ийн алдааны код                                */
+async function uploadSession(sessionId, c, d) {
+  if (!CLOUD.on || !CLOUD.user || !CLOUD.profile) return { ok: false, count: 0, err: 'auth' };
+  if (!sessionId || !c) return { ok: false, count: 0, err: 'empty' };
+  const cnt = countFilled(c, d);
+  if (!cnt) return { ok: false, count: 0, err: 'empty' };
+  const docId = CLOUD.user.uid + '__' + sessionId;
+  const payload = {
+    pd: myPd(), road: c.road, date: c.date, s: c.s, e: c.e, bar: c.bar, zun: c.zun, max: c.max || 37,
+    worker: c.worker || CLOUD.profile.name, account: CLOUD.profile.name,
+    email: CLOUD.profile.email, uid: CLOUD.user.uid,
+    sessionId, km: kmToCloud(c, d), count: cnt,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    // Firestore TTL бодлого энэ талбарыг хараад хугацаа нь дуусмагц устгана
+    expireAt: firebase.firestore.Timestamp.fromMillis(Date.now() + TTL_DAYS * 24 * 3600 * 1000)
+  };
+  // Илгээж байх зуур шинэ хэмжилт нэмэгдвэл «илгээсэн» гэж тэмдэглэхгүй
+  const stored = getSessions().find(s => s.id === sessionId);
+  const savedAtSnap = stored ? stored.savedAt : null;
+  const write = CLOUD.db.collection('measurements').doc(docId).set(payload, { merge: true });
+  // Сүлжээгүй нь тодорхой бол хүлээлгүйгээр мэдэгдэнэ. Бичилт нь Firestore-ийн
+  // дотоод дараалалд хадгалагдаж, холбогдмогц өөрөө очно.
+  if (!navigator.onLine) { write.catch(() => {}); return { ok: false, count: cnt, err: 'offline' }; }
+  try {
+    /* Офлайн үед Firestore бичилтийг дотооддоо хадгалаад сүлжээ орох хүртэл
+       амлалтаа биелүүлэхгүй. Тиймээс хүлээлгэдээ хугацаа тавьж, хэрэглэгчид
+       «дараалалд орлоо» гэдгийг мэдэгдэнэ. */
+    await Promise.race([
+      write,
+      new Promise((_, rej) => setTimeout(() => rej({ code: '__timeout' }), 12000))
+    ]);
+    markSessionSent(sessionId, savedAtSnap);
+    return { ok: true, count: cnt };
+  } catch (e) {
+    const code = (e && (e.code || e.message)) || 'алдаа';
+    if (code === '__timeout' || code === 'unavailable' || !navigator.onLine) {
+      return { ok: false, count: cnt, err: 'offline' };
+    }
+    return { ok: false, count: cnt, err: code };
+  }
 }
 
 async function uploadCurrent(silent) {
@@ -819,27 +882,22 @@ async function uploadCurrent(silent) {
     if (!silent) showStatus('⚠️ Нэвтрээгүй байна', '#f0a500');
     return false;
   }
-  const cnt = countFilled(C, data);
-  if (!cnt) { if (!silent) showStatus('⚠️ Илгээх хэмжилт алга', '#f0a500'); return false; }
-  const docId = CLOUD.user.uid + '__' + currentSessionId;
-  const payload = {
-    pd: myPd(), road: C.road, date: C.date, s: C.s, e: C.e, bar: C.bar, zun: C.zun, max: C.max || 37,
-    worker: C.worker || CLOUD.profile.name, account: CLOUD.profile.name,
-    email: CLOUD.profile.email, uid: CLOUD.user.uid,
-    sessionId: currentSessionId, km: kmToCloud(C, data), count: cnt,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    // Firestore TTL бодлого энэ талбарыг хараад хугацаа нь дуусмагц устгана
-    expireAt: firebase.firestore.Timestamp.fromMillis(Date.now() + TTL_DAYS * 24 * 3600 * 1000)
-  };
-  try {
-    await CLOUD.db.collection('measurements').doc(docId).set(payload, { merge: true });
-    if (!silent) { showStatus(`☁️ ${cnt} хэмжилт илгээгдлээ`, '#22c97a'); closeExpMod(); }
+  const r = await uploadSession(currentSessionId, C, data);
+  if (r.ok) {
+    if (!silent) { showStatus(`☁️ ${r.count} хэмжилт илгээгдлээ`, '#22c97a'); closeExpMod(); }
     return true;
-  } catch (e) {
-    if (!silent) showStatus('❌ Илгээж чадсангүй: ' + (e.code || e.message), '#f04545');
-    return false;
   }
+  if (!silent) showStatus(uploadErrMsg(r), uploadErrColor(r));
+  return false;
 }
+
+function uploadErrMsg(r) {
+  if (r.err === 'auth') return '⚠️ Нэвтрээгүй байна';
+  if (r.err === 'empty') return '⚠️ Илгээх хэмжилт алга';
+  if (r.err === 'offline') return '📶 Сүлжээ алга — холбогдмогц автоматаар илгээгдэнэ';
+  return '❌ Илгээж чадсангүй: ' + r.err;
+}
+function uploadErrColor(r) { return r.err === 'offline' ? '#f0a500' : (r.err === 'auth' || r.err === 'empty') ? '#f0a500' : '#f04545'; }
 
 /* Автомат хадгалалт — утас унтарсан ч өгөгдөл алдагдахгүй */
 let autoUpTimer = null;
@@ -928,6 +986,9 @@ function autoSave() {
     id: currentSessionId,
     startedAt: sessions[idx]?.startedAt || now.toISOString(),
     savedAt: now.toISOString(),
+    // Хамгийн сүүлд үүлэн рүү илгээсэн цаг — шинэ хэмжилт нэмэгдэхэд
+    // savedAt нь sentAt-аас хожуу болж «илгээгээгүй» гэж тэмдэглэгдэнэ.
+    sentAt: sessions[idx]?.sentAt || null,
     config: JSON.parse(JSON.stringify(C)),
     data: JSON.parse(JSON.stringify(data))
   };
@@ -935,6 +996,99 @@ function autoSave() {
   else sessions.unshift(entry);
   saveSessions(sessions);
   scheduleCloudSave();
+}
+
+/* ── Илгээсэн эсэхийг тэмдэглэх / шалгах ── */
+function markSessionSent(id, expectSavedAt) {
+  const sessions = getSessions();
+  const idx = sessions.findIndex(s => s.id === id);
+  if (idx < 0) return;
+  // Илгээх хооронд өгөгдөл өөрчлөгдсөн бол дахин илгээх шаардлагатай хэвээр
+  if (expectSavedAt && sessions[idx].savedAt !== expectSavedAt) return;
+  sessions[idx].sentAt = new Date().toISOString();
+  saveSessions(sessions);
+  if (document.getElementById('sessMod').classList.contains('on')) renderSessList();
+}
+/* Хадгалснаас хойш өөрчлөгдөөгүй бөгөөд илгээгдсэн бол «илгээсэн» */
+function isSessionSent(s) {
+  if (!s || !s.sentAt) return false;
+  const sent = new Date(s.sentAt).getTime(), saved = new Date(s.savedAt || 0).getTime();
+  if (!Number.isFinite(sent)) return false;
+  // 2 секундын зөрүүг тооцно — autoSave ба илгээлт бараг зэрэг явагддаг
+  return sent + 2000 >= saved;
+}
+function canUpload() { return !!(CLOUD.on && CLOUD.user && CLOUD.profile); }
+
+/* Илгээгээгүй хадгалсан хэмжилт байвал сануулах */
+function notifyPendingSessions() {
+  const n = getSessions().filter(s => countMeasurements(s) > 0 && !isSessionSent(s)).length;
+  if (!n) return;
+  setTimeout(() => showStatus(`⏳ ${n} илгээгээгүй хэмжилт байна — «📂 Өмнөх хэмжилтүүд»-ээс илгээнэ үү`, '#f0a500'), 900);
+}
+
+/* ── Хадгалсан жагсаалтаас шууд илгээх ── */
+async function uploadSessionById(id, e) {
+  if (e) e.stopPropagation();
+  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', '#f0a500'); return; }
+  const sess = getSessions().find(s => s.id === id);
+  if (!sess) return;
+  showStatus('☁️ Илгээж байна…', '#4f8ef7');
+  const r = await uploadSession(sess.id, sess.config, sess.data);
+  if (r.ok) showStatus(`☁️ ${r.count} хэмжилт илгээгдлээ`, '#22c97a');
+  else showStatus(uploadErrMsg(r), uploadErrColor(r));
+  renderSessList();
+}
+
+/* ── Нээлттэй байгаа хадгалсан хэмжилтийг илгээх ── */
+async function uploadViewedSession() {
+  if (!currentViewSessId) return;
+  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', '#f0a500'); return; }
+  const id = currentViewSessId;
+  const sess = getSessions().find(s => s.id === id);
+  if (!sess) return;
+  const btn = document.getElementById('btnSessCloud');
+  btn.disabled = true; btn.textContent = '☁️ Илгээж байна…';
+  const r = await uploadSession(id, sess.config, sess.data);
+  btn.disabled = false;
+  if (r.ok) showStatus(`☁️ ${r.count} хэмжилт админ руу илгээгдлээ`, '#22c97a');
+  else showStatus(uploadErrMsg(r), uploadErrColor(r));
+  // Модал хаагдчихсан байж болзошгүй тул одоогийн байдлаар нь шинэчилнэ
+  if (currentViewSessId === id) syncSessCloudBtn(getSessions().find(s => s.id === id));
+  renderSessList();
+}
+
+function syncSessCloudBtn(sess) {
+  const btn = document.getElementById('btnSessCloud');
+  if (!canUpload() || !sess) { btn.style.display = 'none'; return; }
+  btn.style.display = 'block';
+  const sent = isSessionSent(sess);
+  btn.textContent = sent ? '✅ Илгээсэн — дахин илгээх' : '☁️ Энэ хэмжилтийг админ руу илгээх';
+  btn.style.background = sent ? 'var(--s2)' : 'var(--green)';
+  btn.style.color = sent ? 'var(--text)' : '#fff';
+}
+
+/* ── Илгээгээгүй бүх хэмжилтийг нэг дор илгээх ── */
+async function uploadAllSessions() {
+  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', '#f0a500'); return; }
+  const pending = getSessions().filter(s =>
+    countFilled(s.config, s.data) > 0 && !isSessionSent(s));
+  const btn = document.getElementById('btnSendAll');
+  if (!pending.length) { showStatus('✅ Бүх хэмжилт илгээгдсэн байна', '#22c97a'); return; }
+  btn.disabled = true;
+  let ok = 0, sentCnt = 0, offline = 0, fail = '';
+  for (let i = 0; i < pending.length; i++) {
+    btn.textContent = `☁️ Илгээж байна… ${i + 1}/${pending.length}`;
+    const r = await uploadSession(pending[i].id, pending[i].config, pending[i].data);
+    if (r.ok) { ok++; sentCnt += r.count; }
+    else if (r.err === 'offline') offline++;
+    else if (!fail) fail = r.err;
+  }
+  btn.disabled = false;
+  btn.textContent = '☁️ Илгээгээгүй хэмжилтүүдийг илгээх';
+  renderSessList();
+  if (ok && !offline && !fail) showStatus(`☁️ ${ok} илгээлт · ${sentCnt} хэмжилт илгээгдлээ`, '#22c97a');
+  else if (offline) showStatus(`📶 Сүлжээ алга — ${offline} илгээлт дараалалд орлоо`, '#f0a500');
+  else if (fail) showStatus('❌ Илгээж чадсангүй: ' + fail, '#f04545');
 }
 
 function deleteSession(id, e) {
@@ -968,6 +1122,12 @@ function countMeasurements(sess) {
 function renderSessList() {
   const list = document.getElementById('sessList');
   const sessions = getSessions();
+  const up = canUpload();
+  // «Илгээгээгүйг илгээх» товч зөвхөн нэвтэрсэн үед, илгээх юм байвал гарна
+  const pending = up ? sessions.filter(s => countMeasurements(s) > 0 && !isSessionSent(s)).length : 0;
+  const allBtn = document.getElementById('btnSendAll');
+  allBtn.style.display = pending ? 'block' : 'none';
+  allBtn.textContent = `☁️ Илгээгээгүй ${pending} хэмжилтийг илгээх`;
   if (!sessions.length) {
     list.innerHTML = '<div class="sess-empty">Хадгалсан хэмжилт байхгүй байна</div>';
     return;
@@ -976,11 +1136,19 @@ function renderSessList() {
     const c = s.config || {};
     const cnt = countMeasurements(s);
     const w = (c.worker||'').trim();
+    const sent = isSessionSent(s);
+    const badge = !up || !cnt ? ''
+      : sent ? '<span class="sess-badge sent">☁️ илгээсэн</span>'
+             : '<span class="sess-badge pend">илгээгээгүй</span>';
+    const upBtn = up && cnt
+      ? `<div class="sess-up${sent?' done':''}" title="Админ руу илгээх" onclick="uploadSessionById('${s.id}',event)">${sent?'✅':'☁️'}</div>`
+      : '';
     return `<div class="sess-item" onclick="viewSession('${s.id}')">
       <div class="sess-meta">
         <div class="sess-date">${fmtDate(s.savedAt)}${w?` · <span class="sess-worker">${esc(w)}</span>`:''}</div>
-        <div class="sess-info">Зам №${c.road||'—'} · ${c.s||'?'}-${c.e||'?'} км · ${cnt} хэмжилт</div>
+        <div class="sess-info">Зам №${c.road||'—'} · ${c.s||'?'}-${c.e||'?'} км · ${cnt} хэмжилт${badge}</div>
       </div>
+      ${upBtn}
       <div class="sess-del" onclick="deleteSession('${s.id}',event)">🗑</div>
     </div>`;
   }).join('');
@@ -999,7 +1167,10 @@ function viewSession(id) {
   const c = sess.config, d = sess.data;
   document.getElementById('sessVTitle').textContent = `Зам №${c.road} · ${c.s}-${c.e} км`;
   const w = (c.worker||'').trim();
-  document.getElementById('sessVSub').textContent = `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${c.date}` + (w ? ` · Хэмжигч: ${w}` : '');
+  document.getElementById('sessVSub').textContent = `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${c.date}`
+    + (w ? ` · Хэмжигч: ${w}` : '')
+    + (canUpload() ? (isSessionSent(sess) ? ` · ☁️ Илгээсэн: ${fmtDate(sess.sentAt)}` : ' · ⏳ Илгээгээгүй') : '');
+  syncSessCloudBtn(sess);
 
   const maxJ = Math.max(c.bar, c.zun);
   let html = '';
