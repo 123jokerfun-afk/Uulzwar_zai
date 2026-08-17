@@ -786,6 +786,49 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     });
   }
 
+  /* ── Хувилбарыг ШУУД шалгах ──
+     Зөвхөн service worker дээр найдаж болохгүй: шинэчлэлт бүрд index.html
+     өөрчлөгддөг ч sw.js нь хэвээрээ үлддэг тул хөтөч «шинэ юм алга» гэж
+     үзээд ямар ч дохио өгдөггүй. Тиймээс серверийн index.html-ээс
+     хувилбарын дугаарыг нь уншаад өөрийнхтэйгээ шууд харьцуулна. */
+  let lastCheck = 0, pendingVersion = null;
+  async function checkForUpdate(force) {
+    const now = Date.now();
+    if (!force && now - lastCheck < 5 * 60 * 1000) return;   // 5 минутад нэгээс олонгүй
+    lastCheck = now;
+    try {
+      const res = await fetch('./index.html?v=' + now, { cache: 'no-store' });
+      if (!res.ok) return;
+      const m = (await res.text()).match(/APP_VERSION\s*=\s*'([^']+)'/);
+      if (!m || m[1] === APP_VERSION) return;
+      pendingVersion = m[1];
+      applyUpdate();
+    } catch {}
+  }
+  async function applyUpdate() {
+    if (!pendingVersion) return;
+    // Хэмжилтийн дунд таслахгүй — дуусахаар нь орно
+    if (typeof measuring === 'function' && measuring()) {
+      showStatus(`🔄 Шинэчлэлт бэлэн (${pendingVersion}) — хэмжилт дуусахад орно`, '#4f8ef7');
+      return;
+    }
+    showStatus('🔄 Шинэчилж байна…', '#4f8ef7');
+    try {
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+    } catch {}
+    setTimeout(() => location.reload(), 600);
+  }
+  window.__checkForUpdate = checkForUpdate;
+  window.__applyUpdate = () => { if (pendingVersion) applyUpdate(); };
+
+  setTimeout(() => checkForUpdate(true), 4000);        // нээгээд удалгүй
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdate(); });
+  window.addEventListener('online', () => checkForUpdate(true));
+  setInterval(() => checkForUpdate(), 15 * 60 * 1000);
+
   // iOS detection
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
   const isInStandalone = window.navigator.standalone;
@@ -1876,12 +1919,14 @@ function doRestart() {
   currentSessionId = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('setup').style.display = 'block';
+  // Хэмжилтийн улмаас хойшлуулсан шинэчлэлт байвал одоо орно
+  if (window.__applyUpdate) window.__applyUpdate();
 }
 
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-14.2';
+const APP_VERSION = '2026-08-14.3';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {

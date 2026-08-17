@@ -8,7 +8,7 @@
      • Firebase-ийн өгөгдлийн хүсэлтэд ОГТ хүрэхгүй — тэдгээрийг
        Firestore өөрөө офлайнд зохицуулна.
 */
-const CACHE = 'uulzvar-v2';
+const CACHE = 'uulzvar-v3';
 const CDN = ['cdn.jsdelivr.net', 'www.gstatic.com'];
 
 self.addEventListener('install', e => {
@@ -27,6 +27,12 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+
+  /* Шинэчлэлт шалгах хүсэлт (cache: 'no-store') — кэшнээс хариулбал
+     хуучин хувилбарыг буцаагаад шалгалт нь утгагүй болно. Шууд сүлжээнд.
+     Хуудсын навигаци (refresh г.м) энд хамаарахгүй — тэр нь доор
+     сүлжээ-эхэлж/кэш-нөөцлөх замаар явж, офлайнд ажиллах ёстой. */
+  if (req.mode !== 'navigate' && (req.cache === 'no-store' || req.cache === 'reload')) return;
 
   let url;
   try { url = new URL(req.url); } catch { return; }
