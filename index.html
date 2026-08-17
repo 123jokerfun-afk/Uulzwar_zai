@@ -273,18 +273,38 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .adj-sum-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
 .adj-sum-row b { font-size: 13px; }
 .adj-avg { color: var(--green); font-weight: 800; }
+/* Бүлгүүд хэт олон байвал хүснэгтийг шахахгүйн тулд хязгаарлана */
 .adj-groups { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; flex-shrink: 0; }
 .adj-grp { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; padding: 7px 10px; border-radius: 8px; border-left: 4px solid; background: var(--s2); }
 .adj-grp .g-ar { font-size: 15px; }
 .adj-grp .g-mm { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
-.adj-tbl { flex: 1; overflow-y: auto; }
-.adj-hd, .adj-row { display: grid; grid-template-columns: 42px 1fr 1fr 1.15fr; gap: 4px; align-items: center; padding: 6px 8px; font-size: 12px; }
-.adj-hd { position: sticky; top: 0; background: var(--s1); color: var(--muted); font-size: 10.5px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); z-index: 1; }
+/* Дүгнэлт ба хүснэгтийн байрлал: босоо үед дээр-доор, хөндлөн үед хажуу хажууд */
+.adj-res-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.adj-res-side { flex-shrink: 0; max-height: 34vh; overflow-y: auto; }
+.adj-res-main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.adj-tbl { flex: 1; overflow-y: auto; min-height: 0; }
+/* Үе · хэмжсэн · нийлбэр · байвал зохих · шилжүүлэх — бүгд нэг мөрөнд */
+.adj-hd, .adj-row { display: grid; grid-template-columns: 34px 1fr 1fr 1fr 1.05fr; gap: 3px; align-items: center; padding: 6px 6px; font-size: 12px; }
+.adj-hd { position: sticky; top: 0; background: var(--s1); color: var(--muted); font-size: 9.5px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); z-index: 1; line-height: 1.25; }
 .adj-row { border-bottom: 1px solid var(--border); }
 .adj-row .r-j { font-weight: 800; color: var(--muted); }
 .adj-row .r-v { font-weight: 800; }
+.adj-row .r-c { font-weight: 700; color: var(--accent); }
 .adj-row .r-t { color: var(--muted); }
 .adj-row .r-s { font-weight: 800; text-align: right; white-space: nowrap; }
+/* Хөндлөн эргүүлэхэд илүү өргөн, илүү олон мөр багтана */
+/* Хөндлөн эргүүлэхэд: самбар өргөсөж, дүгнэлт зүүн талд, хүснэгт баруун талд */
+@media (orientation: landscape) {
+  .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .sess-inner { max-height: 100vh; padding-bottom: 1rem; }
+  .adj-inner { max-width: min(98vw, 1040px); }
+  .adj-res-wrap { flex-direction: row; gap: 14px; }
+  .adj-res-side { width: 300px; flex-shrink: 0; max-height: none; overflow-y: auto; }
+  .adj-res-main { min-height: 0; }
+  .adj-groups { margin-bottom: 0; }
+  .adj-hd, .adj-row { font-size: 13.5px; padding: 8px 10px; }
+  .adj-hd { font-size: 11px; }
+  .adj-note { display: none; }        /* нам өндөрт хүснэгтэд зай өгнө */
+}
 .adj-row.zero .r-s { color: var(--muted); font-weight: 700; }
 .adj-note { font-size: 11px; color: var(--muted); line-height: 1.55; margin-top: 8px; flex-shrink: 0; }
 
@@ -590,11 +610,17 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <div class="adj-inner">
     <div class="adj-title" id="adjResTitle"></div>
     <div class="adj-sub" id="adjResSub"></div>
-    <div class="adj-sum" id="adjResSum"></div>
-    <div class="adj-groups" id="adjResGroups"></div>
-    <div class="adj-hd"><span>Үе</span><span>Хэмжсэн</span><span>Байвал зохих</span><span style="text-align:right">Шилжүүлэх</span></div>
-    <div class="adj-tbl" id="adjResTbl"></div>
-    <div class="adj-note">→ урагш = тухайн үений цаад төмрийг км нэмэгдэх зүг зөөнө (зай нээгдэнэ).<br>← хойш = эсрэг зүг зөөнө (зай хаагдана). Үе бүрийг дундажид хүргэхэд дараагийн үе өөрчлөгдөхийг тооцсон.</div>
+    <div class="adj-res-wrap">
+      <div class="adj-res-side">
+        <div class="adj-sum" id="adjResSum"></div>
+        <div class="adj-groups" id="adjResGroups"></div>
+      </div>
+      <div class="adj-res-main">
+        <div class="adj-hd"><span>Үе</span><span>Хэмжсэн</span><span>Нийлбэр</span><span>Байвал зохих</span><span style="text-align:right">Шилжүүлэх</span></div>
+        <div class="adj-tbl" id="adjResTbl"></div>
+      </div>
+    </div>
+    <div class="adj-note">Бүх утга <b>мм</b> · <b>Нийлбэр</b> = хуримтлагдсан хэмжсэн зай · <b>Байвал зохих</b> = үе × дундаж · <b>→</b> урагш (зай нээгдэнэ), <b>←</b> хойш (хаагдана) · 📱 хөндлөн эргүүлбэл өргөн харагдана</div>
     <div class="mod-close" onclick="closeAdjResMod()">← Буцах</div>
   </div>
 </div>
@@ -720,7 +746,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     description: "Замын б-р хэсэг уулзварын зайн хэмжилт",
     start_url: "./",
     display: "standalone",
-    orientation: "portrait",
+    /* Хөндлөн эргүүлж хүснэгтээ өргөнөөр харах боломжтой байг */
+    orientation: "any",
     background_color: "#0e1018",
     theme_color: "#0e1018",
     icons: [{
@@ -1854,7 +1881,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-14.1';
+const APP_VERSION = '2026-08-14.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2671,9 +2698,10 @@ function openAdjResult(road, km, dir) {
     const arrow = mm > 0 ? '→' : mm < 0 ? '←' : '—';
     return `<div class="adj-row${mm ? '' : ' zero'}">
       <span class="r-j">${r.j}</span>
-      <span class="r-v" style="color:${sessValColor(r.v)}">${fmtMm(r.v)} мм</span>
-      <span class="r-t">${fmtMm(r.ideal)} мм</span>
-      <span class="r-s" style="${mm ? `color:${color}` : ''}">${arrow}${mm ? ' ' + Math.abs(mm) + ' мм' : ''}</span>
+      <span class="r-v" style="color:${sessValColor(r.v)}">${fmtMm(r.v)}</span>
+      <span class="r-c">${fmtMm(r.cum)}</span>
+      <span class="r-t">${fmtMm(r.ideal)}</span>
+      <span class="r-s" style="${mm ? `color:${color}` : ''}">${arrow}${mm ? ' ' + Math.abs(mm) : ''}</span>
     </div>`;
   }).join('');
 
