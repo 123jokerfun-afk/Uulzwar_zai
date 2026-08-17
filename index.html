@@ -97,6 +97,21 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .adm-det { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .adm-cnt { font-size: 12px; font-weight: 800; color: var(--green); flex-shrink: 0; }
 .adm-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 1.5rem 0; line-height: 1.6; }
+/* Ирсэн өгөгдлийн хавтас (илгээсэн өдрөөр) */
+.adm-fold { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 6px; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.adm-fold:active, .adm-fold.lp { background: var(--border); }
+.adm-fold.lp { border-color: var(--accent); }
+.adm-fold-ic { font-size: 19px; flex-shrink: 0; }
+.adm-fold-d { font-size: 13.5px; font-weight: 800; }
+.adm-fold-s { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.adm-fold-n { margin-left: auto; font-size: 12px; font-weight: 800; color: var(--green); flex-shrink: 0; }
+.adm-item { cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.adm-item:active { background: var(--border); }
+.adm-hint { font-size: 10.5px; color: var(--muted); text-align: center; padding: 4px 0 2px; }
+/* Хавтасны доторх жагсаалт */
+/* Хэмжилт харах цонх (210) нь энэний ДЭЭР гарах ёстой тул 205 */
+#admDayMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 205; align-items: flex-end; justify-content: center; }
+#admDayMod.on { display: flex; }
 .adm-note { font-size: 11px; color: var(--warn); background: rgba(240,165,0,.1); border: 1px solid rgba(240,165,0,.35); border-radius: 8px; padding: 8px 10px; margin-bottom: .6rem; line-height: 1.5; }
 
 /* ── SETUP ── */
@@ -292,8 +307,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .dp-go:disabled { opacity: .5; cursor: default; }
 
 /* Удаан дарахад гарах сонголтын цэс */
-#sessActMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 220; align-items: flex-end; justify-content: center; }
-#sessActMod.on { display: flex; }
+#sessActMod, #admActMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 220; align-items: flex-end; justify-content: center; }
+#sessActMod.on, #admActMod.on { display: flex; }
+#admActMod { z-index: 224; }
 .sact-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; }
 .sact-title { font-size: 14px; font-weight: 800; margin-bottom: 2px; }
 .sact-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
@@ -455,7 +471,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
   <!-- Утсан дээр аль хувилбар ажиллаж байгааг шалгах -->
-  <div class="ver-tag" id="verTag"></div>
+  <div class="ver-tag" id="verTag" onclick="forceUpdate()" title="Шинэчлэлт шалгах"></div>
 
   <div id="installBanner">
     <div class="ib-txt">📲 Нүүр дэлгэцэнд суулгах<span>Офлайн ажиллана</span></div>
@@ -535,6 +551,27 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <div class="sess-list" id="sessList"></div>
     <div class="sess-hint">Мөрөн дээр удаан дарж сонголтын цэс нээнэ</div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Админ: нэг өдрийн хавтас дотор ирсэн илгээлтүүд -->
+<div id="admDayMod">
+  <div class="adj-inner">
+    <div class="adj-title" id="admDayTitle"></div>
+    <div class="adj-sub" id="admDaySub"></div>
+    <div class="adj-list" id="admDayList"></div>
+    <div class="adm-hint">Дарж нээнэ · удаан дарж татах/устгах</div>
+    <div class="mod-close" onclick="closeAdmDayMod()">← Буцах</div>
+  </div>
+</div>
+
+<!-- Админ: хавтас/илгээлтийн сонголтын цэс -->
+<div id="admActMod">
+  <div class="sact-inner">
+    <div class="sact-title" id="admActTitle"></div>
+    <div class="sact-sub" id="admActSub"></div>
+    <div class="sact-btns" id="admActBtns"></div>
+    <div class="mod-close" onclick="closeAdmActMod()">Болих</div>
   </div>
 </div>
 
@@ -694,19 +731,32 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
   document.getElementById('appManifest').href = URL.createObjectURL(mBlob);
 
-  // Service Worker (offline cache)
+  /* Service Worker — офлайн ажиллагаа ба АВТОМАТ ШИНЭЧЛЭЛТ.
+     Өмнө нь blob URL-аар бүртгэдэг байсныг хөтөч хүлээж авдаггүй тул
+     service worker огт ажиллаагүй, шинэчлэлт нь зөвхөн хөтчийн кэш
+     хуучрахыг хүлээдэг байв. Одоо жинхэнэ ./sw.js файлаас бүртгэнэ. */
   if ('serviceWorker' in navigator) {
-    const swCode = `
-const CACHE='uulzvar-v1';
-self.addEventListener('install',e=>{ self.skipWaiting(); });
-self.addEventListener('activate',e=>{ e.waitUntil(clients.claim()); });
-self.addEventListener('fetch',e=>{
-  e.respondWith(caches.open(CACHE).then(c=>
-    c.match(e.request).then(r=>r||fetch(e.request).then(res=>{ c.put(e.request,res.clone()); return res; }))
-  ).catch(()=>caches.match(e.request)));
-});`;
-    const swUrl = URL.createObjectURL(new Blob([swCode],{type:'text/javascript'}));
-    navigator.serviceWorker.register(swUrl).catch(()=>{});
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      const check = () => { reg.update().catch(() => {}); };
+      check();
+      // Апп руу эргэж ороход шинэчлэлт байгаа эсэхийг шалгана
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+      window.addEventListener('online', check);
+      setInterval(check, 30 * 60 * 1000);
+    }).catch(() => {});
+
+    let swReloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || swReloaded) return;   // анхны суулгалт дээр дахин ачаалах шаардлагагүй
+      swReloaded = true;
+      // Хэмжилтийн дунд таслахгүй — дараагийн нээлтэд шинэчлэгдэнэ
+      if (typeof measuring === 'function' && measuring()) {
+        showStatus('🔄 Шинэчлэлт бэлэн — дараа нээхэд ороно', '#4f8ef7');
+        return;
+      }
+      location.reload();
+    });
   }
 
   // iOS detection
@@ -1116,23 +1166,190 @@ async function loadSectionData() {
   }
 }
 
+/* ══ Админ: ирсэн өгөгдлийг ИЛГЭЭСЭН ӨДРӨӨР нь хавтаслах ══ */
+function admFolders() {
+  const map = new Map();
+  (CLOUD.sectionSessions || []).forEach(s => {
+    const key = (s.savedAt || '').slice(0, 10) || '—';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(s);
+  });
+  return Array.from(map.entries())
+    .map(([date, list]) => ({
+      date,
+      list: list.slice().sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)),
+      values: list.reduce((n, s) => n + countMeasurements(s), 0),
+      workers: new Set(list.map(s => (s.config.worker || '').trim()).filter(Boolean))
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
 function renderAdmList() {
   const box = document.getElementById('admList');
-  const list = CLOUD.sectionSessions.slice().sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
-  if (!list.length) {
+  const folders = admFolders();
+  if (!folders.length) {
     box.innerHTML = '<div class="adm-empty">Одоогоор ирсэн өгөгдөл алга.<br>Ажилчид хэмжилтээ хийгээд «☁️ Илгээх» дарахад энд гарч ирнэ.</div>';
     return;
   }
-  box.innerHTML = list.map(s => {
+  box.innerHTML = folders.map(f => `
+    <div class="adm-fold" onclick="admFoldTap('${f.date}')"
+      ontouchstart="admPressStart('fold','${f.date}',event,this)" ontouchmove="sessPressMove(event)"
+      ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
+      onmousedown="admPressStart('fold','${f.date}',event,this)" onmousemove="sessPressMove(event)"
+      onmouseup="sessPressEnd()" onmouseleave="sessPressEnd()"
+      oncontextmenu="return admCtxMenu('fold','${f.date}',event)">
+      <span class="adm-fold-ic">📁</span>
+      <div style="flex:1">
+        <div class="adm-fold-d">${f.date === '—' ? 'Огноогүй' : esc(f.date)}</div>
+        <div class="adm-fold-s">${f.list.length} илгээлт · ${f.values} хэмжилт${f.workers.size ? ' · ' + esc(Array.from(f.workers).join(', ')) : ''}</div>
+      </div>
+      <span class="adm-fold-n">${f.values}</span>
+    </div>`).join('')
+    + '<div class="adm-hint">Хавтас дарж нээнэ · удаан дарж татах/устгах</div>';
+}
+
+/* ── Хавтас нээх ── */
+let admDayDate = null;
+function admFoldTap(date) {
+  if (lpFired) { lpFired = false; return; }
+  openAdmDayMod(date);
+}
+function openAdmDayMod(date) {
+  const f = admFolders().find(x => x.date === date);
+  if (!f) return;
+  admDayDate = date;
+  document.getElementById('admDayTitle').textContent =
+    '📁 ' + (date === '—' ? 'Огноогүй' : date) + ' — ирсэн өгөгдөл';
+  document.getElementById('admDaySub').textContent =
+    `${f.list.length} илгээлт · ${f.values} хэмжилт`
+    + (f.workers.size ? ` · ${Array.from(f.workers).join(', ')}` : '');
+  document.getElementById('admDayList').innerHTML = f.list.map(s => {
     const c = s.config;
-    return `<div class="adm-item">
-      <div class="adm-meta">
+    return `<div class="adm-item" style="margin-bottom:6px" onclick="admItemTap('${esc(s.id)}')"
+      ontouchstart="admPressStart('item','${esc(s.id)}',event,this)" ontouchmove="sessPressMove(event)"
+      ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
+      onmousedown="admPressStart('item','${esc(s.id)}',event,this)" onmousemove="sessPressMove(event)"
+      onmouseup="sessPressEnd()" onmouseleave="sessPressEnd()"
+      oncontextmenu="return admCtxMenu('item','${esc(s.id)}',event)">
+      <div class="adm-meta" style="flex:1">
         <div class="adm-who">${esc(c.worker || '—')}</div>
-        <div class="adm-det">Зам №${esc(String(c.road ?? '—'))} · ${c.s}–${c.e} км · ${esc(String(c.date || ''))} · ${fmtDate(s.savedAt)}</div>
+        <div class="adm-det">Зам №${esc(String(c.road ?? '—'))} · ${c.s}–${c.e} км · хэмжсэн ${esc(String(c.date || '—'))} · ${fmtDate(s.savedAt)}</div>
       </div>
       <div class="adm-cnt">${countMeasurements(s)}</div>
     </div>`;
   }).join('');
+  document.getElementById('admDayMod').classList.add('on');
+}
+function closeAdmDayMod() { admDayDate = null; document.getElementById('admDayMod').classList.remove('on'); }
+function admItemTap(id) {
+  if (lpFired) { lpFired = false; return; }
+  viewCloudSession(id);
+}
+
+/* ── Удаан дарах: хавтас/илгээлтийн цэс ── */
+function admPressStart(kind, key, ev, el) {
+  lpCancel();
+  lpFired = false;
+  const t = ev.touches ? ev.touches[0] : ev;
+  lpStart = { x: t.clientX, y: t.clientY };
+  lpEl = el;
+  lpTimer = setTimeout(() => {
+    lpTimer = null;
+    if (lpEl) { lpEl.classList.remove('lp'); lpEl = null; }
+    lpFired = true;
+    if (navigator.vibrate) { try { navigator.vibrate(25); } catch {} }
+    openAdmActMod(kind, key);
+  }, 500);
+  el.classList.add('lp');
+}
+function admCtxMenu(kind, key, ev) {
+  ev.preventDefault(); lpCancel(); lpFired = true;
+  openAdmActMod(kind, key);
+  return false;
+}
+
+let admAct = null;   // { kind:'fold'|'item', key }
+function openAdmActMod(kind, key) {
+  let title, sub, list;
+  if (kind === 'fold') {
+    const f = admFolders().find(x => x.date === key);
+    if (!f) return;
+    title = '📁 ' + (key === '—' ? 'Огноогүй' : key);
+    sub = `${f.list.length} илгээлт · ${f.values} хэмжилт`;
+    list = f.list;
+  } else {
+    const s = (CLOUD.sectionSessions || []).find(x => x.id === key);
+    if (!s) return;
+    const c = s.config;
+    title = `${esc(c.worker || '—')} · Зам №${esc(String(c.road ?? '—'))}`;
+    sub = `${c.s}–${c.e} км · ${countMeasurements(s)} хэмжилт · ${fmtDate(s.savedAt)}`;
+    list = [s];
+  }
+  admAct = { kind, key, count: list.length };
+  document.getElementById('admActTitle').textContent = title;
+  document.getElementById('admActSub').textContent = sub;
+  document.getElementById('admActBtns').innerHTML =
+    (kind === 'item' ? '<button onclick="admActOpen()">👁 Нээж харах</button>' : '')
+    + '<button class="sa-send" onclick="admActExcel()">📊 Excel татах</button>'
+    + `<button class="sa-del" onclick="admActDelete()">🗑 Үүлнээс устгах${kind === 'fold' ? ' (' + list.length + ')' : ''}</button>`;
+  const mod = document.getElementById('admActMod');
+  mod.classList.add('on');
+  mod.style.pointerEvents = 'none';
+  setTimeout(() => { mod.style.pointerEvents = ''; }, 350);
+}
+function closeAdmActMod() { admAct = null; document.getElementById('admActMod').classList.remove('on'); }
+
+function admActList() {
+  if (!admAct) return [];
+  if (admAct.kind === 'fold') {
+    const f = admFolders().find(x => x.date === admAct.key);
+    return f ? f.list : [];
+  }
+  const s = (CLOUD.sectionSessions || []).find(x => x.id === admAct.key);
+  return s ? [s] : [];
+}
+function admActOpen() {
+  const id = admAct && admAct.key;
+  closeAdmActMod();
+  viewCloudSession(id);
+}
+async function admActExcel() {
+  const list = admActList(), kind = admAct && admAct.kind, key = admAct && admAct.key;
+  closeAdmActMod();
+  if (!list.length) return;
+  if (kind === 'item') {
+    const s = list[0], c = s.config;
+    await _exportExcelCore(c, s.data, `уулзвар_${esc(String(c.worker||''))}_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`);
+  } else {
+    await exportCombinedExcel(null, list, `нэгдсэн_ПД${myPd()}_ирсэн_${key}.xlsx`);
+  }
+  showStatus('📊 Excel татагдлаа', '#22c97a');
+}
+function admActDelete() {
+  const list = admActList(), kind = admAct && admAct.kind, key = admAct && admAct.key;
+  closeAdmActMod();
+  if (!list.length) return;
+  const vals = list.reduce((n, s) => n + countMeasurements(s), 0);
+  askConfirmDelete(
+    kind === 'fold' ? 'Энэ хавтсыг устгах уу?' : 'Энэ илгээлтийг устгах уу?',
+    (kind === 'fold' ? `📁 ${key}\n${list.length} илгээлт · ${vals} хэмжилт` : `${list[0].config.worker || '—'} · ${vals} хэмжилт`)
+      + '\nҮүлнээс бүрмөсөн устана. Ажилчны утсан дээрх хуулбар нь үлдэнэ.',
+    async () => {
+      showStatus('🗑 Устгаж байна…', '#f04545');
+      let ok = 0, fail = '';
+      for (const s of list) {
+        try { await CLOUD.db.collection('measurements').doc(s.id).delete(); ok++; }
+        catch (e) { if (!fail) fail = (e && (e.code || e.message)) || 'алдаа'; }
+      }
+      CLOUD.sectionSessions = (CLOUD.sectionSessions || []).filter(s => !list.includes(s));
+      renderAdmList();
+      if (admDayDate) {
+        const still = admFolders().find(f => f.date === admDayDate);
+        still ? openAdmDayMod(admDayDate) : closeAdmDayMod();
+      }
+      showStatus(fail ? '❌ Устгаж чадсангүй: ' + fail : `🗑 ${ok} илгээлт устлаа`, fail ? '#f04545' : '#22c97a');
+      loadSectionData();
+    });
 }
 
 /* ── Session Storage ── */
@@ -1382,14 +1599,26 @@ function sactDelete() {
   askDeleteSession(id);
 }
 
+/* ── Ерөнхий «устгах уу?» баталгаажуулалт ── */
+let delAction = null;
+function askConfirmDelete(title, sub, onYes) {
+  delId = null;
+  delAction = onYes;
+  document.querySelector('#delMod .rst-title').textContent = title;
+  document.getElementById('delSub').textContent = sub;
+  document.getElementById('delMod').classList.add('on');
+}
+
 /* ── Устгахын өмнө баталгаажуулах ── */
 function askDeleteSession(id) {
   const s = getSessions().find(x => x.id === id);
   if (!s) return;
   delId = id;
+  delAction = null;
   const c = s.config || {};
   const cnt = countMeasurements(s);
   const sent = isSessionSent(s);
+  document.querySelector('#delMod .rst-title').textContent = 'Энэ хэмжилтийг устгах уу?';
   document.getElementById('delSub').textContent =
     `Зам №${c.road || '—'} · ${c.s || '?'}-${c.e || '?'} км · ${fmtDate(s.savedAt)}\n` +
     `${cnt} хэмжилт устана. Энэ үйлдлийг буцааж болохгүй.` +
@@ -1397,12 +1626,13 @@ function askDeleteSession(id) {
   document.getElementById('delMod').classList.add('on');
 }
 function closeDelMod() {
-  delId = null;
+  delId = null; delAction = null;
   document.getElementById('delMod').classList.remove('on');
 }
 function doDeleteSession() {
-  const id = delId;
+  const id = delId, act = delAction;
   closeDelMod();
+  if (act) { act(); return; }         // ерөнхий баталгаажуулалт
   if (!id) return;
   saveSessions(getSessions().filter(s => s.id !== id));
   if (currentViewSessId === id) closeSessViewMod();
@@ -1481,15 +1711,35 @@ function viewSession(id) {
   const sess = getSessions().find(s => s.id === id);
   if (!sess) return;
   currentViewSessId = id; // ← хадгалах
+  const w = (sess.config.worker || '').trim();
+  renderSessionView(sess,
+    `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${sess.config.date}`
+    + (w ? ` · Хэмжигч: ${w}` : '')
+    + (canUpload() ? (isSessionSent(sess) ? ` · ☁️ Илгээсэн: ${fmtDate(sess.sentAt)}` : ' · ⏳ Илгээгээгүй') : ''));
+  syncSessCloudBtn(sess);
+}
+
+/* Ажилчны илгээсэн (үүлэн) хэмжилтийг админ нээж харах */
+function viewCloudSession(docId) {
+  const sess = (CLOUD.sectionSessions || []).find(s => s.id === docId);
+  if (!sess) return;
+  currentViewSessId = null;              // утсанд хадгалагдсан биш
+  const c = sess.config, w = (c.worker || '').trim();
+  renderSessionView(sess,
+    `☁️ Ирсэн: ${fmtDate(sess.savedAt)} · Огноо: ${esc(String(c.date || '—'))}`
+    + (w ? ` · Хэмжигч: ${w}` : ''));
+  document.getElementById('btnSessCloud').style.display = 'none';   // буцааж илгээхгүй
+}
+
+/* Хоёуланд нь нийтлэг харагдац */
+let currentViewSess = null;
+function renderSessionView(sess, subText) {
+  currentViewSess = sess;
   const c = sess.config, d = sess.data;
   document.getElementById('sessVTitle').textContent = `Зам №${c.road} · ${c.s}-${c.e} км`;
-  const w = (c.worker||'').trim();
-  document.getElementById('sessVSub').textContent = `Хадгалсан: ${fmtDate(sess.savedAt)} · Огноо: ${c.date}`
-    + (w ? ` · Хэмжигч: ${w}` : '')
-    + (canUpload() ? (isSessionSent(sess) ? ` · ☁️ Илгээсэн: ${fmtDate(sess.sentAt)}` : ' · ⏳ Илгээгээгүй') : '');
-  syncSessCloudBtn(sess);
+  document.getElementById('sessVSub').textContent = subText;
 
-  const maxJ = Math.max(c.bar, c.zun);
+  const maxJ = Math.max(c.bar || 0, c.zun || 0);
   let html = '';
   for (let km = c.s; km <= c.e; km++) {
     let grp = '';
@@ -1504,7 +1754,10 @@ function viewSession(id) {
   document.getElementById('sessViewMod').classList.add('on');
 }
 function sessValColor(v) { return v>=36?'var(--danger)':v>=22?'var(--warn)':'var(--text)'; }
-function closeSessViewMod() { currentViewSessId = null; document.getElementById('sessViewMod').classList.remove('on'); }
+function closeSessViewMod() {
+  currentViewSessId = null; currentViewSess = null;
+  document.getElementById('sessViewMod').classList.remove('on');
+}
 
 /* ══════════════════════════════════════════════════════════
    УТАСНЫ «УХРАХ» ТОВЧ
@@ -1521,8 +1774,10 @@ const OVERLAYS = [
   { id: 'adjResMod',   close: () => closeAdjResMod() },
   { id: 'adjMod',      close: () => closeAdjMod() },
   { id: 'dpMod',       close: () => closeDatePickMod() },
+  { id: 'admActMod',   close: () => closeAdmActMod() },
   { id: 'sessActMod',  close: () => closeSessActMod() },
   { id: 'sessViewMod', close: () => closeSessViewMod() },
+  { id: 'admDayMod',   close: () => closeAdmDayMod() },
   { id: 'sessMod',     close: () => closeSessMod() },
   { id: 'kmMod',       close: () => closeKmMod() },
   { id: 'expMod',      close: () => closeExpMod() }
@@ -1599,9 +1854,26 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-13.4';
+const APP_VERSION = '2026-08-14.1';
+/* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
+   кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
+async function forceUpdate() {
+  showStatus('🔄 Шинэчлэлт шалгаж байна…', '#4f8ef7');
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.update().catch(() => {})));
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch {}
+  location.reload();
+}
+
 function boot() {
-  document.getElementById('verTag').textContent = 'хувилбар ' + APP_VERSION;
+  document.getElementById('verTag').textContent = 'хувилбар ' + APP_VERSION + ' · шинэчлэх';
   document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
   purgeOldSessions();
   if (cloudConfigured()) {
@@ -2017,9 +2289,8 @@ async function exportExcel() {
 
 /* ── Excel татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
 async function exportSessionExcel(id) {
-  const sid = id || currentViewSessId;
-  if (!sid) return;
-  const sess = getSessions().find(s => s.id === sid);
+  // id өгөгдөөгүй бол нээлттэй байгаа хэмжилт (утасных ч бай, үүлэнх ч бай)
+  const sess = id ? getSessions().find(s => s.id === id) : currentViewSess;
   if (!sess) return;
   const c = sess.config, d = sess.data;
   const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
@@ -2029,9 +2300,7 @@ async function exportSessionExcel(id) {
 
 /* ── CSV татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
 function exportSessionCSV(id) {
-  const sid = id || currentViewSessId;
-  if (!sid) return;
-  const sess = getSessions().find(s => s.id === sid);
+  const sess = id ? getSessions().find(s => s.id === id) : currentViewSess;
   if (!sess) return;
   _exportCSVDetailed(sess.config, sess.data);
   showStatus('📄 CSV татагдлаа', '#4f8ef7');
@@ -2560,13 +2829,15 @@ function styleHeaderRow(row) {
   row.height = 24;
 }
 
-/* dates — сонгосон огноонууд. Хоосон бол бүх хэмжилтийг нэгтгэнэ. */
-async function exportCombinedExcel(dates) {
+/* dates — сонгосон огноонууд (хоосон бол бүгд).
+   srcOverride — өгвөл яг эдгээр хэмжилтийг нэгтгэнэ (админы хавтас г.м).
+   nameOverride — файлын нэр. */
+async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   if (typeof ExcelJS === 'undefined') {
     alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
     return;
   }
-  const comb = buildCombined(sessionsForDates(dates));
+  const comb = buildCombined(srcOverride || sessionsForDates(dates));
   if (!comb.rows.length) {
     showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#f0a500');
     return;
@@ -2739,7 +3010,7 @@ async function exportCombinedExcel(dates) {
   const dTag = dl.length
     ? (dl.length > 1 ? `${dl[0]}_${dl[dl.length - 1]}` : dl[0])
     : new Date().toISOString().split('T')[0];
-  a.download = `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${dTag}.xlsx`;
+  a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${dTag}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showStatus(`📊 ${dl.length || 1} өдөр · ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#22c97a');
