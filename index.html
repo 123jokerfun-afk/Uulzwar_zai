@@ -236,6 +236,43 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .sess-badge.pend { color: var(--warn); background: rgba(240,165,0,.15); }
 .sess-hint { font-size: 11px; color: var(--muted); text-align: center; padding: 6px 0 2px; }
 
+/* Уулзварын зай тохируулах — км/тал сонгох ба үр дүн */
+#adjMod, #adjResMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 232; align-items: flex-end; justify-content: center; }
+#adjResMod { z-index: 236; }
+#adjMod.on, #adjResMod.on { display: flex; }
+.adj-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 90vh; display: flex; flex-direction: column; }
+.adj-title { font-size: 15px; font-weight: 800; margin-bottom: 3px; flex-shrink: 0; }
+.adj-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; flex-shrink: 0; line-height: 1.5; }
+.adj-list { flex: 1; overflow-y: auto; }
+.adj-km { border: 1px solid var(--border); background: var(--s2); border-radius: 10px; padding: 10px 12px; margin-bottom: 7px; }
+.adj-km-hdr { font-size: 13.5px; font-weight: 800; }
+.adj-km-det { font-size: 11px; color: var(--muted); margin: 2px 0 8px; }
+.adj-sides { display: flex; gap: 8px; }
+.adj-sides button { flex: 1; padding: 10px; font-size: 12.5px; font-weight: 700; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text); }
+.adj-sides .as-bar { border-color: var(--accent); color: var(--accent); }
+.adj-sides .as-zun { border-color: var(--green); color: var(--green); }
+.adj-sides button:disabled { opacity: .35; cursor: default; border-color: var(--border); color: var(--muted); }
+
+/* Үр дүн */
+.adj-sum { background: var(--s2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; flex-shrink: 0; }
+.adj-sum-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+.adj-sum-row b { font-size: 13px; }
+.adj-avg { color: var(--green); font-weight: 800; }
+.adj-groups { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; flex-shrink: 0; }
+.adj-grp { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; padding: 7px 10px; border-radius: 8px; border-left: 4px solid; background: var(--s2); }
+.adj-grp .g-ar { font-size: 15px; }
+.adj-grp .g-mm { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.adj-tbl { flex: 1; overflow-y: auto; }
+.adj-hd, .adj-row { display: grid; grid-template-columns: 42px 1fr 1fr 1.15fr; gap: 4px; align-items: center; padding: 6px 8px; font-size: 12px; }
+.adj-hd { position: sticky; top: 0; background: var(--s1); color: var(--muted); font-size: 10.5px; font-weight: 700; text-transform: uppercase; border-bottom: 1px solid var(--border); z-index: 1; }
+.adj-row { border-bottom: 1px solid var(--border); }
+.adj-row .r-j { font-weight: 800; color: var(--muted); }
+.adj-row .r-v { font-weight: 800; }
+.adj-row .r-t { color: var(--muted); }
+.adj-row .r-s { font-weight: 800; text-align: right; white-space: nowrap; }
+.adj-row.zero .r-s { color: var(--muted); font-weight: 700; }
+.adj-note { font-size: 11px; color: var(--muted); line-height: 1.55; margin-top: 8px; flex-shrink: 0; }
+
 /* Excel-д нэгтгэх огноо сонгох цонх */
 #dpMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 230; align-items: flex-end; justify-content: center; }
 #dpMod.on { display: flex; }
@@ -413,6 +450,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   </div>
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
   <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
+  <button class="btn-sess" style="color:var(--accent);border-color:var(--accent);margin-top:.3rem;" onclick="openAdjMod()">🔧 Уулзварын зай тохируулах</button>
   <button class="btn-sess" id="btnImport" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
   <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
@@ -497,6 +535,30 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <div class="sess-list" id="sessList"></div>
     <div class="sess-hint">Мөрөн дээр удаан дарж сонголтын цэс нээнэ</div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Уулзварын зай тохируулах: км ба тал сонгох -->
+<div id="adjMod">
+  <div class="adj-inner">
+    <div class="adj-title">🔧 Уулзварын зай тохируулах</div>
+    <div class="adj-sub">Хэмжилт хийсэн км-ээс сонгоод, баруун эсвэл зүүн талыг нь дарна.</div>
+    <div class="adj-list" id="adjList"></div>
+    <div class="mod-close" onclick="closeAdjMod()">Хаах</div>
+  </div>
+</div>
+
+<!-- Уулзварын зай тохируулах: үр дүн -->
+<div id="adjResMod">
+  <div class="adj-inner">
+    <div class="adj-title" id="adjResTitle"></div>
+    <div class="adj-sub" id="adjResSub"></div>
+    <div class="adj-sum" id="adjResSum"></div>
+    <div class="adj-groups" id="adjResGroups"></div>
+    <div class="adj-hd"><span>Үе</span><span>Хэмжсэн</span><span>Байвал зохих</span><span style="text-align:right">Шилжүүлэх</span></div>
+    <div class="adj-tbl" id="adjResTbl"></div>
+    <div class="adj-note">→ урагш = тухайн үений цаад төмрийг км нэмэгдэх зүг зөөнө (зай нээгдэнэ).<br>← хойш = эсрэг зүг зөөнө (зай хаагдана). Үе бүрийг дундажид хүргэхэд дараагийн үе өөрчлөгдөхийг тооцсон.</div>
+    <div class="mod-close" onclick="closeAdjResMod()">← Буцах</div>
   </div>
 </div>
 
@@ -1456,6 +1518,8 @@ const OVERLAYS = [
   { id: 'delMod',      close: () => closeDelMod() },
   { id: 'rstMod',      close: () => closeRstMod() },
   { id: 'importMod',   close: () => { document.getElementById('importMod').style.display = 'none'; } },
+  { id: 'adjResMod',   close: () => closeAdjResMod() },
+  { id: 'adjMod',      close: () => closeAdjMod() },
   { id: 'dpMod',       close: () => closeDatePickMod() },
   { id: 'sessActMod',  close: () => closeSessActMod() },
   { id: 'sessViewMod', close: () => closeSessViewMod() },
@@ -1535,7 +1599,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-13.3';
+const APP_VERSION = '2026-08-13.4';
 function boot() {
   document.getElementById('verTag').textContent = 'хувилбар ' + APP_VERSION;
   document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
@@ -2144,6 +2208,207 @@ async function _exportExcelCore(c, d, filename) {
 function combinedSource() {
   if (CLOUD.on && isAdmin() && CLOUD.sectionSessions.length) return CLOUD.sectionSessions;
   return getSessions();
+}
+
+/* ══════════════════════════════════════════════════════════
+   УУЛЗВАРЫН ЗАЙ ТОХИРУУЛАХ
+
+   Нэг км-ийн нэг талын бүх үений зайг ХЭВЭЭР НЬ үлдээж (нийт
+   зай өөрчлөгдөхгүй) жигд тараана. Байвал зохих зай =
+   нийт зай ÷ үений тоо.
+
+   Тухайн үеийг дундажид хүргэхэд араас нь орох төмөр зөөгдөж,
+   ДАРААГИЙН үений зай мөн хэмжээгээр өөрчлөгддөг. Тиймээс
+   n-р үений араах төмрийг хэдэн мм зөөхийг хуримтлалаар бодно:
+
+       шилжүүлэлт(n) = n × дундаж − (1..n үений зайн нийлбэр)
+
+   Жишээ: 2, 5, 6 (дундаж 4)
+     1-р үе: 4−2 = +2 → 1-р үе 4 болж, 2-р үе 5−2 = 3 болно
+     2-р үе: 8−7 = +1 → 2-р үе 4 болж, 3-р үе 6−1 = 5 болно
+     3-р үе: 12−13 = −1 → 3-р үе 4 болно ...
+   Сүүлийн үед шилжүүлэлт 0 болж, нийт зай хэвээрээ үлдэнэ.
+   ══════════════════════════════════════════════════════════ */
+
+/* Хэмжилттэй км-үүдийг цуглуулна. Нэг км дээр олон илгээлт байвал
+   хамгийн сүүлийн утга нь үлдэнэ (нэгтгэсэн Excel-тэй ижил зарчим). */
+function adjKmList() {
+  const map = new Map();
+  const sessions = combinedSource().slice().sort((a, b) =>
+    new Date(a.savedAt || a.startedAt || 0) - new Date(b.savedAt || b.startedAt || 0));
+  sessions.forEach(s => {
+    const c = s.config || {}, d = s.data || {};
+    const road = String(c.road == null ? '—' : c.road);
+    Object.keys(d).forEach(kmKey => {
+      const km = parseInt(kmKey, 10);
+      if (!Number.isFinite(km)) return;
+      const key = road + '|' + km;
+      let e = map.get(key);
+      if (!e) { e = { road, km, bar: new Map(), zun: new Map(), dates: new Set(), workers: new Set() }; map.set(key, e); }
+      const joints = d[kmKey] || {};
+      Object.keys(joints).forEach(jk => {
+        const j = parseInt(jk, 10);
+        if (!Number.isFinite(j) || j < 1) return;
+        ['bar', 'zun'].forEach(dir => {
+          const raw = joints[jk] ? joints[jk][dir] : null;
+          if (raw === null || raw === undefined || raw === '') return;
+          const v = Number(raw);
+          if (Number.isFinite(v)) e[dir].set(j, v);
+        });
+      });
+      if (c.date) e.dates.add(c.date);
+      const w = (c.worker || '').trim(); if (w) e.workers.add(w);
+    });
+  });
+  return Array.from(map.values())
+    .filter(e => e.bar.size || e.zun.size)
+    .sort((a, b) => {
+      const na = parseFloat(a.road), nb = parseFloat(b.road);
+      if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+      if (a.road !== b.road) return a.road < b.road ? -1 : 1;
+      return a.km - b.km;
+    });
+}
+
+function openAdjMod() {
+  const list = adjKmList();
+  const box = document.getElementById('adjList');
+  if (!list.length) {
+    box.innerHTML = '<div class="sess-empty">Хэмжилттэй км алга байна.<br>Эхлээд хэмжилт хийнэ үү.</div>';
+  } else {
+    box.innerHTML = list.map(e => {
+      const who = Array.from(e.workers).join(', ');
+      const dt = Array.from(e.dates).sort();
+      return `<div class="adj-km">
+        <div class="adj-km-hdr">Зам №${esc(e.road)} · ${e.km} км</div>
+        <div class="adj-km-det">${dt.length ? esc(dt[dt.length-1]) : '—'}${who ? ' · ' + esc(who) : ''}</div>
+        <div class="adj-sides">
+          <button class="as-bar" ${e.bar.size ? '' : 'disabled'} onclick="openAdjResult('${esc(e.road)}',${e.km},'bar')">Баруун · ${e.bar.size} үе</button>
+          <button class="as-zun" ${e.zun.size ? '' : 'disabled'} onclick="openAdjResult('${esc(e.road)}',${e.km},'zun')">Зүүн · ${e.zun.size} үе</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('adjMod').classList.add('on');
+}
+function closeAdjMod() { document.getElementById('adjMod').classList.remove('on'); }
+function closeAdjResMod() { document.getElementById('adjResMod').classList.remove('on'); }
+
+/* Тохируулгын тооцоо */
+function buildAdjust(vals) {
+  const n = vals.length;
+  const total = vals.reduce((a, x) => a + x.v, 0);
+  const avg = n ? total / n : 0;
+  let cum = 0;
+  const rows = vals.map((x, i) => {
+    cum += x.v;
+    const ideal = (i + 1) * avg;
+    return { j: x.j, v: x.v, cum, ideal, shift: ideal - cum };
+  });
+  return { rows, n, total, avg };
+}
+/* Аль үзүүрээс нь эхлэн тохируулах вэ.
+   Зай нь 0-оос бага байж чадахгүй тул үе бүрийг дундажид хүргэхэд
+   дараагийн үеийн зай хасах болж хувирвал тэр дарааллаар ажиллах
+   боломжгүй — нөгөө үзүүрээс нь эхлэх хэрэгтэй болдог. */
+function adjFeasible(vals, avg) {
+  const sim = dirFwd => {
+    const cur = vals.map(x => x.v);
+    const n = cur.length;
+    if (dirFwd) {
+      for (let i = 0; i < n - 1; i++) {
+        const need = avg - cur[i];
+        cur[i] = avg; cur[i + 1] -= need;
+        if (cur[i + 1] < -1e-9) return vals[i + 1].j;   // энэ үе дээр зай хүрэхгүй
+      }
+    } else {
+      for (let i = n - 1; i > 0; i--) {
+        const need = avg - cur[i];
+        cur[i] = avg; cur[i - 1] -= need;
+        if (cur[i - 1] < -1e-9) return vals[i - 1].j;
+      }
+    }
+    return 0;   // болно
+  };
+  return { fwd: sim(true), back: sim(false) };
+}
+
+/* Нэг зүг рүү шилжих дараалсан үеүүдийг бүлэглэнэ */
+function adjGroups(rows) {
+  const out = [];
+  rows.forEach(r => {
+    const mm = Math.round(r.shift);
+    const dir = mm > 0 ? 1 : mm < 0 ? -1 : 0;
+    const last = out[out.length - 1];
+    if (last && last.dir === dir) { last.to = r.j; last.max = Math.max(last.max, Math.abs(mm)); }
+    else out.push({ dir, from: r.j, to: r.j, max: Math.abs(mm) });
+  });
+  return out;
+}
+const ADJ_COLORS = ['#4f8ef7', '#22c97a', '#f0a500', '#b06ef7', '#00bcd4', '#ff7043'];
+function fmtMm(v) {
+  const r = Math.round(v * 10) / 10;
+  return (Number.isInteger(r) ? r : r.toFixed(1));
+}
+
+function openAdjResult(road, km, dir) {
+  const e = adjKmList().find(x => x.road === String(road) && x.km === km);
+  if (!e) return;
+  const vals = Array.from(e[dir].entries()).sort((a, b) => a[0] - b[0]).map(([j, v]) => ({ j, v }));
+  if (!vals.length) return;
+  const a = buildAdjust(vals);
+  const side = dir === 'bar' ? 'Баруун' : 'Зүүн';
+
+  document.getElementById('adjResTitle').textContent = `Зам №${road} · ${km} км · ${side}`;
+  const gaps = vals[vals.length - 1].j - vals[0].j + 1 - vals.length;
+  document.getElementById('adjResSub').textContent =
+    `${vals[0].j}–${vals[vals.length-1].j} үе · ${a.n} хэмжилт`
+    + (gaps > 0 ? ` · ⚠️ ${gaps} үе хэмжигдээгүй тул дараалуулан тооцов` : '');
+
+  const fe = adjFeasible(vals, a.avg);
+  const order = !fe.fwd
+    ? `<div class="adj-sum-row" style="color:var(--green)"><span>Ажиллах дараалал</span><b>${vals[0].j}-р үеэс эхэлнэ →</b></div>`
+    : !fe.back
+      ? `<div class="adj-sum-row" style="color:var(--warn)"><span>Ажиллах дараалал</span><b>⚠️ ${vals[vals.length-1].j}-р үеэс урвуугаар ←</b></div>`
+      : `<div class="adj-sum-row" style="color:var(--warn)"><span>Ажиллах дараалал</span><b>⚠️ ${fe.fwd}-р үе дээр зай хүрэхгүй</b></div>`;
+
+  document.getElementById('adjResSum').innerHTML = `
+    <div class="adj-sum-row"><span>Нийт зай</span><b>${fmtMm(a.total)} мм</b></div>
+    <div class="adj-sum-row"><span>Үений тоо</span><b>${a.n}</b></div>
+    <div class="adj-sum-row"><span>Байвал зохих (дундаж)</span><b class="adj-avg">${fmtMm(a.avg)} мм</b></div>
+    ${order}`;
+
+  const grps = adjGroups(a.rows);
+  let ci = 0;
+  const grpColor = new Map();
+  document.getElementById('adjResGroups').innerHTML = grps.map((g, i) => {
+    const color = g.dir === 0 ? '#7b8497' : ADJ_COLORS[ci++ % ADJ_COLORS.length];
+    grpColor.set(i, color);
+    const span = g.from === g.to ? `${g.from}-р үе` : `${g.from}–${g.to} үе`;
+    const txt = g.dir > 0 ? '→ урагш' : g.dir < 0 ? '← хойш' : '— хөдөлгөхгүй';
+    return `<div class="adj-grp" style="border-left-color:${color};color:${color}">
+      <span class="g-ar">${g.dir > 0 ? '→' : g.dir < 0 ? '←' : '—'}</span>
+      <span>${span} · ${txt.replace(/^[→←—]\s*/, '')}</span>
+      ${g.dir ? `<span class="g-mm">хамгийн их ${g.max} мм</span>` : ''}
+    </div>`;
+  }).join('');
+
+  // Мөр бүрийг харьяалагдах бүлгийнх нь өнгөөр
+  let gi = 0;
+  document.getElementById('adjResTbl').innerHTML = a.rows.map(r => {
+    while (gi < grps.length - 1 && r.j > grps[gi].to) gi++;
+    const mm = Math.round(r.shift);
+    const color = grpColor.get(gi);
+    const arrow = mm > 0 ? '→' : mm < 0 ? '←' : '—';
+    return `<div class="adj-row${mm ? '' : ' zero'}">
+      <span class="r-j">${r.j}</span>
+      <span class="r-v" style="color:${sessValColor(r.v)}">${fmtMm(r.v)} мм</span>
+      <span class="r-t">${fmtMm(r.ideal)} мм</span>
+      <span class="r-s" style="${mm ? `color:${color}` : ''}">${arrow}${mm ? ' ' + Math.abs(mm) + ' мм' : ''}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('adjResMod').classList.add('on');
 }
 
 /* ══ Excel-д нэгтгэх огноо сонгох ══
