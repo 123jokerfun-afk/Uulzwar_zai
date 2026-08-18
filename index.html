@@ -1236,11 +1236,21 @@ async function loadSectionData() {
   }
 }
 
+/* Огноог УТСАНЫ цагаар бичнэ. savedAt нь ISO (UTC) тул түүнийг шууд
+   тайрвал Монголын оройн цаг (UTC+8) өмнөх өдөр рүү унадаг —
+   8-р сарын 18-нд илгээсэн хэмжилт 17-ны хавтсанд ордог байсан. */
+function localDay(v) {
+  const d = v instanceof Date ? v : new Date(v);
+  if (!d || !Number.isFinite(d.getTime())) return '';
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 /* ══ Админ: ирсэн өгөгдлийг ИЛГЭЭСЭН ӨДРӨӨР нь хавтаслах ══ */
 function admFolders() {
   const map = new Map();
   (CLOUD.sectionSessions || []).forEach(s => {
-    const key = (s.savedAt || '').slice(0, 10) || '—';
+    const key = localDay(s.savedAt) || '—';
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(s);
   });
@@ -1926,7 +1936,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-14.4';
+const APP_VERSION = '2026-08-18.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -1946,7 +1956,8 @@ async function forceUpdate() {
 
 function boot() {
   document.getElementById('verTag').textContent = 'хувилбар ' + APP_VERSION + ' · шинэчлэх';
-  document.getElementById('sDate').value = new Date().toISOString().split('T')[0];
+  // Өнөөдрийн огноог утасны цагаар (UTC-ээр бол орой нь өмнөх өдөр болно)
+  document.getElementById('sDate').value = localDay(new Date());
   purgeOldSessions();
   if (cloudConfigured()) {
     /* Өмнө нэвтэрсэн бол нэвтрэх дэлгэцийг огт харуулахгүй — хадгалсан
@@ -3082,7 +3093,7 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   const dl = Array.from(comb.dates).sort();
   const dTag = dl.length
     ? (dl.length > 1 ? `${dl[0]}_${dl[dl.length - 1]}` : dl[0])
-    : new Date().toISOString().split('T')[0];
+    : localDay(new Date());
   a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${dTag}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
