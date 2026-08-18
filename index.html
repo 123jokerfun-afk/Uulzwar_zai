@@ -64,6 +64,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .lg-err.on { display: block; }
 .lg-note { display: none; background: rgba(240,165,0,.12); border: 1px solid var(--warn); color: #ffd9a0; font-size: 12.5px; border-radius: 9px; padding: 10px 12px; margin-bottom: .7rem; line-height: 1.5; }
 .lg-note.on { display: block; }
+.lg-hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+.lg-hint.ok { color: var(--green); font-weight: 700; }
+.lg-hint.bad { color: var(--warn); }
 #lgBusy { display: none; text-align: center; font-size: 12px; color: var(--muted); margin-top: .7rem; }
 #lgBusy.on { display: block; }
 .lg-forgot { display: block; text-align: center; margin-top: 1rem; font-size: 12.5px; color: var(--muted); cursor: pointer; }
@@ -411,8 +414,11 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <div class="card">
     <div class="fg">
       <div class="field">
-        <label>Цахим хаяг</label>
-        <input type="email" id="lgEmail" autocomplete="username" inputmode="email" placeholder="pd6.bataa@uulzvar.mn"/>
+        <label>Хэн бэ?</label>
+        <input type="text" id="lgEmail" autocomplete="username" autocapitalize="none"
+               autocorrect="off" spellcheck="false" placeholder="ПД-6 ажилтан"
+               oninput="showAccountHint()"/>
+        <div class="lg-hint" id="lgHint">Жишээ: <b>ПД-6 ажилтан</b> · <b>ПД-6 админ</b> — том жижиг үсэг хамаагүй</div>
       </div>
       <div class="field">
         <label>Нууц үг</label>
@@ -1027,23 +1033,93 @@ const AUTH_ERR = {
   'auth/too-many-requests': 'Хэт олон удаа буруу оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.',
   'auth/network-request-failed': 'Интернэт холболт алга байна.'
 };
+/* ══════════════════════════════════════════════════════════
+   БОГИНО НЭРЭЭР НЭВТРЭХ
+
+   Firebase нь цахим хаягаар нэвтэрдэг тул «ПД-6 ажилтан» гэсэн
+   бичлэгийг аппаараа хаяг болгож хөрвүүлнэ:
+
+       ПД-6 ажилтан → pd6.ajiltan@uulzwar.mn
+       пд6 админ    → pd6.admin@uulzwar.mn
+
+   Том жижиг үсэг, кирилл/латин, зураас/зай — хамаагүй.
+   Бүтэн хаяг бичсэн ч хэвээр нь ажиллана.
+   ══════════════════════════════════════════════════════════ */
+/* Бүртгэлийн домэйн. Эхнийхээр нь оролдоод олдохгүй бол дараагийнхаар
+   дахин оролдоно (заавар дээр uulzvar.mn гэсэн жишээ байдаг). */
+const ACCOUNT_DOMAINS = ['uulzwar.mn', 'uulzvar.mn'];
+
+function parseAccount(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  if (s.includes('@')) return { emails: [s.toLowerCase()], label: s.toLowerCase() };
+
+  const low = s.toLowerCase();
+  // ПД дугаар: эхний 1–13 тоо
+  const num = low.match(/\d{1,2}/);
+  const pd = num ? parseInt(num[0], 10) : NaN;
+  if (!Number.isFinite(pd) || pd < 1 || pd > 13) return null;
+
+  // Үүрэг: кирилл ба латин хувилбарууд
+  const isAdmin  = /адми|ахла|admin|ahla/.test(low);
+  const isWorker = /ажил|ажлы|ajil|ajli|worker|ajiltan/.test(low);
+  if (isAdmin === isWorker) return null;      // аль нь ч биш, эсвэл хоёулаа
+
+  const user = 'pd' + pd + (isAdmin ? '.admin' : '.ajiltan');
+  return {
+    emails: ACCOUNT_DOMAINS.map(d => user + '@' + d),
+    label: 'ПД-' + pd + ' · ' + (isAdmin ? 'админ' : 'ажилтан')
+  };
+}
+
+/* Бичиж байх зуур юу болж хөрвөхийг харуулна */
+function showAccountHint() {
+  const el = document.getElementById('lgHint');
+  const v = (document.getElementById('lgEmail').value || '').trim();
+  if (!v) {
+    el.className = 'lg-hint';
+    el.innerHTML = 'Жишээ: <b>ПД-6 ажилтан</b> · <b>ПД-6 админ</b> — том жижиг үсэг хамаагүй';
+    return;
+  }
+  const a = parseAccount(v);
+  if (a) { el.className = 'lg-hint ok'; el.textContent = '✓ ' + a.label; }
+  else { el.className = 'lg-hint bad'; el.textContent = 'ПД дугаар (1–13) ба «ажилтан» эсвэл «админ» гэж бичнэ үү'; }
+}
+
 async function doLogin() {
-  const email = (document.getElementById('lgEmail').value || '').trim().toLowerCase();
+  const raw = document.getElementById('lgEmail').value || '';
   const pass = document.getElementById('lgPass').value || '';
   clearLoginError();
-  if (!email || !pass) { showLoginError('Хаяг болон нууц үгээ бөглөнө үү.'); return; }
-  setLoginBusy(true);
-  try {
-    await CLOUD.auth.signInWithEmailAndPassword(email, pass);
-    // Цааш нь onAuthStateChanged үргэлжлүүлнэ
-  } catch (e) {
-    setLoginBusy(false);
-    showLoginError(AUTH_ERR[e.code] || ('Нэвтэрч чадсангүй: ' + (e.message || e.code)));
+  const acc = parseAccount(raw);
+  if (!acc || !pass) {
+    showLoginError(!pass
+      ? 'Нууц үгээ бөглөнө үү.'
+      : 'Хэн болохоо «ПД-6 ажилтан» эсвэл «ПД-6 админ» гэж бичнэ үү.');
+    return;
   }
+  setLoginBusy(true);
+  let lastErr = null;
+  // Домэйн бүрээр оролдоно — аль нь бүртгэлтэй нь олдоно
+  for (const email of acc.emails) {
+    try {
+      await CLOUD.auth.signInWithEmailAndPassword(email, pass);
+      return;   // Цааш нь onAuthStateChanged үргэлжлүүлнэ
+    } catch (e) {
+      lastErr = e;
+      const code = e && e.code;
+      // Хаяг олдоогүй төрлийн алдаа бол дараагийн домэйныг үзнэ
+      if (code !== 'auth/user-not-found' && code !== 'auth/invalid-credential' &&
+          code !== 'auth/invalid-email') break;
+    }
+  }
+  setLoginBusy(false);
+  showLoginError(AUTH_ERR[lastErr && lastErr.code] ||
+    ('Нэвтэрч чадсангүй: ' + ((lastErr && (lastErr.message || lastErr.code)) || '')));
 }
 async function doReset() {
-  const email = (document.getElementById('lgEmail').value || '').trim().toLowerCase();
-  if (!email) { showLoginError('Эхлээд цахим хаягаа бичнэ үү, дараа нь энд дарна уу.'); return; }
+  const acc = parseAccount(document.getElementById('lgEmail').value || '');
+  const email = acc && acc.emails[0];
+  if (!email) { showLoginError('Эхлээд «ПД-6 ажилтан» гэх мэтээр бичнэ үү, дараа нь энд дарна уу.'); return; }
   if (!CLOUD.auth) { showLoginError('Firebase тохируулагдаагүй байна.'); return; }
   try {
     await CLOUD.auth.sendPasswordResetEmail(email);
@@ -1936,7 +2012,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-18.1';
+const APP_VERSION = '2026-08-18.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
