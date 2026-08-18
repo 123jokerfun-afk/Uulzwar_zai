@@ -50,7 +50,8 @@ const TTL_DAYS = 30;
   --danger: #f04545;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
-html, body { height: 100%; overflow: hidden; }
+/* overscroll-behavior — iPhone дээрх «уян» дүүжлэлтийг (rubber-band) хаана */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
 
 /* ── LOGIN ── */
@@ -164,7 +165,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .dir-tab.zun.act { background: var(--green); border-color: var(--green); color: #fff; }
 
 /* ── DRUM ── */
-.drum-area { flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 10px 8px 14px; gap: 0; position: relative; border-top: 1px solid var(--border); background: var(--bg); }
+.drum-area { flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 10px 8px 14px; gap: 0; position: relative; border-top: 1px solid var(--border); background: var(--bg); touch-action: manipulation; }
 
 .nav-side { width: 72px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
 .nav-side-btn { width: 62px; height: 62px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--muted); transition: all .12s; }
@@ -173,7 +174,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .drum-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
 
 /* Selector ring */
-.drum-ring { width: 180px; height: 180px; border-radius: 50%; border: 3px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; position: relative; cursor: grab; flex-shrink: 0; }
+/* touch-action: none — гулсуулахыг зөвхөн дугуй өөрөө авна, хуудас хөдлөхгүй */
+.drum-ring { width: 180px; height: 180px; border-radius: 50%; border: 3px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; position: relative; cursor: grab; flex-shrink: 0; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .drum-ring:active { cursor: grabbing; }
 .drum-val { font-size: 58px; font-weight: 900; color: var(--text); transition: all .1s; line-height: 1; }
 .drum-val.warn-v { color: var(--warn); }
@@ -2012,7 +2014,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-18.2';
+const APP_VERSION = '2026-08-18.3';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2217,13 +2219,18 @@ function setupDrum() {
   ring.addEventListener('touchstart',e=>{
     startY=e.touches[0].clientY; startVal=drumCur; moving=true;
   },{passive:true});
+  /* passive:false — дугуй эргүүлэх зуур хөтөч хуудсаа хамт гүйлгэхээс
+     сэргийлж preventDefault дуудна (iPhone дээр арын хэсэг нь дээш доош
+     хөдөлдөг байсан). */
   ring.addEventListener('touchmove',e=>{
     if(!moving) return;
+    e.preventDefault();
     const dy=startY-e.touches[0].clientY;
     const delta=Math.round(dy/14);
     setDrum(startVal+delta);
-  },{passive:true});
+  },{passive:false});
   ring.addEventListener('touchend',()=>{ moving=false; },{passive:true});
+  ring.addEventListener('touchcancel',()=>{ moving=false; },{passive:true});
   // Mouse drag for desktop
   ring.addEventListener('mousedown',e=>{
     startY=e.clientY; startVal=drumCur; moving=true;
