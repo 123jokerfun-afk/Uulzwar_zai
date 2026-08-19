@@ -181,6 +181,16 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .lg-err.on { display: block; }
 .lg-note { display: none; background: rgba(255,194,77,.12); border: 1px solid rgba(255,194,77,.34); color: #ffe0a8; font-size: 12.5px; border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: .65rem; line-height: 1.55; }
 .lg-note.on { display: block; }
+/* Температурын талбар: ± товчоор тэмдэг сольдог. Утасны тоон
+   гар дээр хасах тэмдэг байхгүй байдаг тул зайлшгүй. */
+.tmp-wrap { position: relative; }
+.tmp-wrap input { padding-right: 50px; }
+.tmp-sign {
+  position: absolute; right: 5px; top: 50%; margin-top: -18px;
+  width: 36px; height: 36px; border: 1px solid var(--edge); background: var(--glass-2);
+  color: var(--text-2); font-size: 15px; font-weight: 700; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: var(--r-pill);
+}
 .pw-wrap { position: relative; }
 .pw-wrap input { padding-right: 54px; }
 /* top/margin-top-оор голлуулав — :active дээрх scale() transform-ыг
@@ -665,6 +675,26 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       </div>
       <div class="field"><label>Хэмжилт хийсэн (нэр)</label><input type="text" id="sWorker" placeholder="Өөрийн нэрээ бичнэ үү" autocomplete="name" oninput="markWorkerNameTouched()"/></div>
     </div>
+  </div>
+  <div class="card">
+    <div class="ct">Температур · Маягт-09</div>
+    <div class="fg fg2">
+      <div class="field">
+        <label>Агаарын хэм °C</label>
+        <div class="tmp-wrap">
+          <input type="number" id="sTAir" step="1" placeholder="21"/>
+          <button type="button" class="tmp-sign" onclick="flipTemp('sTAir')" title="Хасах/нэмэх">±</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Зам төмрийн хэм °C</label>
+        <div class="tmp-wrap">
+          <input type="number" id="sTRail" step="1" placeholder="29" oninput="showNormHint()"/>
+          <button type="button" class="tmp-sign" onclick="flipTemp('sTRail')" title="Хасах/нэмэх">±</button>
+        </div>
+      </div>
+    </div>
+    <div class="lg-hint" id="normHint"></div>
   </div>
   <div class="card">
     <div class="ct">Үений тоо</div>
@@ -1288,6 +1318,27 @@ function showAccountHint() {
   else { el.className = 'lg-hint bad'; el.textContent = 'ПД дугаар (1–13) ба «ажилтан» эсвэл «админ» гэж бичнэ үү'; }
 }
 
+/* Утасны тоон гар дээр хасах тэмдэг байдаггүй тул ± товчоор солино */
+function flipTemp(id) {
+  const el = document.getElementById(id);
+  const v = (el.value || '').trim();
+  if (!v) { el.value = '-'; el.focus(); return; }
+  const n = Number(v);
+  if (Number.isFinite(n)) el.value = String(-n);
+  else el.value = v.startsWith('-') ? v.slice(1) : '-' + v;
+  if (id === 'sTRail') showNormHint();
+}
+/* Зам төмрийн хэм оруулахад байх ёстой зайг шууд харуулна */
+function showNormHint() {
+  const el = document.getElementById('normHint');
+  if (!el) return;
+  const v = document.getElementById('sTRail').value;
+  const r = normRow(v);
+  if (!r) { el.className = 'lg-hint'; el.textContent = 'Зам төмрийн хэмээр «байх ёстой хуримтлал» бодогдоно'; return; }
+  el.className = 'lg-hint ok';
+  el.textContent = `${r.band}° → 1 уулзварт ${r.gap} мм байх ёстой`;
+}
+
 /* Нууц үгийг харах/нуух — буруу бичсэн эсэхээ шалгахад хэрэгтэй */
 function togglePw() {
   const i = document.getElementById('lgPass'), b = document.getElementById('pwEye');
@@ -1421,7 +1472,8 @@ function cloudToSession(id, d) {
   return {
     id, savedAt: upd, startedAt: upd,
     config: { date: d.date, road: d.road, worker: d.worker, s: d.s, e: d.e,
-              bar: d.bar, zun: d.zun, max: d.max || 37, pd: d.pd },
+              bar: d.bar, zun: d.zun, max: d.max || 37, pd: d.pd,
+              tAir: d.tAir ?? null, tRail: d.tRail ?? null },
     data
   };
 }
@@ -1450,6 +1502,7 @@ async function uploadSession(sessionId, c, d) {
   const docId = CLOUD.user.uid + '__' + sessionId;
   const payload = {
     pd: myPd(), road: c.road, date: c.date, s: c.s, e: c.e, bar: c.bar, zun: c.zun, max: c.max || 37,
+    tAir: c.tAir ?? null, tRail: c.tRail ?? null,
     worker: c.worker || CLOUD.profile.name, account: CLOUD.profile.name,
     email: CLOUD.profile.email, uid: CLOUD.user.uid,
     sessionId, km: kmToCloud(c, d), count: cnt,
@@ -2074,6 +2127,56 @@ function kmLabel(sess) {
   return `${c.s ?? '?'}-${c.e ?? '?'} км · хэмжилтгүй`;
 }
 
+/* ══ Маягт-09-ийн норматив хүснэгт ══
+   «25 м урттай зам төмрийн нэмэх хасах хэмд байх уулзварын зай хуримтлал».
+   Зам төмрийн хэмээс хамаарч 1 уулзварт байх ёстой зай (мм).
+   Нэг км-ийн хуримтлал = зай × тухайн км-ийн үений тоо.
+   Эх сурвалж: ПЧИ-2 Б.Энхцэцэг (хэрэглэгчийн өгсөн маягт). */
+const RAIL_NORM = [
+  { min:  40, gap: 0,    band: '40' },
+  { min:  35, gap: 1.5,  band: '40-35' },
+  { min:  30, gap: 3,    band: '35-30' },
+  { min:  25, gap: 4.5,  band: '30-25' },
+  { min:  20, gap: 6,    band: '25-20' },
+  { min:  15, gap: 7.5,  band: '20-15' },
+  { min:  10, gap: 9,    band: '15-10' },
+  { min:   5, gap: 10.5, band: '10---5' },
+  { min:   0, gap: 12,   band: '5---0' },
+  { min:  -5, gap: 13.5, band: '(0--5)' },
+  { min: -10, gap: 15,   band: '(5---10)' },
+  { min: -15, gap: 16.5, band: '(10--15)' },
+  { min: -20, gap: 18,   band: '(15--20)' },
+  { min: -25, gap: 19.5, band: '(20--25)' },
+  { min: -30, gap: 21,   band: '(25--30)' },
+  { min: -Infinity, gap: 22, band: '30 дээш' },
+];
+/* C багана: хэмийн тэмдэг (Нэмэх / тэг / хасах) */
+const normSign = g => g <= 12 ? 'Нэмэх' : (g === 13.5 ? 'тэг' : 'хасах');
+
+/* Зам төмрийн хэм (°C) → нормын мөр. Утга байхгүй бол null. */
+function normRow(tRail) {
+  const t = Number(tRail);
+  if (tRail === null || tRail === undefined || tRail === '' || !Number.isFinite(t)) return null;
+  return RAIL_NORM.find(r => t >= r.min) || RAIL_NORM[RAIL_NORM.length - 1];
+}
+function normGapMm(tRail) { const r = normRow(tRail); return r ? r.gap : null; }
+
+/* Тухайн км-д ЯГ хэдэн үе хэмжигдсэнийг тоолно (хоёр талын их нь).
+   Маягт дээрх «байх ёстой хуримтлал» нь бодит үений тоогоор бодогддог. */
+function jointCountAt(c, d, km) {
+  let b = 0, z = 0;
+  for (let j = 1; j <= (c.bar || 0); j++) if (d[km] && d[km][j] && d[km][j].bar != null) b++;
+  for (let j = 1; j <= (c.zun || 0); j++) if (d[km] && d[km][j] && d[km][j].zun != null) z++;
+  return Math.max(b, z);
+}
+/* Нэг км-д байх ёстой хуримтлал (мм). Хэм оруулаагүй бол null. */
+function normAccum(c, d, km) {
+  const gap = normGapMm(c.tRail);
+  if (gap === null) return null;
+  const n = jointCountAt(c, d, km);
+  return n ? +(gap * n).toFixed(1) : null;
+}
+
 /* Файлын нэрэнд ашиглах км бичиглэл. kmRangeLabel-ийн таслал/зайг
    доогуур зураасаар сольсон хувилбар: «696-697, 700» → «696-697_700».
    Хэт олон тасархай бүлэг байвал нэр хэт урт болох тул эхлэл-төгсгөл. */
@@ -2295,7 +2398,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.3';
+const APP_VERSION = '2026-08-19.4';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2345,6 +2448,12 @@ function boot() {
 }
 boot();
 
+function numOrNull(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (!s || s === '-') return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
 function startApp() {
   const s = parseInt(document.getElementById('sS').value)||681;
   const e = parseInt(document.getElementById('sE').value)||701;
@@ -2364,6 +2473,9 @@ function startApp() {
     pd: CLOUD.profile ? CLOUD.profile.pd : (parseInt(document.getElementById('sPd').value,10)||null),
     worker: workerName,
     account: CLOUD.profile ? CLOUD.profile.name : null,
+    // Маягт-09: агаар ба зам төмрийн хэм. Хоосон бол null.
+    tAir: numOrNull(document.getElementById('sTAir').value),
+    tRail: numOrNull(document.getElementById('sTRail').value),
     s, e,
     bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
     zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
@@ -2768,6 +2880,83 @@ function exportSessionCSV(id) {
 }
 
 /* ── Excel core — өнгөтэй, 2 хуудас ── */
+/* ══ Excel-ийн 2 дахь шийт: нормативын хүснэгт ══
+   Хэрэглэгчийн маягтын «Байх ёстой дундаж хуримтлал» хуудсыг хэвээр нь
+   гаргана. Утгууд томьёогоор бодогдоно (=40*B, дараа нь +B) — эх файлын
+   адилаар, ингэснээр үений тоо өөрчлөгдвөл өөрөө шинэчлэгдэнэ. */
+function addNormSheet(wb) {
+  const ws = wb.addWorksheet('Байх ёстой дундаж хуримтлал');
+  const THIN = { style: 'thin', color: { argb: 'FF9E9E9E' } };
+  const box = () => ({ top: THIN, left: THIN, bottom: THIN, right: THIN });
+  const CB = 2, CC = 3, CD = 4, CE = 5;          // B, C, D, E…I
+  const JOINTS = [40, 41, 42, 43, 44];
+
+  ws.mergeCells(2, CB, 2, CE + JOINTS.length - 1);
+  const t = ws.getCell(2, CB);
+  t.value = '25 м урттай зам төмрийн нэмэх хасах хэмд байх уулзварын зай хуримтлал';
+  t.font = { bold: true, size: 12 };
+  t.alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.getRow(2).height = 22;
+
+  const hd = (r1, c1, r2, c2, text, fill) => {
+    if (r1 !== r2 || c1 !== c2) ws.mergeCells(r1, c1, r2, c2);
+    const cell = ws.getCell(r1, c1);
+    cell.value = text;
+    cell.font = { bold: true, size: 9 };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = box();
+    if (fill) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+    return cell;
+  };
+  hd(4, CB, 5, CB, 'Уулзварын зайн хэмжээ мм', 'FFFFFF00');
+  hd(4, CC, 5, CD, 'Жилийн дундаж хэлбэлзэлээрээ / Т / ялгах бүс нутгууд дахь Зам төмрийн тем-р / С / -ын хэмжээ. Манай анги дунд бүсэд орно', 'FFFFFF00');
+  JOINTS.forEach((jn, i) => hd(4, CE + i, 5, CE + i, jn + ' үетэй бол'));
+  hd(6, CB, 6, CD, '25 м урттай зам төмөрт');
+  hd(7, CB, 7, CC, '1 уулзварт байх хэмжээ');
+  hd(7, CD, 7, CD, 'Зам төмрийн градус');
+  hd(7, CE, 7, CE + JOINTS.length - 1, 'Зам төмрийн градусаас хамаарч нэг км-н зайн хуримтлал');
+  ws.getRow(4).height = 46;
+  ws.getRow(7).height = 30;
+
+  RAIL_NORM.forEach((r, i) => {
+    const rowN = 8 + i;
+    const row = ws.getRow(rowN);
+    row.getCell(CB).value = r.gap;
+    row.getCell(CC).value = normSign(r.gap);
+    row.getCell(CD).value = r.band;
+    const bRef = 'B' + rowN;
+    JOINTS.forEach((jn, k) => {
+      const cell = row.getCell(CE + k);
+      // Эхний багана 40 × зай, цаашид өмнөх дээрээ зайг нэмнэ (эх файлын адил)
+      cell.value = k === 0
+        ? { formula: `${JOINTS[0]}*${bRef}`, result: JOINTS[0] * r.gap }
+        : { formula: `${String.fromCharCode(68 + k)}${rowN}+${bRef}`, result: jn * r.gap };
+    });
+    for (let col = CB; col < CE + JOINTS.length; col++) {
+      const cell = row.getCell(col);
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = box();
+      cell.font = { size: 10 };
+    }
+    // Маягт дээрх онцолсон мөрүүд
+    if (r.gap === 3 || r.gap === 9) {
+      const argb = r.gap === 3 ? 'FFFFFF00' : 'FF00B0F0';
+      for (let col = CB; col < CE + JOINTS.length; col++) {
+        ws.getCell(rowN, col).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } };
+      }
+    }
+  });
+
+  ws.getColumn(CB).width = 13;
+  ws.getColumn(CC).width = 10;
+  ws.getColumn(CD).width = 18;
+  JOINTS.forEach((_, i) => { ws.getColumn(CE + i).width = 11; });
+  const foot = ws.getCell(RAIL_NORM.length + 11, CD);
+  foot.value = 'ПЧИ-2                   Б.Энхцэцэг';
+  foot.font = { size: 10 };
+  return ws;
+}
+
 async function _exportExcelCore(c, d, filename) {
   if (typeof ExcelJS === 'undefined') {
     alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
@@ -2780,87 +2969,150 @@ async function _exportExcelCore(c, d, filename) {
   const maxJ = Math.max(c.bar, c.zun);
   const MAX_THR = c.max || 37;
 
-  // ===== Sheet 1: Дэлгэрэнгүй =====
+  /* ═══════════════ Sheet 1: Маягт-09 ═══════════════
+     Хэрэглэгчийн албан маягтын бүтцээр:
+       № | t0 (Агаар · З/т) | КМ | Чиглэл | 1..N үе | Нийт | Байх ёстой хуримтлал
+     Сүүлийн багана нь зам төмрийн хэмээс хамаарсан норм (км тутамд нэг утга,
+     хоёр чиглэлийн мөрийг нийлүүлж бичнэ). */
   const ws1 = wb.addWorksheet('Дэлгэрэнгүй');
+  const C_NO = 1, C_AIR = 2, C_RAIL = 3, C_KM = 4, C_DIR = 5, C_J0 = 6;
+  const C_TOT = C_J0 + maxJ, C_NORM = C_TOT + 1;
+  const THIN = { style: 'thin', color: { argb: 'FF9E9E9E' } };
+  const box = () => ({ top: THIN, left: THIN, bottom: THIN, right: THIN });
 
-  // Title row
-  ws1.mergeCells(1, 1, 1, maxJ + 5);
-  const titleCell = ws1.getCell(1, 1);
-  /* Тохиргооны муж (681–701) биш, ЯГ утга орсон км-ийг бичнэ */
+  // Мөр 1 — маягтын дугаар
+  ws1.mergeCells(1, 1, 1, 3);
+  const formCell = ws1.getCell(1, 1);
+  formCell.value = 'Маягт-09';
+  formCell.font = { bold: true, size: 11 };
+  formCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+  // Мөр 2 — гарчиг
+  ws1.mergeCells(2, 1, 2, C_NORM);
+  const titleCell = ws1.getCell(2, 1);
   const kmTxt = kmLabel({ config: c, data: d });
-  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${kmTxt} · ${c.date}`
-    + ((c.worker||'').trim() ? ` · Хэмжигч: ${c.worker.trim()}` : '');
+  const sectionNo = (c.pd ?? c.road ?? '—');
+  titleCell.value = `Замын ${sectionNo}-р хэсгийн уулзварын зайн хэмжилт`
+    + ` — ${kmTxt} · ${c.date}` + ((c.worker || '').trim() ? ` · ${c.worker.trim()}` : '');
   titleCell.font = { bold: true, size: 13 };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
-  ws1.getRow(1).height = 26;
+  ws1.getRow(2).height = 26;
 
-  // Header
-  const headers = ['№', 'КМ', 'Чиглэл', ...Array.from({length: maxJ}, (_,i) => `${i+1}`), 'Нийт', 'Дундаж'];
-  const headerRow = ws1.addRow(headers);
-  headerRow.eachCell(cell => {
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  // Мөр 3–4 — хоёр давхар толгой
+  const hdr = (r1, c1, r2, c2, text) => {
+    if (r1 !== r2 || c1 !== c2) ws1.mergeCells(r1, c1, r2, c2);
+    const cell = ws1.getCell(r1, c1);
+    cell.value = text;
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F8EF7' } };
-    cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
-  });
-  headerRow.height = 22;
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = box();
+    return cell;
+  };
+  hdr(3, C_NO, 4, C_NO, '№');
+  hdr(3, C_AIR, 3, C_RAIL, 't⁰');
+  hdr(4, C_AIR, 4, C_AIR, 'Агаар');
+  hdr(4, C_RAIL, 4, C_RAIL, 'З/т');
+  hdr(3, C_KM, 4, C_KM, 'КМ');
+  hdr(3, C_DIR, 4, C_DIR, 'Чиглэл');
+  for (let i = 0; i < maxJ; i++) hdr(3, C_J0 + i, 4, C_J0 + i, String(i + 1));
+  hdr(3, C_TOT, 4, C_TOT, 'Нийт');
+  hdr(3, C_NORM, 4, C_NORM, 'Байх ёстой дундаж хуримтлал');
+  ws1.getRow(3).height = 18;
+  ws1.getRow(4).height = 18;
+  // Толгойн доогуур хоосон нүд үлдэхгүй байх (хүрээ тасрахгүй)
+  for (let col = 1; col <= C_NORM; col++) {
+    [3, 4].forEach(r => { const cl = ws1.getCell(r, col); if (!cl.border || !cl.border.top) cl.border = box(); });
+  }
 
-  let n = 1;
-  for (let km = c.s; km <= c.e; km++) {
-    ['bar','zun'].forEach((dir, di) => {
+  const kmsWithData = measuredKms({ config: c, data: d });
+  const kmList2 = kmsWithData.length ? kmsWithData : [];
+  const FIRST_DATA_ROW = 5;
+  let rowNo = FIRST_DATA_ROW, n = 1;
+
+  kmList2.forEach(km => {
+    const kmTopRow = rowNo;
+    ['bar', 'zun'].forEach((dir, di) => {
       const count = dir === 'bar' ? c.bar : c.zun;
       const vals = [];
       for (let i = 0; i < maxJ; i++) {
         if (i >= count) { vals.push(null); continue; }
-        const v = d[km]?.[i+1]?.[dir];
+        const v = d[km] && d[km][i + 1] ? d[km][i + 1][dir] : null;
         vals.push((v === null || v === undefined) ? null : v);
       }
       const nums = vals.filter(v => v !== null);
-      const total = nums.length ? nums.reduce((a,x) => a+x, 0) : null;
-      const avg = nums.length ? +(nums.reduce((a,x) => a+x, 0) / nums.length).toFixed(1) : null;
-      const row = ws1.addRow([n++, km, di === 0 ? 'баруун' : 'зүүн', ...vals, total, avg]);
+      const total = nums.length ? nums.reduce((a, x) => a + x, 0) : null;
 
-      row.eachCell({includeEmpty: true}, (cell, colNum) => {
+      const row = ws1.getRow(rowNo);
+      row.getCell(C_NO).value = n++;
+      row.getCell(C_KM).value = km;
+      row.getCell(C_DIR).value = di === 0 ? 'баруун' : 'зүүн';
+      vals.forEach((v, i) => { row.getCell(C_J0 + i).value = v; });
+      row.getCell(C_TOT).value = total;
+
+      for (let col = 1; col <= C_NORM; col++) {
+        const cell = row.getCell(col);
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        cell.border = { top:{style:'thin', color:{argb:'FFE0E0E0'}}, left:{style:'thin', color:{argb:'FFE0E0E0'}}, bottom:{style:'thin', color:{argb:'FFE0E0E0'}}, right:{style:'thin', color:{argb:'FFE0E0E0'}} };
-        // Joint value cells (cols 4 to maxJ+3)
-        if (colNum >= 4 && colNum <= maxJ + 3) {
-          const v = cell.value;
-          if (typeof v === 'number') {
-            if (v >= 36) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
-              cell.font = { bold: true, color: { argb: 'FFC62828' } };
-            } else if (v >= 22) {
-              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
-              cell.font = { bold: true, color: { argb: 'FFE65100' } };
-            }
+        cell.border = box();
+        if (col >= C_J0 && col < C_TOT && typeof cell.value === 'number') {
+          if (cell.value >= 36) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFCDD2' } };
+            cell.font = { bold: true, color: { argb: 'FFC62828' } };
+          } else if (cell.value >= 22) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
+            cell.font = { bold: true, color: { argb: 'FFE65100' } };
           }
         }
-        // Direction column color
-        if (colNum === 3) {
-          if (cell.value === 'баруун') cell.font = { bold: true, color: { argb: 'FF1565C0' } };
-          else if (cell.value === 'зүүн') cell.font = { bold: true, color: { argb: 'FF2E7D32' } };
+        if (col === C_DIR) {
+          cell.font = { bold: true, color: { argb: di === 0 ? 'FF1565C0' : 'FF2E7D32' } };
         }
-        // Total/Avg
-        if (colNum === maxJ + 4 || colNum === maxJ + 5) {
+        if (col === C_TOT) {
           cell.font = { bold: true };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
         }
-      });
+      }
+      rowNo++;
+    });
+
+    /* Байх ёстой хуримтлал — км тутамд нэг утга, 2 мөрийг нийлүүлнэ */
+    ws1.mergeCells(kmTopRow, C_NORM, kmTopRow + 1, C_NORM);
+    const nc = ws1.getCell(kmTopRow, C_NORM);
+    nc.value = normAccum(c, d, km);
+    nc.font = { bold: true, color: { argb: 'FF1B5E20' } };
+    nc.alignment = { horizontal: 'center', vertical: 'middle' };
+    nc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+    nc.border = box();
+  });
+
+  const LAST_DATA_ROW = rowNo - 1;
+  /* Хэм нь бүх хэмжилтэд нэг тул баганыг бүхэлд нь нийлүүлнэ */
+  if (LAST_DATA_ROW >= FIRST_DATA_ROW) {
+    [[C_AIR, c.tAir], [C_RAIL, c.tRail]].forEach(([col, val]) => {
+      if (LAST_DATA_ROW > FIRST_DATA_ROW) ws1.mergeCells(FIRST_DATA_ROW, col, LAST_DATA_ROW, col);
+      const cell = ws1.getCell(FIRST_DATA_ROW, col);
+      cell.value = (val === null || val === undefined) ? null : val;
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } };
+      cell.border = box();
     });
   }
 
-  // Column widths
-  ws1.getColumn(1).width = 5;
-  ws1.getColumn(2).width = 7;
-  ws1.getColumn(3).width = 9;
-  for (let i = 4; i <= maxJ + 3; i++) ws1.getColumn(i).width = 4.5;
-  ws1.getColumn(maxJ + 4).width = 8;
-  ws1.getColumn(maxJ + 5).width = 9;
-  ws1.views = [{ state: 'frozen', xSplit: 3, ySplit: 2 }];
+  ws1.getColumn(C_NO).width = 5;
+  ws1.getColumn(C_AIR).width = 7;
+  ws1.getColumn(C_RAIL).width = 7;
+  ws1.getColumn(C_KM).width = 7;
+  ws1.getColumn(C_DIR).width = 9;
+  for (let i = 0; i < maxJ; i++) ws1.getColumn(C_J0 + i).width = 4.5;
+  ws1.getColumn(C_TOT).width = 8;
+  ws1.getColumn(C_NORM).width = 13;
+  ws1.views = [{ state: 'frozen', xSplit: 5, ySplit: 4 }];
 
-  // ===== Sheet 2: Дүн =====
+  // ===== Sheet 2: нормативын хүснэгт (маягтын хавсралт) =====
+  addNormSheet(wb);
+
+  // ===== Sheet 3: Дүн =====
   const ws2 = wb.addWorksheet('Дүн');
   ws2.mergeCells(1, 1, 1, 6);
   const t2 = ws2.getCell(1,1);
@@ -3468,6 +3720,9 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
 
   [8, 8, 14, 14, 14, 14, 15, 13, 22].forEach((w, i) => { ws2.getColumn(i + 1).width = w; });
   ws2.views = [{ state: 'frozen', ySplit: 2 }];
+
+  // Нормативын хүснэгтийг нэгдсэн файлд ч хавсаргана
+  addNormSheet(wb);
 
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
