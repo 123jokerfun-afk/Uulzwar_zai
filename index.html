@@ -519,6 +519,11 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .dp-tools { display: flex; gap: 9px; margin-bottom: 9px; flex-shrink: 0; }
 .dp-tools button { flex: 1; min-height: 44px; padding: 11px; font-size: 12.5px; font-weight: 600; border-radius: var(--r-xs); border: 1px solid var(--edge); background: var(--glass-2); color: var(--text-2); cursor: pointer; }
 .dp-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* Урт жагсаалтыг өдрөөр нь тусгаарлана — сонголт нь хэмжилт тус бүрээр */
+.dp-day { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .13em; margin: 12px 0 7px 4px; }
+.dp-day:first-child { margin-top: 2px; }
+/* Бүх өгөгдлийг агуулах онцгой хавтас */
+.adm-fold.all { background: rgba(77,141,255,.13); border-color: rgba(77,141,255,.34); }
 .dp-item { display: flex; align-items: center; gap: 12px; padding: 12px 13px; border-radius: var(--r-sm); border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.05); margin-bottom: 7px; cursor: pointer; }
 .dp-item.sel { background: rgba(90,240,180,.13); border-color: rgba(90,240,180,.45); }
 .dp-item input { width: 21px; height: 21px; accent-color: var(--mint); flex-shrink: 0; }
@@ -649,7 +654,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="adm-list" id="admList"></div>
     <div class="exp-btns">
       <button class="eb1" onclick="loadSectionData()">🔄 Хэсгийн өгөгдөл шинэчлэх</button>
-      <button class="eb-xlsx" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
+      <button class="eb-xlsx" onclick="openDatePickMod()">📦 Нийт хэмжилтээс түүж татах</button>
     </div>
   </div>
 
@@ -707,7 +712,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
   <button class="btn-sess" style="color:var(--accent);border-color:var(--accent);margin-top:.3rem;" onclick="openAdjMod()">🔧 Уулзварын зай тохируулах</button>
   <button class="btn-sess" id="btnImport" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
-  <button class="btn-sess" id="btnCombinedLocal" style="background:var(--grad-green);color:var(--ink);border-color:transparent;margin-top:.3rem;" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
+  <button class="btn-sess" id="btnCombinedLocal" style="background:var(--grad-green);color:var(--ink);border-color:transparent;margin-top:.3rem;" onclick="openDatePickMod()">📦 Нийт хэмжилтээс түүж татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
   <!-- Утсан дээр аль хувилбар ажиллаж байгааг шалгах -->
   <div class="ver-tag" id="verTag" onclick="forceUpdate()" title="Шинэчлэлт шалгах"></div>
@@ -786,7 +791,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <div class="sess-inner">
     <div class="sess-title">📂 Өмнөх хэмжилтүүд</div>
     <button class="sess-sendall" id="btnSendAll" style="display:none" onclick="uploadAllSessions()">☁️ Илгээгээгүй хэмжилтүүдийг илгээх</button>
-    <button class="sess-comb" onclick="openDatePickMod()">📊 Огноо сонгож нэг хүснэгтээр татах</button>
+    <button class="sess-comb" onclick="openDatePickMod()">📦 Нийт хэмжилтээс түүж татах</button>
     <div class="sess-list" id="sessList"></div>
     <div class="sess-hint">Мөрөн дээр удаан дарж сонголтын цэс нээнэ</div>
     <div class="mod-close" onclick="closeSessMod()">Хаах</div>
@@ -847,14 +852,14 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 <!-- Excel-д нэгтгэх огноо сонгох цонх -->
 <div id="dpMod">
   <div class="dp-inner">
-    <div class="dp-title">📊 Аль өдрүүдийг нэгтгэх вэ?</div>
+    <div class="dp-title">📦 Нийт хэмжилт</div>
     <div class="dp-sub" id="dpSub"></div>
     <div class="dp-tools">
       <button onclick="dpSelectAll(true)">Бүгдийг сонгох</button>
       <button onclick="dpSelectAll(false)">Сонголт цуцлах</button>
     </div>
     <div class="dp-list" id="dpList"></div>
-    <button class="dp-go" id="dpGo" onclick="dpDownload()">📊 Нэгтгэж татах</button>
+    <button class="dp-go" id="dpGo" onclick="dpDownload()">📊 Сонгосныг нэгтгэж татах</button>
     <div class="mod-close" onclick="closeDatePickMod()">Болих</div>
   </div>
 </div>
@@ -1622,7 +1627,19 @@ function renderAdmList() {
     box.innerHTML = '<div class="adm-empty">Одоогоор ирсэн өгөгдөл алга.<br>Ажилчид хэмжилтээ хийгээд «☁️ Илгээх» дарахад энд гарч ирнэ.</div>';
     return;
   }
-  box.innerHTML = folders.map(f => `
+  const allCnt = (CLOUD.sectionSessions || []).length;
+  const allVals = (CLOUD.sectionSessions || []).reduce((n, s) => n + countMeasurements(s), 0);
+  /* Бүх хэмжилтийг нэг дор — доторх жагсаалтаас түүж нэгтгэж татна */
+  const allFolder = `
+    <div class="adm-fold all" onclick="openDatePickMod()">
+      <span class="adm-fold-ic">📦</span>
+      <div style="flex:1">
+        <div class="adm-fold-d">Нийт хэмжилт</div>
+        <div class="adm-fold-s">${allCnt} илгээлт · ${allVals} хэмжилт · түүж нэгтгэж татна</div>
+      </div>
+      <span class="adm-fold-n">${allVals}</span>
+    </div>`;
+  box.innerHTML = allFolder + folders.map(f => `
     <div class="adm-fold" onclick="admFoldTap('${f.date}')"
       ontouchstart="admPressStart('fold','${f.date}',event,this)" ontouchmove="sessPressMove(event)"
       ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
@@ -2398,7 +2415,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.4';
+const APP_VERSION = '2026-08-19.5';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -3401,37 +3418,58 @@ function openAdjResult(road, km, dir) {
    ганц хүснэгтэд нийлүүлж татна. */
 const DP_NODATE = '—';   // огноогүй хуучин бичлэгүүдийн түлхүүр
 
-function dpGroups() {
-  const m = new Map();
-  combinedSource().forEach(s => {
-    const c = s.config || {};
-    const key = (c.date || '').trim() || DP_NODATE;
-    let g = m.get(key);
-    if (!g) { g = { date: key, sessions: 0, values: 0, workers: new Set(), roads: new Set() }; m.set(key, g); }
-    g.sessions++;
-    g.values += countMeasurements(s);
-    const w = (c.worker || '').trim(); if (w) g.workers.add(w);
-    if (c.road != null && c.road !== '') g.roads.add(String(c.road));
-    return g;
-  });
-  // Шинэ өдөр нь дээрээ
-  return Array.from(m.values()).sort((a, b) => b.date.localeCompare(a.date));
+/* ══ «Нийт хэмжилт» — бүх хэмжилт он сар цагийн дарааллаар ══
+   Өмнө нь зөвхөн ӨДРӨӨР бүлэглэж сонгодог байсан тул нэг өдрийн
+   зарим хэмжилтийг л авах боломжгүй байв. Одоо хэмжилт тус бүрийг
+   түүж нэгтгэнэ. */
+function dpItems() {
+  return combinedSource()
+    .map(s => {
+      const c = s.config || {};
+      return {
+        id: s.id,
+        sess: s,
+        when: new Date(s.savedAt || s.startedAt || 0).getTime() || 0,
+        day: (c.date || '').trim() || DP_NODATE,
+        worker: (c.worker || '').trim(),
+        road: (c.road != null && c.road !== '') ? String(c.road) : '',
+        km: kmLabel(s),
+        values: countMeasurements(s),
+      };
+    })
+    .filter(it => it.values > 0)
+    .sort((a, b) => b.when - a.when);      // шинэ нь дээрээ
 }
 
 function openDatePickMod() {
-  const groups = dpGroups();
-  if (!groups.length || !groups.some(g => g.values)) {
+  const items = dpItems();
+  if (!items.length) {
     showStatus('⚠️ Хадгалсан хэмжилт алга байна', 'linear-gradient(180deg,#ffd98a,#ffc24d)');
     return;
   }
-  document.getElementById('dpList').innerHTML = groups.map(g => `
+  /* Уншихад хялбар байхаар өдрөөр нь тусгаарлана, гэхдээ сонголт нь
+     хэмжилт тус бүрээр явна */
+  let html = '', lastDay = null;
+  items.forEach(it => {
+    if (it.day !== lastDay) {
+      lastDay = it.day;
+      html += `<div class="dp-day">${it.day === DP_NODATE ? 'Огноогүй' : esc(it.day)}</div>`;
+    }
+    const meta = [
+      it.road ? 'Зам №' + esc(it.road) : '',
+      esc(it.km),
+      it.values + ' утга',
+    ].filter(Boolean).join(' · ');
+    html += `
     <label class="dp-item sel">
-      <input type="checkbox" value="${esc(g.date)}" checked onchange="dpUpdate()">
-      <div style="flex:1">
-        <div class="dp-date">${g.date === DP_NODATE ? 'Огноогүй' : esc(g.date)}</div>
-        <div class="dp-det">${g.sessions} хэмжилт · ${g.values} утга${g.roads.size ? ' · Зам ' + esc(Array.from(g.roads).sort().join(', ')) : ''}${g.workers.size ? ' · ' + esc(Array.from(g.workers).join(', ')) : ''}</div>
+      <input type="checkbox" value="${esc(it.id)}" checked onchange="dpUpdate()">
+      <div style="flex:1;min-width:0">
+        <div class="dp-date">${fmtDate(it.sess.savedAt)}${it.worker ? ' · <span class="sess-worker">' + esc(it.worker) + '</span>' : ''}</div>
+        <div class="dp-det">${meta}</div>
       </div>
-    </label>`).join('');
+    </label>`;
+  });
+  document.getElementById('dpList').innerHTML = html;
   dpUpdate();
   document.getElementById('dpMod').classList.add('on');
 }
@@ -3441,15 +3479,16 @@ function dpSelected() {
   return Array.from(document.querySelectorAll('#dpList input:checked')).map(i => i.value);
 }
 function dpUpdate() {
-  const groups = dpGroups(), sel = new Set(dpSelected());
-  let vals = 0, sess = 0;
-  groups.forEach(g => { if (sel.has(g.date)) { vals += g.values; sess += g.sessions; } });
+  const sel = new Set(dpSelected());
+  const items = dpItems();
+  let vals = 0, days = new Set();
+  items.forEach(it => { if (sel.has(it.id)) { vals += it.values; days.add(it.day); } });
   document.querySelectorAll('#dpList .dp-item').forEach(el => {
     el.classList.toggle('sel', el.querySelector('input').checked);
   });
   document.getElementById('dpSub').textContent = sel.size
-    ? `${sel.size} өдөр · ${sess} хэмжилт · ${vals} утга нэг хүснэгтэд нийлнэ`
-    : 'Дор хаяж нэг өдөр сонгоно уу';
+    ? `${sel.size} хэмжилт · ${days.size} өдөр · ${vals} утга нэг хүснэгтэд нийлнэ`
+    : 'Дор хаяж нэг хэмжилт сонгоно уу';
   document.getElementById('dpGo').disabled = !sel.size;
 }
 function dpSelectAll(on) {
@@ -3457,10 +3496,12 @@ function dpSelectAll(on) {
   dpUpdate();
 }
 async function dpDownload() {
-  const dates = dpSelected();
-  if (!dates.length) return;
+  const ids = dpSelected();
+  if (!ids.length) return;
+  const set = new Set(ids);
+  const picked = combinedSource().filter(s => set.has(s.id));
   closeDatePickMod();
-  await exportCombinedExcel(dates);
+  await exportCombinedExcel(null, picked);
 }
 
 /* Сонгосон огноонуудад тохирох хэмжилтүүд */

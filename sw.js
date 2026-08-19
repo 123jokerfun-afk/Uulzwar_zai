@@ -8,7 +8,7 @@
      • Firebase-ийн өгөгдлийн хүсэлтэд ОГТ хүрэхгүй — тэдгээрийг
        Firestore өөрөө офлайнд зохицуулна.
 */
-const CACHE = 'uulzvar-v10';
+const CACHE = 'uulzvar-v11';
 const CDN = ['cdn.jsdelivr.net', 'www.gstatic.com'];
 
 self.addEventListener('install', e => {
