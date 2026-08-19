@@ -1697,7 +1697,7 @@ async function admActExcel() {
   if (!list.length) return;
   if (kind === 'item') {
     const s = list[0], c = s.config;
-    await _exportExcelCore(c, s.data, `уулзвар_${esc(String(c.worker||''))}_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`);
+    await _exportExcelCore(c, s.data, `уулзвар_${fileSafe(c.worker)}_${fileSafe(c.road)}зам_${kmFileTag(s)}км_${fileSafe(c.date)}.xlsx`);
   } else {
     await exportCombinedExcel(null, list, `нэгдсэн_ПД${myPd()}_ирсэн_${key}.xlsx`);
   }
@@ -2074,6 +2074,21 @@ function kmLabel(sess) {
   return `${c.s ?? '?'}-${c.e ?? '?'} км · хэмжилтгүй`;
 }
 
+/* Файлын нэрэнд ашиглах км бичиглэл. kmRangeLabel-ийн таслал/зайг
+   доогуур зураасаар сольсон хувилбар: «696-697, 700» → «696-697_700».
+   Хэт олон тасархай бүлэг байвал нэр хэт урт болох тул эхлэл-төгсгөл. */
+function kmFileTag(sess) {
+  const kms = measuredKms(sess);
+  const c = (sess && sess.config) || {};
+  if (!kms.length) return `${c.s ?? 0}-${c.e ?? 0}`;
+  const tag = kmRangeLabel(kms).replace(/,\s*/g, '_').replace(/\s+/g, '');
+  return tag.length <= 32 ? tag : `${kms[0]}-${kms[kms.length - 1]}`;
+}
+/* Файлын нэрэнд зөвшөөрөгдөхгүй тэмдэгтийг цэвэрлэнэ */
+function fileSafe(v) {
+  return String(v == null ? '' : v).replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim();
+}
+
 function countMeasurements(sess) {
   let n = 0;
   const {config: c, data: d} = sess;
@@ -2280,7 +2295,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.2';
+const APP_VERSION = '2026-08-19.3';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2703,7 +2718,7 @@ function _exportCSVDetailed(c, d) {
       rows.push([n++,km,di===0?'баруун':'зүүн',...vals,total,avg].join(','));
     });
   }
-  dl(rows.join('\n'),`уулзвар_${c.s}-${c.e}км_${c.date}.csv`);
+  dl(rows.join('\n'),`уулзвар_${kmFileTag({config:c,data:d})}км_${fileSafe(c.date)}.csv`);
 }
 function _exportCSVSum(c, d) {
   let rows=[['КМ','баруун нийт','баруун дундаж','зүүн нийт','зүүн дундаж','Хэтрүүлсэн'].join(',')];
@@ -2718,7 +2733,7 @@ function _exportCSVSum(c, d) {
     const over=[...bv,...zv].filter(v=>v>(c.max||37)).length||'';
     rows.push([km,bT,bA,zT,zA,over].join(','));
   }
-  dl(rows.join('\n'),`дүн_${c.date}.csv`);
+  dl(rows.join('\n'),`дүн_${kmFileTag({config:c,data:d})}км_${fileSafe(c.date)}.csv`);
 }
 function dl(content,name) {
   const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
@@ -2730,7 +2745,7 @@ function dl(content,name) {
 
 /* ── Excel татах (active session) ── */
 async function exportExcel() {
-  await _exportExcelCore(C, data, `уулзвар_${C.s}-${C.e}км_${C.date}.xlsx`);
+  await _exportExcelCore(C, data, `уулзвар_${kmFileTag({config:C,data:data})}км_${fileSafe(C.date)}.xlsx`);
 }
 
 /* ── Excel татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
@@ -2739,7 +2754,7 @@ async function exportSessionExcel(id) {
   const sess = id ? getSessions().find(s => s.id === id) : currentViewSess;
   if (!sess) return;
   const c = sess.config, d = sess.data;
-  const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
+  const fname = `уулзвар_${fileSafe(c.road)}зам_${kmFileTag(sess)}км_${fileSafe(c.date)}.xlsx`;
   await _exportExcelCore(c, d, fname);
   showStatus('📊 Excel татагдлаа', 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
 }
@@ -3463,7 +3478,12 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   const dTag = dl.length
     ? (dl.length > 1 ? `${dl[0]}_${dl[dl.length - 1]}` : dl[0])
     : localDay(new Date());
-  a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${dTag}.xlsx`;
+  /* Нэгдсэн файлд ямар км-үүд орсныг нэрэнд нь тусгана */
+  const kmNums2 = Array.from(new Set(comb.rows.map(r => Number(r.km))))
+    .filter(Number.isFinite).sort((a, b) => a - b);
+  let kmTag2 = kmRangeLabel(kmNums2).replace(/,\s*/g, '_').replace(/\s+/g, '');
+  if (kmTag2.length > 32) kmTag2 = `${kmNums2[0]}-${kmNums2[kmNums2.length - 1]}`;
+  a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${kmTag2 ? kmTag2 + 'км_' : ''}${dTag}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showStatus(`📊 ${dl.length || 1} өдөр · ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
@@ -3487,7 +3507,7 @@ async function shareData() {
   const payload = { v: 1, config: C, data: data, sentAt: new Date().toISOString() };
   if (CLOUD.on && CLOUD.user) payload.email = CLOUD.profile.email;
   const json = JSON.stringify(payload);
-  const filename = `уулзвар_${C.road}зам_${C.s}-${C.e}км_${C.date}.json`;
+  const filename = `уулзвар_${fileSafe(C.road)}зам_${kmFileTag({config:C,data:data})}км_${fileSafe(C.date)}.json`;
   const blob = new Blob([json], { type: 'application/json' });
   const file = new File([blob], filename, { type: 'application/json' });
 
