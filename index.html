@@ -2280,7 +2280,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.1';
+const APP_VERSION = '2026-08-19.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2771,7 +2771,9 @@ async function _exportExcelCore(c, d, filename) {
   // Title row
   ws1.mergeCells(1, 1, 1, maxJ + 5);
   const titleCell = ws1.getCell(1, 1);
-  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`
+  /* Тохиргооны муж (681–701) биш, ЯГ утга орсон км-ийг бичнэ */
+  const kmTxt = kmLabel({ config: c, data: d });
+  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${kmTxt} · ${c.date}`
     + ((c.worker||'').trim() ? ` · Хэмжигч: ${c.worker.trim()}` : '');
   titleCell.font = { bold: true, size: 13 };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -2847,7 +2849,7 @@ async function _exportExcelCore(c, d, filename) {
   const ws2 = wb.addWorksheet('Дүн');
   ws2.mergeCells(1, 1, 1, 6);
   const t2 = ws2.getCell(1,1);
-  t2.value = `Дүн — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`;
+  t2.value = `Дүн — Зам №${c.road} · ${kmTxt} · ${c.date}`;
   t2.font = { bold: true, size: 13 };
   t2.alignment = { horizontal: 'center', vertical: 'middle' };
   t2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
@@ -3304,7 +3306,11 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   ws.mergeCells(1, 1, 1, COL_WORKER);
   const t = ws.getCell(1, 1);
   const dateList = Array.from(comb.dates).sort();
-  t.value = `Уулзварын зайн хэмжилт — ${pdTag}нэгдсэн хүснэгт · ${comb.rows.length} км · ${comb.values} хэмжилт`
+  /* Хэдэн км гэдгийн зэрэгцээ ЯГ АЛЬ км-үүд болохыг нэрлэнэ */
+  const kmNums = Array.from(new Set(comb.rows.map(r => Number(r.km))))
+    .filter(Number.isFinite).sort((a, b) => a - b);
+  const kmTxt = kmRangeLabel(kmNums);
+  t.value = `Уулзварын зайн хэмжилт — ${pdTag}нэгдсэн хүснэгт · ${kmTxt ? kmTxt + ' км' : comb.rows.length + ' км'} · ${comb.values} хэмжилт`
     + (dateList.length ? ` · ${dateList[0]}${dateList.length > 1 ? '–' + dateList[dateList.length-1] : ''}` : '');
   t.font = { bold: true, size: 13 };
   t.alignment = { horizontal: 'center', vertical: 'middle' };
