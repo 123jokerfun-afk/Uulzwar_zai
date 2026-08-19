@@ -2415,7 +2415,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.5';
+const APP_VERSION = '2026-08-19.6';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -3544,7 +3544,10 @@ function buildCombined(src) {
           if (!Number.isFinite(v)) return;
 
           let row = map.get(key);
-          if (!row) { row = { road, km, bar: {}, zun: {}, workers: new Set(), dates: new Set() }; map.set(key, row); }
+          if (!row) { row = { road, km, bar: {}, zun: {}, workers: new Set(), dates: new Set(),
+                              tAir: new Set(), tRail: new Set() }; map.set(key, row); }
+          if (c.tAir != null && c.tAir !== '') row.tAir.add(Number(c.tAir));
+          if (c.tRail != null && c.tRail !== '') row.tRail.add(Number(c.tRail));
 
           const prev = row[dir][j];
           if (prev) {
@@ -3608,63 +3611,112 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   wb.created = new Date();
 
   /* ═══ Sheet 1: бүх км нэг хүснэгтэд ═══ */
+  /* ═══════════════ Нэгдсэн хүснэгт — Маягт-09 бүтцээр ═══════════════
+     Нэг өдрийн нэг хэмжилтийн маягттай ижил багануудтай, гэхдээ олон
+     илгээлтийг нийлүүлдэг тул Огноо / Зам № / Хэмжигч нэмэгдэнэ.
+     Температур нь мөр тус бүрд өөрийн хэмжилтээсээ ирнэ. */
   const ws = wb.addWorksheet('Нэгдсэн хүснэгт');
-  const COL_TOTAL = maxJ + 6, COL_AVG = maxJ + 7, COL_OVER = maxJ + 8, COL_WORKER = maxJ + 9;
+  const K_NO = 1, K_DATE = 2, K_AIR = 3, K_RAIL = 4, K_ROAD = 5, K_KM = 6, K_DIR = 7, K_J0 = 8;
+  const COL_TOTAL = K_J0 + maxJ, COL_NORM = COL_TOTAL + 1, COL_OVER = COL_NORM + 1, COL_WORKER = COL_OVER + 1;
+  const HR1 = 4, HR2 = 5, FIRST_ROW = 6;
 
-  ws.mergeCells(1, 1, 1, COL_WORKER);
-  const t = ws.getCell(1, 1);
+  ws.mergeCells(1, 1, 1, 4);
+  const fc = ws.getCell(1, 1);
+  fc.value = 'Маягт-09';
+  fc.font = { bold: true, size: 11 };
+  fc.alignment = { horizontal: 'left', vertical: 'middle' };
+
+  ws.mergeCells(2, 1, 2, COL_WORKER);
+  const t = ws.getCell(2, 1);
   const dateList = Array.from(comb.dates).sort();
-  /* Хэдэн км гэдгийн зэрэгцээ ЯГ АЛЬ км-үүд болохыг нэрлэнэ */
   const kmNums = Array.from(new Set(comb.rows.map(r => Number(r.km))))
     .filter(Number.isFinite).sort((a, b) => a - b);
   const kmTxt = kmRangeLabel(kmNums);
-  t.value = `Уулзварын зайн хэмжилт — ${pdTag}нэгдсэн хүснэгт · ${kmTxt ? kmTxt + ' км' : comb.rows.length + ' км'} · ${comb.values} хэмжилт`
+  const sect = (myPd() || (comb.rows[0] && comb.rows[0].road) || '—');
+  t.value = `Замын ${sect}-р хэсгийн уулзварын зайн хэмжилт — нэгдсэн`
+    + ` · ${kmTxt ? kmTxt + ' км' : comb.rows.length + ' км'} · ${comb.values} хэмжилт`
     + (dateList.length ? ` · ${dateList[0]}${dateList.length > 1 ? '–' + dateList[dateList.length-1] : ''}` : '');
   t.font = { bold: true, size: 13 };
   t.alignment = { horizontal: 'center', vertical: 'middle' };
   t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
-  ws.getRow(1).height = 26;
+  ws.getRow(2).height = 26;
 
-  ws.mergeCells(2, 1, 2, COL_WORKER);
-  const t2 = ws.getCell(2, 1);
+  ws.mergeCells(3, 1, 3, COL_WORKER);
+  const t2 = ws.getCell(3, 1);
   t2.value = `Хэмжигчид: ${Array.from(comb.workers).join(', ')}`
     + (comb.conflicts ? `   ⚠️ ${comb.conflicts} нүдэнд зөрүүтэй утга ирсэн (хамгийн сүүлийн утгыг авав, тайлбарыг нүдэн дээр харна уу)` : '');
   t2.font = { size: 10, italic: true, color: { argb: 'FF555555' } };
   t2.alignment = { horizontal: 'left', vertical: 'middle' };
-  ws.getRow(2).height = 18;
+  ws.getRow(3).height = 18;
 
-  const headers = ['№', 'Огноо', 'Зам №', 'КМ', 'Чиглэл',
-    ...Array.from({ length: maxJ }, (_, i) => `${i + 1}`),
-    'Нийт', 'Дундаж', 'Аюултай (≥36)', 'Хэмжигч'];
-  styleHeaderRow(ws.addRow(headers));
+  const khdr = (r1, c1, r2, c2, text) => {
+    if (r1 !== r2 || c1 !== c2) ws.mergeCells(r1, c1, r2, c2);
+    const cell = ws.getCell(r1, c1);
+    cell.value = text;
+    cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F8EF7' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+  };
+  khdr(HR1, K_NO, HR2, K_NO, '№');
+  khdr(HR1, K_DATE, HR2, K_DATE, 'Огноо');
+  khdr(HR1, K_AIR, HR1, K_RAIL, 't⁰');
+  khdr(HR2, K_AIR, HR2, K_AIR, 'Агаар');
+  khdr(HR2, K_RAIL, HR2, K_RAIL, 'З/т');
+  khdr(HR1, K_ROAD, HR2, K_ROAD, 'Зам №');
+  khdr(HR1, K_KM, HR2, K_KM, 'КМ');
+  khdr(HR1, K_DIR, HR2, K_DIR, 'Чиглэл');
+  for (let i = 0; i < maxJ; i++) khdr(HR1, K_J0 + i, HR2, K_J0 + i, String(i + 1));
+  khdr(HR1, COL_TOTAL, HR2, COL_TOTAL, 'Нийт');
+  khdr(HR1, COL_NORM, HR2, COL_NORM, 'Байх ёстой хуримтлал');
+  khdr(HR1, COL_OVER, HR2, COL_OVER, 'Аюултай (≥36)');
+  khdr(HR1, COL_WORKER, HR2, COL_WORKER, 'Хэмжигч');
+  ws.getRow(HR1).height = 18;
+  ws.getRow(HR2).height = 18;
 
-  let n = 1;
+  const one = set => (set && set.size === 1) ? Array.from(set)[0] : null;
+  /* Ганц утга бол ТОО хэвээр (Excel тоогоор боддог), олон бол «21/23» */
+  const joinSet = set => !set || !set.size ? null
+    : (set.size === 1 ? Array.from(set)[0] : Array.from(set).join('/'));
+
+  let n = 1, rowN = FIRST_ROW;
   comb.rows.forEach(r => {
     const dateTxt = Array.from(r.dates).sort().join(', ');
+    const kmTop = rowN;
+    /* Нэг км-д хэдэн үе хэмжигдсэн — норм үүгээр бодогдоно */
+    let jointsHere = 0;
+    ['bar', 'zun'].forEach(dir => {
+      let cnt = 0;
+      for (let j = 1; j <= maxJ; j++) if (r[dir][j]) cnt++;
+      jointsHere = Math.max(jointsHere, cnt);
+    });
+
     ['bar', 'zun'].forEach((dir, di) => {
       const cells = [];
-      for (let j = 1; j <= maxJ; j++) {
-        const c = r[dir][j];
-        cells.push(c ? c.v : null);
-      }
+      for (let j = 1; j <= maxJ; j++) { const c = r[dir][j]; cells.push(c ? c.v : null); }
       const nums = cells.filter(v => v !== null);
       const total = nums.length ? nums.reduce((a, x) => a + x, 0) : null;
-      const avg = nums.length ? +(nums.reduce((a, x) => a + x, 0) / nums.length).toFixed(1) : null;
       const over = nums.filter(v => v >= DANGER).length;
       const dirWorkers = new Set();
       for (let j = 1; j <= maxJ; j++) if (r[dir][j]) dirWorkers.add(r[dir][j].worker);
 
-      const row = ws.addRow([
-        n++, dateTxt, r.road, r.km, di === 0 ? 'баруун' : 'зүүн',
-        ...cells, total, avg, over || null, Array.from(dirWorkers).join(', ')
-      ]);
+      const row = ws.getRow(rowN);
+      row.getCell(K_NO).value = n++;
+      row.getCell(K_DATE).value = dateTxt;
+      row.getCell(K_ROAD).value = r.road;
+      row.getCell(K_KM).value = r.km;
+      row.getCell(K_DIR).value = di === 0 ? 'баруун' : 'зүүн';
+      cells.forEach((v, i) => { row.getCell(K_J0 + i).value = v; });
+      row.getCell(COL_TOTAL).value = total;
+      row.getCell(COL_OVER).value = over || null;
+      row.getCell(COL_WORKER).value = Array.from(dirWorkers).join(', ');
 
-      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      for (let colNum = 1; colNum <= COL_WORKER; colNum++) {
+        const cell = row.getCell(colNum);
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 
-        // Үений утгын нүднүүд (6 → maxJ+5)
-        if (colNum >= 6 && colNum <= maxJ + 5) {
+        if (colNum >= K_J0 && colNum < COL_TOTAL) {
           const v = cell.value;
           if (typeof v === 'number') {
             if (v >= 36) {
@@ -3674,7 +3726,7 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE0B2' } };
               cell.font = { bold: true, color: { argb: 'FFE65100' } };
             }
-            const src = r[dir][colNum - 5];
+            const src = r[dir][colNum - K_J0 + 1];
             if (src && src.others.some(o => o.v !== src.v)) {
               cell.border = { top:{style:'medium',color:{argb:'FF7B1FA2'}}, left:{style:'medium',color:{argb:'FF7B1FA2'}},
                               bottom:{style:'medium',color:{argb:'FF7B1FA2'}}, right:{style:'medium',color:{argb:'FF7B1FA2'}} };
@@ -3683,12 +3735,11 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
             }
           }
         }
-        if (colNum === 5) {
-          if (cell.value === 'баруун') cell.font = { bold: true, color: { argb: 'FF1565C0' } };
-          else if (cell.value === 'зүүн') cell.font = { bold: true, color: { argb: 'FF2E7D32' } };
+        if (colNum === K_DIR) {
+          cell.font = { bold: true, color: { argb: di === 0 ? 'FF1565C0' : 'FF2E7D32' } };
         }
-        if (colNum === 4) cell.font = { bold: true };
-        if (colNum === COL_TOTAL || colNum === COL_AVG) {
+        if (colNum === K_KM) cell.font = { bold: true };
+        if (colNum === COL_TOTAL) {
           cell.font = { bold: true };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F5F5' } };
         }
@@ -3697,22 +3748,44 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
           cell.font = { bold: true, color: { argb: 'FFC62828' } };
         }
         if (colNum === COL_WORKER) cell.alignment = { horizontal: 'left', vertical: 'middle' };
-      });
+      }
+      rowN++;
     });
+
+    /* Температур ба норм — км тутамд нэг утга, 2 мөрийг нийлүүлнэ */
+    [[K_AIR, joinSet(r.tAir)], [K_RAIL, joinSet(r.tRail)]].forEach(([col, val]) => {
+      ws.mergeCells(kmTop, col, kmTop + 1, col);
+      const cell = ws.getCell(kmTop, col);
+      cell.value = val;
+      cell.font = { bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFF8E1' } };
+      cell.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+    });
+    ws.mergeCells(kmTop, COL_NORM, kmTop + 1, COL_NORM);
+    const nc = ws.getCell(kmTop, COL_NORM);
+    /* Зөвхөн нэг тодорхой зам төмрийн хэм байвал норм бодогдоно */
+    const rt = one(r.tRail), gap = normGapMm(rt);
+    nc.value = (gap !== null && jointsHere) ? +(gap * jointsHere).toFixed(1) : null;
+    nc.font = { bold: true, color: { argb: 'FF1B5E20' } };
+    nc.alignment = { horizontal: 'center', vertical: 'middle' };
+    nc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+    nc.border = { top: THIN, left: THIN, bottom: THIN, right: THIN };
   });
 
-  ws.getColumn(1).width = 5;
-  ws.getColumn(2).width = 12;
-  ws.getColumn(3).width = 8;
-  ws.getColumn(4).width = 7;
-  ws.getColumn(5).width = 9;
-  for (let i = 6; i <= maxJ + 5; i++) ws.getColumn(i).width = 4.5;
+  ws.getColumn(K_NO).width = 5;
+  ws.getColumn(K_DATE).width = 12;
+  ws.getColumn(K_AIR).width = 7;
+  ws.getColumn(K_RAIL).width = 7;
+  ws.getColumn(K_ROAD).width = 8;
+  ws.getColumn(K_KM).width = 7;
+  ws.getColumn(K_DIR).width = 9;
+  for (let i = 0; i < maxJ; i++) ws.getColumn(K_J0 + i).width = 4.5;
   ws.getColumn(COL_TOTAL).width = 8;
-  ws.getColumn(COL_AVG).width = 9;
+  ws.getColumn(COL_NORM).width = 13;
   ws.getColumn(COL_OVER).width = 11;
   ws.getColumn(COL_WORKER).width = 20;
-  ws.views = [{ state: 'frozen', xSplit: 5, ySplit: 3 }];
-  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: COL_WORKER } };
+  ws.views = [{ state: 'frozen', xSplit: K_DIR, ySplit: HR2 }];
 
   /* ═══ Sheet 2: Дүн ═══ */
   const ws2 = wb.addWorksheet('Дүн');
