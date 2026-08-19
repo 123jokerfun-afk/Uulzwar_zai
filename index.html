@@ -271,6 +271,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 }
 .field select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
 .field input::placeholder { color: var(--muted); font-weight: 400; }
+.field input.miss, .field select.miss { border-color: var(--red); box-shadow: var(--sunk), 0 0 0 3px rgba(255,90,110,.26); }
 .field input:focus, .field select:focus { outline: none; background: var(--glass-2); border-color: var(--accent); box-shadow: var(--sunk), 0 0 0 3px rgba(77,141,255,.26); }
 .btn-go {
   width: 100%; min-height: 54px; padding: 16px; font-size: 16px; font-weight: 600; letter-spacing: -.02em;
@@ -663,9 +664,10 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="fg fg2">
       <div class="field"><label>Огноо</label><input type="date" id="sDate"/></div>
       <div class="field"><label>Замын №</label><input type="text" id="sRoad" placeholder="6"/></div>
-      <div class="field"><label>Эхлэх км</label><input type="number" id="sS" value="681" min="1"/></div>
-      <div class="field"><label>Дуусах км</label><input type="number" id="sE" value="701" min="1"/></div>
+      <div class="field"><label>Эхлэх км</label><input type="number" id="sS" min="1" placeholder="681"/></div>
+      <div class="field"><label>Дуусах км</label><input type="number" id="sE" min="1" placeholder="701"/></div>
     </div>
+    <div class="lg-hint">Өртөөний зам хэмжих бол км-ийн хоёр нүдийг <b>хоосон</b> үлдээнэ — үений тоо хэрэгцээгээр нь сунана.</div>
     <div class="fg fg2" style="margin-top:9px">
       <div class="field">
         <label>Замын хэсэг</label>
@@ -1478,7 +1480,7 @@ function cloudToSession(id, d) {
     id, savedAt: upd, startedAt: upd,
     config: { date: d.date, road: d.road, worker: d.worker, s: d.s, e: d.e,
               bar: d.bar, zun: d.zun, max: d.max || 37, pd: d.pd,
-              tAir: d.tAir ?? null, tRail: d.tRail ?? null },
+              tAir: d.tAir ?? null, tRail: d.tRail ?? null, station: !!d.station },
     data
   };
 }
@@ -1507,7 +1509,7 @@ async function uploadSession(sessionId, c, d) {
   const docId = CLOUD.user.uid + '__' + sessionId;
   const payload = {
     pd: myPd(), road: c.road, date: c.date, s: c.s, e: c.e, bar: c.bar, zun: c.zun, max: c.max || 37,
-    tAir: c.tAir ?? null, tRail: c.tRail ?? null,
+    tAir: c.tAir ?? null, tRail: c.tRail ?? null, station: !!c.station,
     worker: c.worker || CLOUD.profile.name, account: CLOUD.profile.name,
     email: CLOUD.profile.email, uid: CLOUD.user.uid,
     sessionId, km: kmToCloud(c, d), count: cnt,
@@ -2138,9 +2140,10 @@ function kmRangeLabel(kms) {
 }
 /* Жагсаалтад харуулах бичиглэл. Хэмжилт ороогүй бол сонгосон мужаа. */
 function kmLabel(sess) {
+  const c = (sess && sess.config) || {};
+  if (c.station) return `Өртөөний зам №${c.road ?? '—'}`;
   const kms = measuredKms(sess);
   if (kms.length) return kmRangeLabel(kms) + ' км';
-  const c = (sess && sess.config) || {};
   return `${c.s ?? '?'}-${c.e ?? '?'} км · хэмжилтгүй`;
 }
 
@@ -2198,8 +2201,9 @@ function normAccum(c, d, km) {
    доогуур зураасаар сольсон хувилбар: «696-697, 700» → «696-697_700».
    Хэт олон тасархай бүлэг байвал нэр хэт урт болох тул эхлэл-төгсгөл. */
 function kmFileTag(sess) {
-  const kms = measuredKms(sess);
   const c = (sess && sess.config) || {};
+  if (c.station) return `өртөө${fileSafe(c.road)}`;
+  const kms = measuredKms(sess);
   if (!kms.length) return `${c.s ?? 0}-${c.e ?? 0}`;
   const tag = kmRangeLabel(kms).replace(/,\s*/g, '_').replace(/\s+/g, '');
   return tag.length <= 32 ? tag : `${kms[0]}-${kms[kms.length - 1]}`;
@@ -2415,7 +2419,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.7';
+const APP_VERSION = '2026-08-19.8';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2471,16 +2475,47 @@ function numOrNull(v) {
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
+/* Талбар дутуу бол улаанаар тэмдэглээд, эхнийх рүү нь аваачна */
+function requireField(id, msg) {
+  const el = document.getElementById(id);
+  el.classList.add('miss');
+  alert(msg);
+  el.focus();
+  el.select && el.select();
+  return false;
+}
+function clearMissMarks() {
+  document.querySelectorAll('#setup .miss').forEach(el => el.classList.remove('miss'));
+}
+
 function startApp() {
-  const s = parseInt(document.getElementById('sS').value)||681;
-  const e = parseInt(document.getElementById('sE').value)||701;
-  if (e < s) { alert('Дуусах км эхлэх км-ээс их байх ёстой'); return; }
+  clearMissMarks();
+  /* ── Заавал бөглөх талбарууд ──
+     Км ба температургүйгээр Маягт-09 бүрдэхгүй (температураас «байх
+     ёстой хуримтлал» бодогддог) тул эхлүүлэхийг зөвшөөрөхгүй. */
+  let s = numOrNull(document.getElementById('sS').value);
+  let e = numOrNull(document.getElementById('sE').value);
+  /* Хоёулаа хоосон бол ӨРТӨӨНИЙ ЗАМ гэж үзнэ — өртөөний замд км
+     хамаарахгүй, үений тоо нь янз бүр байдаг тул хязгааргүй сунгана.
+     Ганцхан нь бөглөгдсөн бол алдаа. */
+  const station = (s === null && e === null);
+  if (!station) {
+    if (s === null || s < 1) return requireField('sS', 'Эхлэх км-ээ бичнэ үү.\n\nӨртөөний зам хэмжих бол ХОЁУЛАНГ нь хоосон үлдээнэ.');
+    if (e === null || e < 1) return requireField('sE', 'Дуусах км-ээ бичнэ үү.\n\nӨртөөний зам хэмжих бол ХОЁУЛАНГ нь хоосон үлдээнэ.');
+    if (e < s) return requireField('sE', 'Дуусах км нь эхлэх км-ээс их байх ёстой.');
+  } else {
+    s = e = 0;      // өртөөний зам — ганц «хэсэг»
+  }
+
+  const tAir = numOrNull(document.getElementById('sTAir').value);
+  const tRail = numOrNull(document.getElementById('sTRail').value);
+  if (tAir === null) return requireField('sTAir', 'Агаарын хэмийг бичнэ үү.\n\nМаягт-09-д заавал шаардагдана. Хасах хэм бол ± товчийг ашиглана.');
+  if (tRail === null) return requireField('sTRail', 'Зам төмрийн хэмийг бичнэ үү.\n\nҮүнээс «байх ёстой хуримтлал» бодогдоно. Хасах хэм бол ± товчийг ашиглана.');
+
   // Нэг хаягийг олон хүн хуваалцдаг тул нэр заавал шаардлагатай
   const workerName = (document.getElementById('sWorker').value||'').trim();
   if (CLOUD.on && !workerName) {
-    alert('Өөрийн нэрээ бичнэ үү.\n\nНэг хаягаар олон ажилтан ордог тул Excel дээр хэн хэмжсэн нь нэрээр ялгагдана.');
-    document.getElementById('sWorker').focus();
-    return;
+    return requireField('sWorker', 'Өөрийн нэрээ бичнэ үү.\n\nНэг хаягаар олон ажилтан ордог тул Excel дээр хэн хэмжсэн нь нэрээр ялгагдана.');
   }
   if (workerName) setDeviceName(workerName);
   C = {
@@ -2490,9 +2525,9 @@ function startApp() {
     pd: CLOUD.profile ? CLOUD.profile.pd : (parseInt(document.getElementById('sPd').value,10)||null),
     worker: workerName,
     account: CLOUD.profile ? CLOUD.profile.name : null,
-    // Маягт-09: агаар ба зам төмрийн хэм. Хоосон бол null.
-    tAir: numOrNull(document.getElementById('sTAir').value),
-    tRail: numOrNull(document.getElementById('sTRail').value),
+    // Маягт-09: агаар ба зам төмрийн хэм (заавал бөглөгдсөн)
+    tAir, tRail,
+    station,           // үнэн бол өртөөний зам (км-гүй, үе хязгааргүй)
     s, e,
     bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
     zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
@@ -2527,7 +2562,7 @@ function buildStrip() {
     const d = document.createElement('div');
     d.className='km-chip';
     d.dataset.km=km;
-    d.textContent=km+' км';
+    d.textContent=C.station ? ('Зам №' + (C.road || '—')) : (km+' км');
     d.onclick=()=>jumpKm(km);
     wrap.appendChild(d);
   });
@@ -2700,15 +2735,24 @@ function advance() {
   render();
 }
 
+/* Өртөөний замд үений тоо урьдчилан мэдэгддэггүй тул хэрэгцээгээр нь
+   сунгана. Санамсаргүй хязгааргүй урсахаас сэргийлж дээд хязгаартай. */
+const STATION_MAX_J = 200;
 function nextJoint() {
   const maxJ=Math.max(C.bar,C.zun);
   if (curJ<maxJ) {
     curJ++; curDir='bar';
+  } else if (C.station && maxJ < STATION_MAX_J) {
+    // Өртөөний зам — дараагийн үеийг нэмж үргэлжлүүлнэ
+    C.bar = C.zun = maxJ + 1;
+    curJ++; curDir='bar';
+    if (!data[curKm][curJ]) data[curKm][curJ] = { bar:null, zun:null };
+    buildStrip();
   } else {
     // Try next km
     const list=kmList(), idx=list.indexOf(curKm);
     if (idx<list.length-1) { jumpKm(list[idx+1]); return; }
-    else { alert('Бүх хэмжилт дууслаа!'); return; }
+    else { alert(C.station ? `Дээд хязгаар (${STATION_MAX_J} үе) хүрлээ.` : 'Бүх хэмжилт дууслаа!'); return; }
   }
   const saved=getSaved();
   drumCur=saved!==null?saved:0;
@@ -2804,7 +2848,7 @@ function openKmMod() {
   kmList().forEach(km=>{
     const d=document.createElement('div');
     d.className='km-mod-chip'+(km===curKm?' cur':isKmDone(km)?' done':'');
-    d.textContent=km+' км';
+    d.textContent=C.station ? ('Зам №' + (C.road || '—')) : (km+' км');
     d.onclick=()=>{ jumpKm(km); closeKmMod(); };
     g.appendChild(d);
   });
@@ -3063,7 +3107,7 @@ async function _exportExcelCore(c, d, filename) {
 
       const row = ws1.getRow(rowNo);
       row.getCell(C_NO).value = n++;
-      row.getCell(C_KM).value = km;
+      row.getCell(C_KM).value = c.station ? ('Зам №' + (c.road ?? '—')) : km;
       row.getCell(C_DIR).value = di === 0 ? 'баруун' : 'зүүн';
       vals.forEach((v, i) => { row.getCell(C_J0 + i).value = v; });
       row.getCell(C_TOT).value = total;
@@ -3551,7 +3595,7 @@ function buildCombined(src) {
 
           let row = map.get(key);
           if (!row) { row = { road, km, bar: {}, zun: {}, workers: new Set(), dates: new Set(),
-                              tAir: new Set(), tRail: new Set(),
+                              tAir: new Set(), tRail: new Set(), station: !!c.station,
                               when: new Date(sess.savedAt || sess.startedAt || 0).getTime() || 0
                             }; map.set(key, row); }
           if (c.tAir != null && c.tAir !== '') row.tAir.add(Number(c.tAir));
@@ -3715,7 +3759,7 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
       row.getCell(K_NO).value = n++;
       row.getCell(K_DATE).value = dateTxt;
       row.getCell(K_ROAD).value = r.road;
-      row.getCell(K_KM).value = r.km;
+      row.getCell(K_KM).value = r.station ? ('Зам №' + (r.road ?? '—')) : r.km;
       row.getCell(K_DIR).value = di === 0 ? 'баруун' : 'зүүн';
       cells.forEach((v, i) => { row.getCell(K_J0 + i).value = v; });
       row.getCell(COL_TOTAL).value = total;
