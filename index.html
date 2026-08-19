@@ -2415,7 +2415,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.6';
+const APP_VERSION = '2026-08-19.7';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -3517,7 +3517,11 @@ function buildCombined(src) {
     new Date(a.savedAt || a.startedAt || 0) - new Date(b.savedAt || b.startedAt || 0)
   );
 
-  const map = new Map();          // "зам|км" → мөрийн өгөгдөл
+  /* Түлхүүрт хэмжилтийн id-г ОРУУЛНА. Ингэснээр нэг км-ийг хоёр өөр
+     өдөр (эсвэл хоёр ажилтан) хэмжсэн бол тусдаа мөр болж, ямар ч
+     утга дарагдахгүй. Өмнө нь "зам|км" гэж нийлүүлдэг байсан тул
+     сүүлийн утга үлдэж, өмнөх нь зөвхөн нүдний тайлбар болдог байв. */
+  const map = new Map();          // "зам|км|хэмжилт" → мөрийн өгөгдөл
   const workers = new Set(), dates = new Set();
   let maxJ = 0, conflicts = 0, values = 0;
 
@@ -3531,7 +3535,9 @@ function buildCombined(src) {
       const km = parseInt(kmKey, 10);
       if (!Number.isFinite(km)) return;
       const joints = d[kmKey] || {};
-      const key = road + '|' + km;
+      /* Түлхүүрт хэмжилтийн id-г оруулснаар нэг км-ийг хоёр өөр өдөр
+         (эсвэл хоёр ажилтан) хэмжсэн бол ТУСДАА мөр болно */
+      const key = road + '|' + km + '|' + (sess.id || '?');
 
       Object.keys(joints).forEach(jKey => {
         const j = parseInt(jKey, 10);
@@ -3545,7 +3551,9 @@ function buildCombined(src) {
 
           let row = map.get(key);
           if (!row) { row = { road, km, bar: {}, zun: {}, workers: new Set(), dates: new Set(),
-                              tAir: new Set(), tRail: new Set() }; map.set(key, row); }
+                              tAir: new Set(), tRail: new Set(),
+                              when: new Date(sess.savedAt || sess.startedAt || 0).getTime() || 0
+                            }; map.set(key, row); }
           if (c.tAir != null && c.tAir !== '') row.tAir.add(Number(c.tAir));
           if (c.tRail != null && c.tRail !== '') row.tRail.add(Number(c.tRail));
 
@@ -3572,7 +3580,10 @@ function buildCombined(src) {
     if (aNum && bNum) { if (na !== nb) return na - nb; }
     else if (aNum !== bNum) return aNum ? -1 : 1;
     else if (a.road !== b.road) return a.road < b.road ? -1 : 1;
-    return a.km - b.km;
+    /* Км-ээр эрэмбэлнэ. Нэг км дээр хэд хэдэн хэмжилт байвал (давхцвал)
+       тэдгээрийг он сар цагийн дарааллаар жагсаана. */
+    if (a.km !== b.km) return a.km - b.km;
+    return (a.when || 0) - (b.when || 0);
   });
 
   return { rows, maxJ: Math.max(maxJ, 1), conflicts, values, workers, dates, sessionCount: sessions.length };
