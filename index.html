@@ -592,6 +592,9 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   background: rgba(255,194,77,.16); border: 1px solid rgba(255,194,77,.4);
   box-shadow: 0 0 26px -6px rgba(255,194,77,.55);
 }
+/* Дүрсний хүрээг мэдэгдлийн төрлөөр нь тааруулна */
+.msg-icon.ok { background: rgba(90,240,180,.16); border-color: rgba(90,240,180,.42); box-shadow: 0 0 26px -6px rgba(90,240,180,.55); }
+.msg-icon.info { background: rgba(77,141,255,.16); border-color: rgba(77,141,255,.42); box-shadow: 0 0 26px -6px rgba(77,141,255,.55); }
 .msg-title { font-size: 16.5px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.02em; }
 .msg-text { font-size: 13px; color: var(--text-2); margin-bottom: 1.3rem; line-height: 1.62; white-space: pre-line; }
 .msg-ok {
@@ -771,8 +774,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
           <div class="joint-big" id="jNum">1</div>
         </div>
         <div class="dir-tabs">
-          <div class="dir-tab bar act" id="tabBar">Баруун</div>
-          <div class="dir-tab zun" id="tabZun">Зүүн</div>
+          <button type="button" class="dir-tab bar act" id="tabBar" onclick="setDir('bar')">Баруун</button>
+          <button type="button" class="dir-tab zun" id="tabZun" onclick="setDir('zun')">Зүүн</button>
         </div>
       </div>
     </div>
@@ -1781,7 +1784,9 @@ function openAdmActMod(kind, key) {
   mod.style.pointerEvents = 'none';
   setTimeout(() => { mod.style.pointerEvents = ''; }, 350);
 }
-function closeAdmActMod() { admAct = null; document.getElementById('admActMod').classList.remove('on'); }
+function closeAdmActMod() { admAct = null; document.getElementById('admActMod').classList.remove('on');
+  clearLpFired();
+}
 
 function admActList() {
   if (!admAct) return [];
@@ -2060,9 +2065,14 @@ function openSessActMod(id) {
   mod.style.pointerEvents = 'none';
   setTimeout(() => { mod.style.pointerEvents = ''; }, 350);
 }
+/* Удаан дарж цэс нээгээд түүнийгээ хаахад lpFired үнэн үлдэж,
+   ДАРААГИЙН товшилтыг залгидаг байв (жагсаалт хоорондоо ч
+   халддаг). Цэс хаагдмагц цэвэрлэнэ. */
+function clearLpFired() { lpFired = false; }
 function closeSessActMod() {
   sactId = null;
   document.getElementById('sessActMod').classList.remove('on');
+  clearLpFired();
 }
 
 async function sactSend() {
@@ -2411,6 +2421,10 @@ function syncBackGuard() {
     try { history.pushState({ uz: 1 }, ''); } catch {}
   } else if (!need && backGuardOn()) {
     backSkip = true;
+    /* popstate ямар нэг шалтгаанаар ирэхгүй бол backSkip мөнхөд үнэн
+       үлдэж, ухрах хамгаалалт дахин тавигдахаа болино. Тиймээс
+       хугацаагаар нь заавал буцаана. */
+    setTimeout(() => { backSkip = false; }, 600);
     try { history.back(); } catch { backSkip = false; }
   }
 }
@@ -2453,7 +2467,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.9';
+const APP_VERSION = '2026-08-19.11';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2514,7 +2528,11 @@ function numOrNull(v) {
    цонхоор сольсон. Хаахад дутуу талбар руу нь өөрөө аваачна. */
 let msgFocusId = null;
 function showMsg(title, text, icon, focusId) {
-  document.getElementById('msgIcon').textContent = icon || '✏️';
+  const ic = icon || '✏️';
+  const el = document.getElementById('msgIcon');
+  el.textContent = ic;
+  // ✅ ногоон, ℹ️/📶 хөх, бусад нь шар (анхааруулга)
+  el.className = 'msg-icon' + (ic === '✅' ? ' ok' : (ic === 'ℹ️' || ic === '📶') ? ' info' : '');
   document.getElementById('msgTitle').textContent = title;
   document.getElementById('msgText').textContent = text || '';
   msgFocusId = focusId || null;
@@ -2843,6 +2861,20 @@ function nextJoint() {
   render();
 }
 
+/* Чиглэлийн товч. Сегмент товч шиг харагддаг мөртөө дарагддаггүй
+   байсан тул хэрэглэгч «товч ажиллахгүй байна» гэж боддог байв. */
+function setDir(dir) {
+  if (dir !== 'bar' && dir !== 'zun') return;
+  if (dir === curDir) return;
+  if (dir === 'bar' && curJ > C.bar) return;
+  if (dir === 'zun' && curJ > C.zun) return;
+  resetWarnState();
+  curDir = dir;
+  const saved = getSaved();
+  drumCur = saved !== null ? saved : 0;
+  render();
+}
+
 function goPrev() {
   resetWarnState();
   if (curDir==='zun') {
@@ -2864,6 +2896,9 @@ function render() {
   document.getElementById('jNum').textContent=curJ;
   document.getElementById('tabBar').className='dir-tab bar'+(curDir==='bar'?' act':'');
   document.getElementById('tabZun').className='dir-tab zun'+(curDir==='zun'?' act':'');
+  /* Тухайн үед хэмжигдэхгүй тал байвал товчийг идэвхгүй болгоно */
+  document.getElementById('tabBar').disabled = curJ > C.bar;
+  document.getElementById('tabZun').disabled = curJ > C.zun;
   refreshDrumDisplay();
   refreshValStrip();
   refreshStrip();
