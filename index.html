@@ -181,6 +181,18 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .lg-err.on { display: block; }
 .lg-note { display: none; background: rgba(255,194,77,.12); border: 1px solid rgba(255,194,77,.34); color: #ffe0a8; font-size: 12.5px; border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: .65rem; line-height: 1.55; }
 .lg-note.on { display: block; }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 54px; }
+/* top/margin-top-оор голлуулав — :active дээрх scale() transform-ыг
+   дарж байрлалыг эвдэхээс сэргийлнэ */
+.pw-eye {
+  position: absolute; right: 5px; top: 50%; margin-top: -21px;
+  width: 42px; height: 42px; border: none; background: transparent; color: var(--muted);
+  font-size: 18px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: var(--r-pill);
+}
+.pw-eye:active { background: var(--glass-2); }
+.pw-eye.on { color: var(--accent-hi); }
 .lg-hint { font-size: 11.5px; color: var(--muted); margin-top: 7px; line-height: 1.5; }
 .lg-hint.ok { color: var(--mint); font-weight: 600; }
 .lg-hint.bad { color: var(--amber); }
@@ -271,8 +283,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .km-chip { display: inline-flex; align-items: center; flex-shrink: 0; font-size: 12.5px; font-weight: 600; min-height: 42px; padding: 0 15px; border-radius: var(--r-pill); border: 1px solid var(--edge); background: var(--glass-1); color: var(--muted); cursor: pointer; }
 .km-chip.done { background: rgba(90,240,180,.14); border-color: rgba(90,240,180,.34); color: var(--mint); }
 .km-chip.cur { background: var(--grad-blue); border-color: transparent; color: var(--ink); font-weight: 700; box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, var(--glow-blue); }
-.km-next-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12.5px; font-weight: 600; min-height: 42px; padding: 0 13px; border-radius: var(--r-pill); border: 1px solid rgba(77,141,255,.32); color: var(--accent-hi); background: rgba(77,141,255,.14); cursor: pointer; }
-.km-rst-btn { flex-shrink: 0; font-size: 15px; width: 42px; height: 42px; border-radius: var(--r-pill); border: 1px solid var(--edge); color: var(--text-2); background: var(--glass-2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.km-next-btn { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13.5px; font-weight: 600; min-height: 48px; padding: 0 15px; border-radius: var(--r-pill); border: 1px solid rgba(77,141,255,.32); color: var(--accent-hi); background: rgba(77,141,255,.14); cursor: pointer; }
+.km-rst-btn { flex-shrink: 0; font-size: 19px; width: 48px; height: 48px; border-radius: var(--r-pill); border: 1px solid var(--edge); color: var(--text-2); background: var(--glass-2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
 .prog { height: 4px; background: rgba(255,255,255,.09); flex-shrink: 0; border-radius: var(--r-pill); margin: 9px 4px; overflow: hidden; }
 .prog-f { height: 100%; background: var(--grad-arc); border-radius: var(--r-pill); box-shadow: 0 0 14px rgba(77,141,255,.85); transition: width .35s var(--ease); }
@@ -581,15 +593,19 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <div class="card">
     <div class="fg">
       <div class="field">
-        <label>Хэн бэ?</label>
+        <label>Нэвтрэх нэр</label>
         <input type="text" id="lgEmail" autocomplete="username" autocapitalize="none"
                autocorrect="off" spellcheck="false" placeholder="ПД-6 ажилтан"
                oninput="showAccountHint()"/>
-        <div class="lg-hint" id="lgHint">Жишээ: <b>ПД-6 ажилтан</b> · <b>ПД-6 админ</b> — том жижиг үсэг хамаагүй</div>
+        <div class="lg-hint" id="lgHint"></div>
       </div>
       <div class="field">
         <label>Нууц үг</label>
-        <input type="password" id="lgPass" autocomplete="current-password" placeholder="••••••••"/>
+        <div class="pw-wrap">
+          <input type="password" id="lgPass" autocomplete="current-password" placeholder="••••••••"/>
+          <button type="button" class="pw-eye" id="pwEye" onclick="togglePw()"
+                  title="Нууц үгийг харах" aria-label="Нууц үгийг харах">👁</button>
+        </div>
       </div>
     </div>
     <button class="btn-go" id="lgBtn" onclick="doLogin()">Нэвтрэх →</button>
@@ -647,7 +663,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
         </select>
         <div class="pd-locked" id="sPdLocked" style="display:none"><span id="sPdLockedTxt">ПД-6</span><span class="lk">🔒</span></div>
       </div>
-      <div class="field"><label>Хэмжилт хийсэн (нэр)</label><input type="text" id="sWorker" placeholder="Жишээ: Б.Батаа"/></div>
+      <div class="field"><label>Хэмжилт хийсэн (нэр)</label><input type="text" id="sWorker" placeholder="Өөрийн нэрээ бичнэ үү" autocomplete="name" oninput="markWorkerNameTouched()"/></div>
     </div>
   </div>
   <div class="card">
@@ -680,7 +696,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="km-back" onclick="openKmMod()">☰</div>
     <div class="km-scroll-wrap" id="kmStrip"></div>
     <button class="km-next-btn" onclick="nextKm()">→ км</button>
-    <button class="km-next-btn" style="border-color:var(--muted);color:var(--muted);" onclick="openExpMod()">↓</button>
+    <button class="km-rst-btn" onclick="openExpMod()" title="Өгөгдөл татах">↓</button>
     <button class="km-rst-btn" onclick="openRstMod()" title="Дахин эхлүүлэх">⟳</button>
   </div>
   <div class="prog"><div class="prog-f" id="prog" style="width:0%"></div></div>
@@ -967,7 +983,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
      өөрчлөгддөг ч sw.js нь хэвээрээ үлддэг тул хөтөч «шинэ юм алга» гэж
      үзээд ямар ч дохио өгдөггүй. Тиймээс серверийн index.html-ээс
      хувилбарын дугаарыг нь уншаад өөрийнхтэйгээ шууд харьцуулна. */
-  let lastCheck = 0, pendingVersion = null;
+  let lastCheck = 0, pendingVersion = null, deferNotified = false;
   async function checkForUpdate(force) {
     const now = Date.now();
     if (!force && now - lastCheck < 5 * 60 * 1000) return;   // 5 минутад нэгээс олонгүй
@@ -985,10 +1001,22 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     if (!pendingVersion) return;
     // Хэмжилтийн дунд таслахгүй — дуусахаар нь орно
     if (typeof measuring === 'function' && measuring()) {
-      showStatus(`🔄 Шинэчлэлт бэлэн (${pendingVersion}) — хэмжилт дуусахад орно`, 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
+      // Нэг хэмжилтийн турш ганц удаа сануулна — дахин дахин гарахгүй
+      if (!deferNotified) {
+        deferNotified = true;
+        showStatus(`🔄 Шинэчлэлт бэлэн (${pendingVersion}) — хэмжилт дуусахад орно`, 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
+      }
       return;
     }
     showStatus('🔄 Шинэчилж байна…', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
+    /* Кэшийг устгаад дахин ачаалах хооронд сүлжээ тасарвал апп нээгдэхээ
+       болино (талбарт бодит эрсдэл). Тиймээс зөвхөн сүлжээтэй үед л
+       устгана. Сүлжээгүй бол дахин ачаалахгүй — дараагийн боломжид орно.
+       sw.js нь навигацийг сүлжээ-түрүүлж авдаг тул кэш устгах албагүй. */
+    if (navigator.onLine === false) {
+      showStatus('📶 Сүлжээ алга — холбогдмогц шинэчилнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)');
+      return;
+    }
     try {
       if (window.caches) {
         const keys = await caches.keys();
@@ -1174,7 +1202,11 @@ function showSetup() {
   document.getElementById('setup').style.display = 'block';
   document.getElementById('app').style.display = 'none';
   clearLoginError();
-  document.getElementById('lgPass').value = '';
+  resetPwField();
+  /* Хэмжилтийн явцад хойшлуулсан шинэчлэлт байвал ЯГ ОДОО оруулна.
+     Өмнө нь дараагийн visibilitychange эсвэл 15 минутын давталтыг
+     хүлээдэг байсан тул шинэчлэлт удаан ордог байв. */
+  if (typeof window.__applyUpdate === 'function') setTimeout(window.__applyUpdate, 400);
 }
 function setLoginBusy(on) {
   document.getElementById('lgBusy').classList.toggle('on', on);
@@ -1248,12 +1280,27 @@ function showAccountHint() {
   const v = (document.getElementById('lgEmail').value || '').trim();
   if (!v) {
     el.className = 'lg-hint';
-    el.innerHTML = 'Жишээ: <b>ПД-6 ажилтан</b> · <b>ПД-6 админ</b> — том жижиг үсэг хамаагүй';
+    el.textContent = '';
     return;
   }
   const a = parseAccount(v);
   if (a) { el.className = 'lg-hint ok'; el.textContent = '✓ ' + a.label; }
   else { el.className = 'lg-hint bad'; el.textContent = 'ПД дугаар (1–13) ба «ажилтан» эсвэл «админ» гэж бичнэ үү'; }
+}
+
+/* Нууц үгийг харах/нуух — буруу бичсэн эсэхээ шалгахад хэрэгтэй */
+function togglePw() {
+  const i = document.getElementById('lgPass'), b = document.getElementById('pwEye');
+  const show = i.type === 'password';
+  i.type = show ? 'text' : 'password';
+  b.classList.toggle('on', show);
+  b.textContent = show ? '🙈' : '👁';
+  b.title = show ? 'Нууц үгийг нуух' : 'Нууц үгийг харах';
+}
+function resetPwField() {
+  const i = document.getElementById('lgPass'), b = document.getElementById('pwEye');
+  i.value = ''; i.type = 'password';
+  if (b) { b.classList.remove('on'); b.textContent = '👁'; b.title = 'Нууц үгийг харах'; }
 }
 
 async function doLogin() {
@@ -1327,10 +1374,15 @@ function applyProfile() {
   /* Нэг хэсэгт нэг хаягийг олон ажилтан хуваалцаж хэрэглэдэг тул нэрийг
      бүртгэлээс биш, ажилтан өөрөө бичнэ. Утсандаа хадгалагдаж, дараа нь
      автоматаар орж ирнэ. Ингэснээр Excel дээр хэн юу хэмжсэн нь ялгарна. */
+  /* applyProfile() нь ачаалах үед НЭГ, дараа нь onAuthStateChanged
+     биелэхэд ДАХИН дуудагддаг. Урьд нь энэ хоёр дахь дуудалт нь
+     ажилтны шинээр бичсэн нэрийг хадгалсан хуучин нэрээр дарж
+     бичдэг байсан тул «нэрээ солиж болохгүй» асуудал үүсдэг байв.
+     Одоо зөвхөн талбар ХООСОН, хэрэглэгч гар хүрээгүй үед л дүүргэнэ. */
   const w = document.getElementById('sWorker');
   w.readOnly = false; w.style.opacity = '1';
   w.placeholder = 'Өөрийн нэрээ бичнэ үү';
-  w.value = getDeviceName() || '';
+  if (!workerNameTouched && !w.value.trim()) w.value = getDeviceName() || '';
 
   document.getElementById('admCard').style.display = isAdmin() ? 'block' : 'none';
   document.getElementById('btnCloudSend').style.display = 'block';
@@ -1559,7 +1611,7 @@ function openAdmDayMod(date) {
       oncontextmenu="return admCtxMenu('item','${esc(s.id)}',event)">
       <div class="adm-meta" style="flex:1">
         <div class="adm-who">${esc(c.worker || '—')}</div>
-        <div class="adm-det">Зам №${esc(String(c.road ?? '—'))} · ${c.s}–${c.e} км · хэмжсэн ${esc(String(c.date || '—'))} · ${fmtDate(s.savedAt)}</div>
+        <div class="adm-det">Зам №${esc(String(c.road ?? '—'))} · ${esc(kmLabel(s))} · хэмжсэн ${esc(String(c.date || '—'))} · ${fmtDate(s.savedAt)}</div>
       </div>
       <div class="adm-cnt">${countMeasurements(s)}</div>
     </div>`;
@@ -1608,7 +1660,7 @@ function openAdmActMod(kind, key) {
     if (!s) return;
     const c = s.config;
     title = `${esc(c.worker || '—')} · Зам №${esc(String(c.road ?? '—'))}`;
-    sub = `${c.s}–${c.e} км · ${countMeasurements(s)} хэмжилт · ${fmtDate(s.savedAt)}`;
+    sub = `${kmLabel(s)} · ${countMeasurements(s)} хэмжилт · ${fmtDate(s.savedAt)}`;
     list = [s];
   }
   admAct = { kind, key, count: list.length };
@@ -1645,7 +1697,7 @@ async function admActExcel() {
   if (!list.length) return;
   if (kind === 'item') {
     const s = list[0], c = s.config;
-    await _exportExcelCore(c, s.data, `уулзвар_${esc(String(c.worker||''))}_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`);
+    await _exportExcelCore(c, s.data, `уулзвар_${fileSafe(c.worker)}_${fileSafe(c.road)}зам_${kmFileTag(s)}км_${fileSafe(c.date)}.xlsx`);
   } else {
     await exportCombinedExcel(null, list, `нэгдсэн_ПД${myPd()}_ирсэн_${key}.xlsx`);
   }
@@ -1683,6 +1735,14 @@ const SESS_KEY = 'uulzvar_sessions';
 const DEV_NAME_KEY = 'uulzvar_device_name';
 
 /* Хуваалцсан хаягтай үед ажилтны нэрийг тухайн утсанд сануулна */
+/* Ажилтан нэрийн талбарт гар хүрсэн эсэх — applyProfile() дарж
+   бичихээс хамгаална. Бичсэн даруйд нь утсанд хадгална. */
+let workerNameTouched = false;
+function markWorkerNameTouched() {
+  workerNameTouched = true;
+  const v = (document.getElementById('sWorker').value || '').trim();
+  if (v) setDeviceName(v);
+}
 function getDeviceName() {
   try { return localStorage.getItem(DEV_NAME_KEY) || ''; } catch { return ''; }
 }
@@ -1877,7 +1937,7 @@ function openSessActMod(id) {
   sactId = id;
   const c = s.config || {};
   const w = (c.worker || '').trim();
-  document.getElementById('sactTitle').textContent = `Зам №${c.road || '—'} · ${c.s || '?'}-${c.e || '?'} км`;
+  document.getElementById('sactTitle').textContent = `Зам №${c.road || '—'} · ${kmLabel(s)}`;
   document.getElementById('sactSub').textContent =
     `${fmtDate(s.savedAt)} · ${countMeasurements(s)} хэмжилт` + (w ? ` · ${w}` : '');
   const sendBtn = document.getElementById('sactSend');
@@ -1946,7 +2006,7 @@ function askDeleteSession(id) {
   const sent = isSessionSent(s);
   document.querySelector('#delMod .rst-title').textContent = 'Энэ хэмжилтийг устгах уу?';
   document.getElementById('delSub').textContent =
-    `Зам №${c.road || '—'} · ${c.s || '?'}-${c.e || '?'} км · ${fmtDate(s.savedAt)}\n` +
+    `Зам №${c.road || '—'} · ${kmLabel(s)} · ${fmtDate(s.savedAt)}\n` +
     `${cnt} хэмжилт устана. Энэ үйлдлийг буцааж болохгүй.` +
     (canUpload() && cnt && !sent ? ' Энэ хэмжилт үүлэн рүү илгээгдээгүй байгааг анхаарна уу.' : '');
   document.getElementById('delMod').classList.add('on');
@@ -1974,6 +2034,59 @@ function fmtDate(iso) {
   const d = new Date(iso);
   const dd = s => String(s).padStart(2,'0');
   return `${d.getFullYear()}-${dd(d.getMonth()+1)}-${dd(d.getDate())} ${dd(d.getHours())}:${dd(d.getMinutes())}`;
+}
+
+/* ── Яг аль км-т хэмжилт орсоныг олох ──
+   Тохиргоонд 681–701 гэж сонгосон ч бодитоор зөвхөн 698-д хэмжсэн
+   бол «698 км» гэж харуулна. Зэргэлдээ км-үүд «696-697 км» болно. */
+function measuredKms(sess) {
+  const c = sess && sess.config, d = sess && sess.data;
+  if (!c || !d) return [];
+  const out = [];
+  for (let km = c.s; km <= c.e; km++) {
+    const row = d[km];
+    if (!row) continue;
+    for (const j in row) {
+      const v = row[j];
+      if (v && (v.bar != null || v.zun != null)) { out.push(km); break; }
+    }
+  }
+  return out;
+}
+/* [696,697,700] → «696-697, 700» */
+function kmRangeLabel(kms) {
+  if (!kms.length) return '';
+  const parts = [];
+  let a = kms[0], prev = kms[0];
+  for (let i = 1; i <= kms.length; i++) {
+    const k = kms[i];
+    if (k === prev + 1) { prev = k; continue; }
+    parts.push(a === prev ? String(a) : a + '-' + prev);
+    a = prev = k;
+  }
+  return parts.join(', ');
+}
+/* Жагсаалтад харуулах бичиглэл. Хэмжилт ороогүй бол сонгосон мужаа. */
+function kmLabel(sess) {
+  const kms = measuredKms(sess);
+  if (kms.length) return kmRangeLabel(kms) + ' км';
+  const c = (sess && sess.config) || {};
+  return `${c.s ?? '?'}-${c.e ?? '?'} км · хэмжилтгүй`;
+}
+
+/* Файлын нэрэнд ашиглах км бичиглэл. kmRangeLabel-ийн таслал/зайг
+   доогуур зураасаар сольсон хувилбар: «696-697, 700» → «696-697_700».
+   Хэт олон тасархай бүлэг байвал нэр хэт урт болох тул эхлэл-төгсгөл. */
+function kmFileTag(sess) {
+  const kms = measuredKms(sess);
+  const c = (sess && sess.config) || {};
+  if (!kms.length) return `${c.s ?? 0}-${c.e ?? 0}`;
+  const tag = kmRangeLabel(kms).replace(/,\s*/g, '_').replace(/\s+/g, '');
+  return tag.length <= 32 ? tag : `${kms[0]}-${kms[kms.length - 1]}`;
+}
+/* Файлын нэрэнд зөвшөөрөгдөхгүй тэмдэгтийг цэвэрлэнэ */
+function fileSafe(v) {
+  return String(v == null ? '' : v).replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function countMeasurements(sess) {
@@ -2020,7 +2133,7 @@ function renderSessList() {
       oncontextmenu="return sessCtxMenu('${s.id}',event)">
       <div class="sess-meta">
         <div class="sess-date">${fmtDate(s.savedAt)}${w?` · <span class="sess-worker">${esc(w)}</span>`:''}</div>
-        <div class="sess-info">Зам №${c.road||'—'} · ${c.s||'?'}-${c.e||'?'} км · ${cnt} хэмжилт${badge}</div>
+        <div class="sess-info">Зам №${c.road||'—'} · ${esc(kmLabel(s))} · ${cnt} хэмжилт${badge}</div>
       </div>
       ${upBtn}
     </div>`;
@@ -2062,7 +2175,7 @@ let currentViewSess = null;
 function renderSessionView(sess, subText) {
   currentViewSess = sess;
   const c = sess.config, d = sess.data;
-  document.getElementById('sessVTitle').textContent = `Зам №${c.road} · ${c.s}-${c.e} км`;
+  document.getElementById('sessVTitle').textContent = `Зам №${c.road} · ${kmLabel(sess)}`;
   document.getElementById('sessVSub').textContent = subText;
 
   const maxJ = Math.max(c.bar || 0, c.zun || 0);
@@ -2182,10 +2295,16 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-18.6';
+const APP_VERSION = '2026-08-19.3';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
+  /* Сүлжээгүй үед кэшийг устгавал апп нээгдэхээ болино — тиймээс
+     офлайн бол зүгээр л мэдэгдээд юу ч устгахгүй. */
+  if (navigator.onLine === false) {
+    showStatus('📶 Сүлжээ алга — холбогдсоны дараа шинэчилнэ үү', 'linear-gradient(180deg,#ffd98a,#ffc24d)');
+    return;
+  }
   showStatus('🔄 Шинэчлэлт шалгаж байна…', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
   try {
     if ('serviceWorker' in navigator) {
@@ -2599,7 +2718,7 @@ function _exportCSVDetailed(c, d) {
       rows.push([n++,km,di===0?'баруун':'зүүн',...vals,total,avg].join(','));
     });
   }
-  dl(rows.join('\n'),`уулзвар_${c.s}-${c.e}км_${c.date}.csv`);
+  dl(rows.join('\n'),`уулзвар_${kmFileTag({config:c,data:d})}км_${fileSafe(c.date)}.csv`);
 }
 function _exportCSVSum(c, d) {
   let rows=[['КМ','баруун нийт','баруун дундаж','зүүн нийт','зүүн дундаж','Хэтрүүлсэн'].join(',')];
@@ -2614,7 +2733,7 @@ function _exportCSVSum(c, d) {
     const over=[...bv,...zv].filter(v=>v>(c.max||37)).length||'';
     rows.push([km,bT,bA,zT,zA,over].join(','));
   }
-  dl(rows.join('\n'),`дүн_${c.date}.csv`);
+  dl(rows.join('\n'),`дүн_${kmFileTag({config:c,data:d})}км_${fileSafe(c.date)}.csv`);
 }
 function dl(content,name) {
   const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
@@ -2626,7 +2745,7 @@ function dl(content,name) {
 
 /* ── Excel татах (active session) ── */
 async function exportExcel() {
-  await _exportExcelCore(C, data, `уулзвар_${C.s}-${C.e}км_${C.date}.xlsx`);
+  await _exportExcelCore(C, data, `уулзвар_${kmFileTag({config:C,data:data})}км_${fileSafe(C.date)}.xlsx`);
 }
 
 /* ── Excel татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
@@ -2635,7 +2754,7 @@ async function exportSessionExcel(id) {
   const sess = id ? getSessions().find(s => s.id === id) : currentViewSess;
   if (!sess) return;
   const c = sess.config, d = sess.data;
-  const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
+  const fname = `уулзвар_${fileSafe(c.road)}зам_${kmFileTag(sess)}км_${fileSafe(c.date)}.xlsx`;
   await _exportExcelCore(c, d, fname);
   showStatus('📊 Excel татагдлаа', 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
 }
@@ -2667,7 +2786,9 @@ async function _exportExcelCore(c, d, filename) {
   // Title row
   ws1.mergeCells(1, 1, 1, maxJ + 5);
   const titleCell = ws1.getCell(1, 1);
-  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`
+  /* Тохиргооны муж (681–701) биш, ЯГ утга орсон км-ийг бичнэ */
+  const kmTxt = kmLabel({ config: c, data: d });
+  titleCell.value = `Уулзварын зайн хэмжилт — Зам №${c.road} · ${kmTxt} · ${c.date}`
     + ((c.worker||'').trim() ? ` · Хэмжигч: ${c.worker.trim()}` : '');
   titleCell.font = { bold: true, size: 13 };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -2743,7 +2864,7 @@ async function _exportExcelCore(c, d, filename) {
   const ws2 = wb.addWorksheet('Дүн');
   ws2.mergeCells(1, 1, 1, 6);
   const t2 = ws2.getCell(1,1);
-  t2.value = `Дүн — Зам №${c.road} · ${c.s}–${c.e} км · ${c.date}`;
+  t2.value = `Дүн — Зам №${c.road} · ${kmTxt} · ${c.date}`;
   t2.font = { bold: true, size: 13 };
   t2.alignment = { horizontal: 'center', vertical: 'middle' };
   t2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
@@ -3200,7 +3321,11 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   ws.mergeCells(1, 1, 1, COL_WORKER);
   const t = ws.getCell(1, 1);
   const dateList = Array.from(comb.dates).sort();
-  t.value = `Уулзварын зайн хэмжилт — ${pdTag}нэгдсэн хүснэгт · ${comb.rows.length} км · ${comb.values} хэмжилт`
+  /* Хэдэн км гэдгийн зэрэгцээ ЯГ АЛЬ км-үүд болохыг нэрлэнэ */
+  const kmNums = Array.from(new Set(comb.rows.map(r => Number(r.km))))
+    .filter(Number.isFinite).sort((a, b) => a - b);
+  const kmTxt = kmRangeLabel(kmNums);
+  t.value = `Уулзварын зайн хэмжилт — ${pdTag}нэгдсэн хүснэгт · ${kmTxt ? kmTxt + ' км' : comb.rows.length + ' км'} · ${comb.values} хэмжилт`
     + (dateList.length ? ` · ${dateList[0]}${dateList.length > 1 ? '–' + dateList[dateList.length-1] : ''}` : '');
   t.font = { bold: true, size: 13 };
   t.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -3353,7 +3478,12 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   const dTag = dl.length
     ? (dl.length > 1 ? `${dl[0]}_${dl[dl.length - 1]}` : dl[0])
     : localDay(new Date());
-  a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${dTag}.xlsx`;
+  /* Нэгдсэн файлд ямар км-үүд орсныг нэрэнд нь тусгана */
+  const kmNums2 = Array.from(new Set(comb.rows.map(r => Number(r.km))))
+    .filter(Number.isFinite).sort((a, b) => a - b);
+  let kmTag2 = kmRangeLabel(kmNums2).replace(/,\s*/g, '_').replace(/\s+/g, '');
+  if (kmTag2.length > 32) kmTag2 = `${kmNums2[0]}-${kmNums2[kmNums2.length - 1]}`;
+  a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${kmTag2 ? kmTag2 + 'км_' : ''}${dTag}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showStatus(`📊 ${dl.length || 1} өдөр · ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
@@ -3377,7 +3507,7 @@ async function shareData() {
   const payload = { v: 1, config: C, data: data, sentAt: new Date().toISOString() };
   if (CLOUD.on && CLOUD.user) payload.email = CLOUD.profile.email;
   const json = JSON.stringify(payload);
-  const filename = `уулзвар_${C.road}зам_${C.s}-${C.e}км_${C.date}.json`;
+  const filename = `уулзвар_${fileSafe(C.road)}зам_${kmFileTag({config:C,data:data})}км_${fileSafe(C.date)}.json`;
   const blob = new Blob([json], { type: 'application/json' });
   const file = new File([blob], filename, { type: 'application/json' });
 
