@@ -576,6 +576,30 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .rst-btns button { min-height: 50px; padding: 14px; font-size: 14.5px; font-weight: 600; border-radius: var(--r-sm); border: 1px solid var(--edge); background: var(--glass-2); color: var(--text); cursor: pointer; }
 .rst-btns .rst-yes { background: linear-gradient(180deg,#ff8b99 0%, var(--red) 100%); border-color: transparent; color: #fff; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 22px -4px rgba(255,90,110,.6); }
 
+/* Сануулгын цонх — alert()-ийн оронд аппын хэв маягаар */
+#msgMod { display: none; position: fixed; inset: 0; background: rgba(3,4,9,.76); z-index: 340; align-items: center; justify-content: center; padding: 1.4rem; }
+#msgMod.on { display: flex; }
+.msg-inner {
+  background: rgba(255,255,255,.11); border: 1px solid var(--edge); border-radius: var(--r-xl);
+  padding: 1.6rem 1.4rem 1.3rem; width: 100%; max-width: 340px; text-align: center;
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(165%); backdrop-filter: blur(var(--blur)) saturate(165%);
+  box-shadow: 0 1.5px 0 rgba(255,255,255,.3) inset, 0 24px 60px -12px rgba(0,0,0,.8);
+  animation: sheetUp .24s var(--spring);
+}
+.msg-icon {
+  width: 58px; height: 58px; margin: 0 auto 14px; border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center; font-size: 27px;
+  background: rgba(255,194,77,.16); border: 1px solid rgba(255,194,77,.4);
+  box-shadow: 0 0 26px -6px rgba(255,194,77,.55);
+}
+.msg-title { font-size: 16.5px; font-weight: 700; margin-bottom: 8px; letter-spacing: -.02em; }
+.msg-text { font-size: 13px; color: var(--text-2); margin-bottom: 1.3rem; line-height: 1.62; white-space: pre-line; }
+.msg-ok {
+  width: 100%; min-height: 50px; padding: 14px; font-size: 14.5px; font-weight: 600;
+  border-radius: var(--r-sm); border: none; background: var(--grad-accent); color: var(--ink);
+  cursor: pointer; box-shadow: 0 1.5px 0 rgba(255,255,255,.45) inset, var(--glow-accent);
+}
+
 /* Setup secondary */
 .ver-tag { text-align: center; font-size: 10.5px; color: var(--muted); opacity: .5; margin-top: 1rem; padding: 8px; }
 .btn-sess { width: 100%; min-height: 50px; padding: 14px 15px; font-size: 13.5px; font-weight: 600; background: var(--glass-1); color: var(--text-2); border: 1px solid var(--edge); border-radius: var(--r-sm); cursor: pointer; margin-top: .45rem; text-align: left; }
@@ -667,7 +691,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       <div class="field"><label>Эхлэх км</label><input type="number" id="sS" min="1" placeholder="681"/></div>
       <div class="field"><label>Дуусах км</label><input type="number" id="sE" min="1" placeholder="701"/></div>
     </div>
-    <div class="lg-hint">Өртөөний зам хэмжих бол км-ийн хоёр нүдийг <b>хоосон</b> үлдээнэ — үений тоо хэрэгцээгээр нь сунана.</div>
+    <div class="lg-hint"><b>Дуусах км</b>-ийг мэдэхгүй бол хоосон үлдээж болно — дараагийн км рүү шилжихэд жагсаалт өөрөө уртсана.<br>Өртөөний зам бол <b>эхлэх км-ийг</b> хоосон үлдээгээд зөвхөн замын дугаараа бичнэ — үе хэрэгцээгээр нь сунана.</div>
     <div class="fg fg2" style="margin-top:9px">
       <div class="field">
         <label>Замын хэсэг</label>
@@ -920,6 +944,16 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       <button class="rst-yes" onclick="doRestart()">Тийм, дахин эхлүүлэх</button>
       <button onclick="closeRstMod()">Болих</button>
     </div>
+  </div>
+</div>
+
+<!-- Сануулгын цонх (alert-ийн оронд) -->
+<div id="msgMod">
+  <div class="msg-inner">
+    <div class="msg-icon" id="msgIcon">✏️</div>
+    <div class="msg-title" id="msgTitle"></div>
+    <div class="msg-text" id="msgText"></div>
+    <button class="msg-ok" onclick="closeMsgMod()">Ойлголоо</button>
   </div>
 </div>
 
@@ -2419,7 +2453,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-19.8';
+const APP_VERSION = '2026-08-19.9';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -2476,12 +2510,28 @@ function numOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 /* Талбар дутуу бол улаанаар тэмдэглээд, эхнийх рүү нь аваачна */
-function requireField(id, msg) {
+/* alert() нь хөтчийн эвгүй цонх гаргадаг тул аппын хэв маягтай
+   цонхоор сольсон. Хаахад дутуу талбар руу нь өөрөө аваачна. */
+let msgFocusId = null;
+function showMsg(title, text, icon, focusId) {
+  document.getElementById('msgIcon').textContent = icon || '✏️';
+  document.getElementById('msgTitle').textContent = title;
+  document.getElementById('msgText').textContent = text || '';
+  msgFocusId = focusId || null;
+  document.getElementById('msgMod').classList.add('on');
+}
+function closeMsgMod() {
+  document.getElementById('msgMod').classList.remove('on');
+  if (msgFocusId) {
+    const el = document.getElementById(msgFocusId);
+    if (el) { el.focus(); el.select && el.select(); }
+    msgFocusId = null;
+  }
+}
+function requireField(id, title, text) {
   const el = document.getElementById(id);
-  el.classList.add('miss');
-  alert(msg);
-  el.focus();
-  el.select && el.select();
+  if (el) el.classList.add('miss');
+  showMsg(title, text, '✏️', id);
   return false;
 }
 function clearMissMarks() {
@@ -2491,31 +2541,42 @@ function clearMissMarks() {
 function startApp() {
   clearMissMarks();
   /* ── Заавал бөглөх талбарууд ──
-     Км ба температургүйгээр Маягт-09 бүрдэхгүй (температураас «байх
-     ёстой хуримтлал» бодогддог) тул эхлүүлэхийг зөвшөөрөхгүй. */
+       • Замын № ЭСВЭЛ эхлэх км-ийн аль нэг нь заавал
+       • Дуусах км нь СОНГОЛТТОЙ — бичээгүй бол дараагийн км рүү
+         шилжихэд жагсаалт өөрөө уртсана
+       • Температур заавал — «байх ёстой хуримтлал» түүнээс бодогдоно  */
   let s = numOrNull(document.getElementById('sS').value);
   let e = numOrNull(document.getElementById('sE').value);
-  /* Хоёулаа хоосон бол ӨРТӨӨНИЙ ЗАМ гэж үзнэ — өртөөний замд км
-     хамаарахгүй, үений тоо нь янз бүр байдаг тул хязгааргүй сунгана.
-     Ганцхан нь бөглөгдсөн бол алдаа. */
-  const station = (s === null && e === null);
-  if (!station) {
-    if (s === null || s < 1) return requireField('sS', 'Эхлэх км-ээ бичнэ үү.\n\nӨртөөний зам хэмжих бол ХОЁУЛАНГ нь хоосон үлдээнэ.');
-    if (e === null || e < 1) return requireField('sE', 'Дуусах км-ээ бичнэ үү.\n\nӨртөөний зам хэмжих бол ХОЁУЛАНГ нь хоосон үлдээнэ.');
-    if (e < s) return requireField('sE', 'Дуусах км нь эхлэх км-ээс их байх ёстой.');
+  const road = (document.getElementById('sRoad').value || '').trim();
+
+  if (!road && s === null) {
+    return requireField('sS', 'Замын дугаар эсвэл эхлэх км',
+      'Замын дугаар эсвэл эхлэх км-ийн аль нэгийг бөглөнө үү.\n\nӨртөөний зам хэмжих бол зөвхөн замын дугаарыг бичээд км-ийг хоосон үлдээнэ.');
+  }
+
+  /* Эхлэх км бичээгүй бол өртөөний зам — км хамаарахгүй, үе нь сунана */
+  const station = (s === null);
+  let openEnd = false;
+  if (station) {
+    s = e = 0;
   } else {
-    s = e = 0;      // өртөөний зам — ганц «хэсэг»
+    if (s < 1) return requireField('sS', 'Эхлэх км буруу', 'Эхлэх км нь 1-ээс их байх ёстой.');
+    if (e === null) { e = s; openEnd = true; }          // дуусахыг бичээгүй — уртсана
+    else if (e < s) return requireField('sE', 'Дуусах км буруу', 'Дуусах км нь эхлэх км-ээс их байх ёстой.\n\nМэдэхгүй бол хоосон үлдээж болно — км өөрөө нэмэгдэнэ.');
   }
 
   const tAir = numOrNull(document.getElementById('sTAir').value);
   const tRail = numOrNull(document.getElementById('sTRail').value);
-  if (tAir === null) return requireField('sTAir', 'Агаарын хэмийг бичнэ үү.\n\nМаягт-09-д заавал шаардагдана. Хасах хэм бол ± товчийг ашиглана.');
-  if (tRail === null) return requireField('sTRail', 'Зам төмрийн хэмийг бичнэ үү.\n\nҮүнээс «байх ёстой хуримтлал» бодогдоно. Хасах хэм бол ± товчийг ашиглана.');
+  if (tAir === null) return requireField('sTAir', 'Агаарын хэм',
+    'Агаарын хэмийг бичнэ үү.\n\nМаягт-09-д заавал шаардагдана. Хасах хэм бол ± товчийг дарна.');
+  if (tRail === null) return requireField('sTRail', 'Зам төмрийн хэм',
+    'Зам төмрийн хэмийг бичнэ үү.\n\nҮүнээс «байх ёстой хуримтлал» бодогдоно. Хасах хэм бол ± товчийг дарна.');
 
   // Нэг хаягийг олон хүн хуваалцдаг тул нэр заавал шаардлагатай
   const workerName = (document.getElementById('sWorker').value||'').trim();
   if (CLOUD.on && !workerName) {
-    return requireField('sWorker', 'Өөрийн нэрээ бичнэ үү.\n\nНэг хаягаар олон ажилтан ордог тул Excel дээр хэн хэмжсэн нь нэрээр ялгагдана.');
+    return requireField('sWorker', 'Хэмжигчийн нэр',
+      'Өөрийн нэрээ бичнэ үү.\n\nНэг хаягаар олон ажилтан ордог тул Excel дээр хэн хэмжсэн нь нэрээр ялгагдана.');
   }
   if (workerName) setDeviceName(workerName);
   C = {
@@ -2528,6 +2589,7 @@ function startApp() {
     // Маягт-09: агаар ба зам төмрийн хэм (заавал бөглөгдсөн)
     tAir, tRail,
     station,           // үнэн бол өртөөний зам (км-гүй, үе хязгааргүй)
+    openEnd,           // үнэн бол дуусах км тодорхойгүй — жагсаалт уртсана
     s, e,
     bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
     zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
@@ -2586,7 +2648,10 @@ function isKmDone(km) {
 }
 function nextKm() {
   const list=kmList(), idx=list.indexOf(curKm);
-  if (idx<list.length-1) jumpKm(list[idx+1]);
+  if (idx<list.length-1) { jumpKm(list[idx+1]); return; }
+  // Дуусах км бичээгүй бол дараагийн км-ийг өөрөө нэмнэ
+  if (growKmList()) { jumpKm(C.e); return; }
+  if (!C.station) showMsg('Сүүлийн км', 'Энэ бол жагсаалтын сүүлийн км.', 'ℹ️');
 }
 function jumpKm(km) {
   curKm=km; curJ=1; curDir='bar'; drumCur=getSaved()||0;
@@ -2738,6 +2803,20 @@ function advance() {
 /* Өртөөний замд үений тоо урьдчилан мэдэгддэггүй тул хэрэгцээгээр нь
    сунгана. Санамсаргүй хязгааргүй урсахаас сэргийлж дээд хязгаартай. */
 const STATION_MAX_J = 200;
+const OPEN_MAX_KM = 200;      // дуусах км тодорхойгүй үеийн дээд хязгаар
+
+/* Дуусах км бичээгүй бол дараагийн км-ийг жагсаалтад нэмнэ.
+   Нэмэгдсэн эсэхийг буцаана. */
+function growKmList() {
+  if (!C.openEnd || C.station) return false;
+  if ((C.e - C.s + 1) >= OPEN_MAX_KM) return false;
+  C.e++;
+  const maxJ = Math.max(C.bar, C.zun);
+  data[C.e] = {};
+  for (let j = 1; j <= maxJ; j++) data[C.e][j] = { bar:null, zun:null };
+  buildStrip();
+  return true;
+}
 function nextJoint() {
   const maxJ=Math.max(C.bar,C.zun);
   if (curJ<maxJ) {
@@ -2752,7 +2831,12 @@ function nextJoint() {
     // Try next km
     const list=kmList(), idx=list.indexOf(curKm);
     if (idx<list.length-1) { jumpKm(list[idx+1]); return; }
-    else { alert(C.station ? `Дээд хязгаар (${STATION_MAX_J} үе) хүрлээ.` : 'Бүх хэмжилт дууслаа!'); return; }
+    if (growKmList()) { jumpKm(C.e); return; }      // дуусах км тодорхойгүй — үргэлжилнэ
+    showMsg(C.station ? 'Дээд хязгаар' : 'Дууслаа',
+            C.station ? `Нэг замд ${STATION_MAX_J} үеэс олон хэмжих боломжгүй.`
+                      : 'Бүх км-ийн хэмжилт дууслаа. «↓» товчоор татаж авна уу.',
+            C.station ? '⚠️' : '✅');
+    return;
   }
   const saved=getSaved();
   drumCur=saved!==null?saved:0;
@@ -3020,7 +3104,8 @@ function addNormSheet(wb) {
 
 async function _exportExcelCore(c, d, filename) {
   if (typeof ExcelJS === 'undefined') {
-    alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
+    showMsg('Excel сан ачаалагдаагүй',
+            'Интернэт холболтоо шалгаад дахин оролдоно уу.\n\nExcel үүсгэх сан нь анх нээхэд интернэтээр татагддаг.', '📶');
     return;
   }
   const wb = new ExcelJS.Workbook();
@@ -3649,7 +3734,8 @@ function styleHeaderRow(row) {
    nameOverride — файлын нэр. */
 async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   if (typeof ExcelJS === 'undefined') {
-    alert('ExcelJS ачаалагдаагүй байна. Интернет холболтоо шалгана уу.');
+    showMsg('Excel сан ачаалагдаагүй',
+            'Интернэт холболтоо шалгаад дахин оролдоно уу.\n\nExcel үүсгэх сан нь анх нээхэд интернэтээр татагддаг.', '📶');
     return;
   }
   const comb = buildCombined(srcOverride || sessionsForDates(dates));
