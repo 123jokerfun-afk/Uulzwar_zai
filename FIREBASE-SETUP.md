@@ -253,7 +253,7 @@ users/
 
 | Field | Type | Value |
 |---|---|---|
-| `pd` | **number** | `3` |
+| `pd` | number *(string ч болно)* | `3` |
 | `role` | string | `admin` |
 | `name` | string | `ПД-3 админ` |
 
@@ -261,9 +261,18 @@ users/
 
 | Field | Type | Value |
 |---|---|---|
-| `pd` | **number** | `3` |
+| `pd` | number *(string ч болно)* | `3` |
 | `role` | string | `worker` |
 | `name` | string | `ПД-3 ажилтан` |
+
+> 💡 **Type дээр `number` олдохгүй байвал `string` хэвээр нь үлдээгээд `3` гэж
+> бичээрэй — ажиллана.** Апп нь `parseInt` хийж, дүрэм нь `int()`-ээр
+> хөрвүүлдэг тул хоёулаа адилхан ойлгоно.
+>
+> `number`-ыг олох гэвэл: `string ▾` дээр дарахад гарах жагсаалтын **2 дахь
+> мөр** нь `number` (string · number · boolean · map · array · null ·
+> timestamp · geopoint · reference). Утсан дээр жагсаалт багтахгүй байвал
+> Chrome → **⋮ → Desktop site** асаана.
 
 #### Шалгах
 
