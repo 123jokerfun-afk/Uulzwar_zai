@@ -2424,39 +2424,61 @@ function measuring() {
   return !!el && el.style.display && el.style.display !== 'none';
 }
 
-/* Ухрах товчийг барих ганц «хамгаалалтын» бичлэг history-д тавина.
-   Хаах юм үлдээгүй бол буцааж авна — ингэснээр ухрах товч хоосон
-   дарагдахгүй, дараагийн даралт нь аппаас хэвийн гаргана.
+/* Ухрах товчийг барих «нөөц» бичлэгүүдийг history-д тавина.
 
-   Тэмдэглэл: хамгаалалт байгаа эсэхийг тусдаа хувьсагчаар бус ЯГ
-   history.state-ээс уншина. pushState нь ямар нэг шалтгаанаар (хөтчийн
-   хязгаарлалт г.м) биелээгүй үед хувьсагч нь худал үнэн болж, дараа нь
-   history.back() дуудагдан аппаас гарч байсан. */
+   ЧУХАЛ: Chrome нь ХЭРЭГЛЭГЧИЙН ДАРАЛТГҮЙГЭЭР нэмэгдсэн history
+   бичлэгийг ухрах товч дарахад АЛГАСДАГ (history manipulation
+   intervention). Өмнө нь цонх хаагдсаны дараа popstate дотроос шинэ
+   хамгаалалт тавьдаг байсан нь яг тийм «алгасагддаг» бичлэг болж,
+   1 удаа ухраад дараагийн ухралт дээр аппаас шууд гардаг байв.
+
+   Тиймээс хамгаалалтыг нэг биш, НӨӨЦӨӨР нь тавина: хэрэглэгчийн
+   товшилтын мөчид (идэвхтэй үйлдэлтэй үед — иймд алгасагдахгүй)
+   GUARD_MAX ширхэг бичлэг тавьж, ухрах бүрд нэг нэгээр зарцуулагдана.
+   Дараагийн товшилтоор нөөц дахин дүүрнэ. Ингэснээр ухрах товч хэдэн
+   ч удаа дарсан цонхнууд дараалан хаагдаж, аппаас гэнэт гарахгүй.
+
+   Хамгаалалтын түвшнийг тусдаа хувьсагчаар бус ЯГ history.state-ээс
+   уншина — pushState биелээгүй үед хувьсагч худал үнэн болдог. */
+const GUARD_MAX = 8;
 let backSkip = false;
-function backGuardOn() { return !!(history.state && history.state.uz === 1); }
+let unwindTry = 0;
+function guardLevel() { const st = history.state; return (st && +st.uz) || 0; }
+function guardNeed() { return (!!ovTop() || measuring()) ? GUARD_MAX : 0; }
 function syncBackGuard() {
-  /* history.back() нь шууд биелдэггүй (popstate дараагийн ээлжинд ирнэ).
-     Тэр хооронд дахин дуудагдвал хоёр алхам ухарч, аппаас гарч болзошгүй
+  /* history.go() нь шууд биелдэггүй (popstate дараагийн ээлжинд ирнэ).
+     Тэр хооронд дахин дуудагдвал илүү ухарч, аппаас гарч болзошгүй
      тул биелж дуустал нь хүлээнэ. */
   if (backSkip) return;
-  const need = !!ovTop() || measuring();
-  if (need && !backGuardOn()) {
-    try { history.pushState({ uz: 1 }, ''); } catch {}
-  } else if (!need && backGuardOn()) {
+  const want = guardNeed();
+  let have = guardLevel();
+  if (have < want) {
+    unwindTry = 0;
+    while (have < want) {
+      have++;
+      try { history.pushState({ uz: have }, ''); } catch { break; }
+    }
+  } else if (have > want) {
+    /* Хамгаалалт хэрэггүй болсон (жишээ нь тохируулга руу буцсан) —
+       нөөцөө буцааж авна, ингэснээр ухрах товч аппаас хэвийн гаргана. */
+    if (unwindTry++ > 12) return;         // тоолол зөрсөн үед гацахаас сэргийлнэ
     backSkip = true;
     /* popstate ямар нэг шалтгаанаар ирэхгүй бол backSkip мөнхөд үнэн
        үлдэж, ухрах хамгаалалт дахин тавигдахаа болино. Тиймээс
        хугацаагаар нь заавал буцаана. */
-    setTimeout(() => { backSkip = false; }, 600);
-    try { history.back(); } catch { backSkip = false; }
-  }
+    setTimeout(() => { backSkip = false; }, 700);
+    try { history.go(want - have); } catch { backSkip = false; }
+  } else unwindTry = 0;
 }
 window.addEventListener('popstate', () => {
-  if (backSkip) { backSkip = false; return; }   // өөрсдөө буцаасан
+  if (backSkip) { backSkip = false; syncBackGuard(); return; }   // өөрсдөө буцаасан
   const top = ovTop();
-  if (top) top.close();
-  else if (measuring()) openRstMod();           // хэмжилтээс тохируулга руу
-  syncBackGuard();                              // үлдсэн цонхонд шинэ хамгаалалт
+  /* Нөөц бичлэг доор нь үлдсэн тул энд ШИНЭ хамгаалалт түлхэх
+     шаардлагагүй — тавьсан ч Chrome алгасах эрсдэлтэй. Нөөцийг
+     хэрэглэгчийн дараагийн товшилт дүүргэнэ. */
+  if (top) { top.close(); return; }
+  if (measuring()) { openRstMod(); return; }   // хэмжилтээс тохируулга руу
+  /* Хаах юм алга — хөтөч аль хэдийн ухарсан, аппаас гарна */
 });
 /* Цонх нээх/хаах бүрийг дагах — нээгдэх, хаагдах бүх замыг барина */
 (function watchOverlays() {
@@ -2626,7 +2648,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-20.1';
+const APP_VERSION = '2026-08-20.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
