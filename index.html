@@ -115,7 +115,9 @@ const TTL_DAYS = 30;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
-html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; overscroll-behavior-y: none; touch-action: pan-x pan-y; }
+/* Гүйдэг хэсгүүд дотроо гүйлт барина — доош татаж «шинэчлэх»-ээс сэргийлнэ */
+#setup, #app, .sheet-scroll, .adm-scroll, .vs-scroll { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', Roboto, system-ui, sans-serif;
   color: var(--text);
@@ -2511,80 +2513,133 @@ function measuring() {
   return !!el && el.style.display && el.style.display !== 'none';
 }
 
-/* Ухрах товчийг барих «нөөц» бичлэгүүдийг history-д тавина.
+/* ══════════════════════════════════════════════════════════
+   УХРАХ ТОВЧНЫ ЗӨВ ШИЙДЭЛ — түүхийн гүн = дэлгэцийн гүн
 
-   ЧУХАЛ: Chrome нь ХЭРЭГЛЭГЧИЙН ДАРАЛТГҮЙГЭЭР нэмэгдсэн history
-   бичлэгийг ухрах товч дарахад АЛГАСДАГ (history manipulation
-   intervention). Өмнө нь цонх хаагдсаны дараа popstate дотроос шинэ
-   хамгаалалт тавьдаг байсан нь яг тийм «алгасагддаг» бичлэг болж,
-   1 удаа ухраад дараагийн ухралт дээр аппаас шууд гардаг байв.
+   ЖИНХЭНЭ ШАЛТГААН: Chrome-д «history manipulation intervention»
+   бий. Хэрэглэгчийн ДАРАЛТГҮЙГЭЭР (user activation-гүйгээр) нэмсэн
+   history.pushState-ийг «буцахыг барих оролдлого» гэж үзээд ухрах
+   товч дарахад АЛГАСДАГ. Тиймээс дараах бүгд ажиллахгүй:
+     ✗ ачаалалтын үед олон бүртгэл урьдчилан түлхэх
+     ✗ popstate дотор дахин бүртгэл түлхэх
+     ✗ N бүртгэл түлхээд «хүрэлцэнэ» гэж найдах  (өмнөх алдаа)
 
-   Тиймээс хамгаалалтыг нэг биш, НӨӨЦӨӨР нь тавина: хэрэглэгчийн
-   товшилтын мөчид (идэвхтэй үйлдэлтэй үед — иймд алгасагдахгүй)
-   GUARD_MAX ширхэг бичлэг тавьж, ухрах бүрд нэг нэгээр зарцуулагдана.
-   Дараагийн товшилтоор нөөц дахин дүүрнэ. Ингэснээр ухрах товч хэдэн
-   ч удаа дарсан цонхнууд дараалан хаагдаж, аппаас гэнэт гарахгүй.
+   ЗӨВ АРГА: заль мэх хийхгүй. Дэлгэц гүнзгийрэх бүрд — ЗААВАЛ
+   хэрэглэгчийн даралтын дотор, синхроноор — ЯГ НЭГ бүртгэл нэмнэ.
+   Ийм бүртгэл user activation-той тул Chrome хэзээ ч алгасахгүй.
+   Ухрах товч дарахад popstate дотор ЮУ Ч ТҮЛХЭХГҮЙ, зөвхөн нэг шат
+   ухарна. Нүүрэнд байх «суурь» бүртгэл 1-р даралтыг барьж сануулга
+   өгнө, 2-р даралт аппаас гаргана.
 
-   Хамгаалалтын түвшнийг тусдаа хувьсагчаар бус ЯГ history.state-ээс
-   уншина — pushState биелээгүй үед хувьсагч худал үнэн болдог. */
-const GUARD_MAX = 8;
-let backSkip = false;
-let unwindTry = 0;
-function guardLevel() { const st = history.state; return (st && +st.uz) || 0; }
-function guardNeed() { return (!!ovTop() || measuring()) ? GUARD_MAX : 0; }
-function syncBackGuard() {
-  /* history.go() нь шууд биелдэггүй (popstate дараагийн ээлжинд ирнэ).
-     Тэр хооронд дахин дуудагдвал илүү ухарч, аппаас гарч болзошгүй
-     тул биелж дуустал нь хүлээнэ. */
-  if (backSkip) return;
-  const want = guardNeed();
-  let have = guardLevel();
-  if (have < want) {
-    unwindTry = 0;
-    while (have < want) {
-      have++;
-      try { history.pushState({ uz: have }, ''); } catch { break; }
-    }
-  } else if (have > want) {
-    /* Хамгаалалт хэрэггүй болсон (жишээ нь тохируулга руу буцсан) —
-       нөөцөө буцааж авна, ингэснээр ухрах товч аппаас хэвийн гаргана. */
-    if (unwindTry++ > 12) return;         // тоолол зөрсөн үед гацахаас сэргийлнэ
-    backSkip = true;
-    /* popstate ямар нэг шалтгаанаар ирэхгүй бол backSkip мөнхөд үнэн
-       үлдэж, ухрах хамгаалалт дахин тавигдахаа болино. Тиймээс
-       хугацаагаар нь заавал буцаана. */
-    setTimeout(() => { backSkip = false; }, 700);
-    try { history.go(want - have); } catch { backSkip = false; }
-  } else unwindTry = 0;
+   ⚠️ history.go() нь АСИНХРОН. Хүлээгдэж байхад шинэ түлхэлт хийвэл
+   дараалал холилдоно — тиймээс дараалалд тавьж, буцаж ирсний дараа
+   гүйцэтгэнэ. history.go(-k) нь k бүртгэл алгассан ч popstate-ийг
+   ГАНЦ удаа гаргана — алгасах тоолуурыг нэгээр л нэмнэ. */
+let _hn = 0,          // бидний нэмсэн бүртгэлийн тоо (гүн)
+    _skipPop = 0,     // өөрсдөө татаж авсан popstate-ийг тоохгүй
+    _pendGo = 0,      // хүлээгдэж буй history.go
+    _pendPush = 0,    // түүнийг хүлээж буй түлхэлтүүд
+    _inPop = false,
+    _exitArm = 0;
+
+/* Дэлгэцийн гүн = нээлттэй цонхнуудын тоо. Суурь дэлгэц (нэвтрэх/
+   тохируулга/хэмжилт) = 0. Интро нь ачаалалтын үед даралтгүй гарсан
+   тул гүнд тооцохгүй — доор _appBack дотор тусад нь хаана. */
+function _uiDepth() { return OVERLAYS.filter(ovOpen).length; }
+
+/* Бидний хүсэх бүртгэлийн тоо: гүн + 1. Нэмэлт «+1» нь нүүрэнд байх
+   суурь бүртгэл — 1-р ухралтыг барьж сануулга өгөх боломж олгоно. */
+function _wantHn() { return _uiDepth() + 1; }
+
+function _push1() {
+  if (_inPop) return;
+  if (_pendGo > 0) { _pendPush++; return; }   // go() хүлээгдэж байна — дараалалд
+  try { history.pushState({ uz: 1, n: _hn + 1 }, ''); _hn++; } catch (e) {}
 }
-window.addEventListener('popstate', () => {
-  /* Интро тоглож байвал хамгийн түрүүнд түүнийг л хаана */
+function _flushPush() { while (_pendPush > 0 && _pendGo === 0) { _pendPush--; _push1(); } }
+
+/* k бүртгэл татаж авна. _hn-ийг дуудагч аль хэдийн хассан байх ёстой. */
+function _hGo(k) {
+  if (k <= 0) return;
+  _pendGo++; _skipPop++;
+  try { history.go(-k); }
+  catch (e) { _pendGo = Math.max(0, _pendGo - 1); _skipPop = Math.max(0, _skipPop - 1); _flushPush(); return; }
+  setTimeout(() => {
+    if (_skipPop > 0) _skipPop--;
+    if (_pendGo > 0) { _pendGo--; _flushPush(); }
+  }, 400);
+}
+
+/* Түүхийн гүнийг дэлгэцийн гүнтэй тэнцүүлнэ.
+   ЗААВАЛ хэрэглэгчийн даралтын дотор (click/touch) дуудагдана —
+   ингэснээр түлхсэн бүртгэл user activation-той, алгасагдахгүй. */
+function _syncGuards() {
+  if (_inPop) return;
+  const want = _wantHn();
+  while (_hn < want) _push1();               // гүнзгийрэв — нэг нэгээр нэмнэ
+  if (_hn > want) { const k = _hn - want; _hn = want; _hGo(k); }   // мадсан бол татна
+}
+
+/* Ухрах дараалал. Ямар нэг зүйл хийсэн бол true, нүүр бол false. */
+function _appBack() {
   const intro = document.getElementById('introOverlay');
-  if (intro) { intro.click(); return; }
-  if (backSkip) { backSkip = false; syncBackGuard(); return; }   // өөрсдөө буцаасан
+  if (intro) { intro.click(); return true; }          // интро алгасах
   const top = ovTop();
-  /* Нөөц бичлэг доор нь үлдсэн тул энд ШИНЭ хамгаалалт түлхэх
-     шаардлагагүй — тавьсан ч Chrome алгасах эрсдэлтэй. Нөөцийг
-     хэрэглэгчийн дараагийн товшилт дүүргэнэ. */
-  if (top) { top.close(); return; }
-  if (measuring()) { openRstMod(); return; }   // хэмжилтээс тохируулга руу
-  /* Хаах юм алга — хөтөч аль хэдийн ухарсан, аппаас гарна */
+  if (top) { top.close(); return true; }              // дээд цонхыг хаах
+  return false;                                        // нүүр = үндэс
+}
+
+window.addEventListener('popstate', () => {
+  if (_skipPop > 0) {                        // өөрсдийн татаж авсан бүртгэл
+    _skipPop--;
+    if (_pendGo > 0) { _pendGo--; _flushPush(); }
+    return;
+  }
+  if (_hn > 0) _hn--;                         // энэ ухралт нэг бүртгэл зарцууллаа
+  _inPop = true;
+  let handled = false;
+  try { handled = _appBack(); } catch (e) { handled = false; }
+  _inPop = false;
+  if (handled) {                             // цонх/интро хаагдав — суурь хэвээр
+    _exitArm = 0;
+    /* popstate дотор ТҮЛХЭХГҮЙ. Гүн буурсан тул _hn аль хэдийн зөв
+       (want = гүн+1). Дараагийн даралт дахин sync хийнэ. */
+    return;
+  }
+  /* Нүүр хуудас — суурь бүртгэл зарцуулагдав. Одоо аппаас гарахад
+     бэлэн: дараагийн ухралт (даралтгүйгээр) хөтчийг аппаас гаргана. */
+  _exitArm = Date.now();
+  try { if (typeof autoSave === 'function') autoSave(); } catch (e) {}
+  try { showStatus('⟵ Дахин дарвал аппаас гарна', 'linear-gradient(180deg,#9ba8ff,#5b6bff)'); } catch (e) {}
 });
-/* Цонх нээх/хаах бүрийг дагах — нээгдэх, хаагдах бүх замыг барина */
-(function watchOverlays() {
-  const obs = new MutationObserver(() => syncBackGuard());
+
+/* Түлхэлтийг ЗӨВХӨН хэрэглэгчийн даралтын дотор хийнэ. touchstart нь
+   хамгийн эрт — суурь бүртгэлийг тэр дор нь тавьж, гүнзгийрэх (click)
+   үед дараагийнхыг нэмнэ. Тус бүр өөр өөр даралтын мөчид тул Chrome
+   «нэг redirect» гэж нэгтгэхгүй. */
+['touchstart', 'pointerdown', 'touchend', 'pointerup', 'click'].forEach(ev =>
+  document.addEventListener(ev, _syncGuards, { passive: true }));
+
+/* Цонх нь чирэлт/бүрхүүл дарж АСИНХРОНоор хаагддаг (хаалтын анимаци).
+   Тэр үед даралт дууссан байх тул синхрон sync хүрэхгүй. Ажиглагч нь
+   зөвхөн ИЛҮҮ бүртгэлийг ТАТАЖ авна (go() — даралтгүй ч зөвшөөрөгдөнө);
+   ХЭЗЭЭ Ч түлхэхгүй (түлхэлт зөвхөн даралтын дотор). */
+(function () {
+  const mo = new MutationObserver(() => {
+    if (_inPop) return;
+    const want = _wantHn();
+    if (_hn > want) { const k = _hn - want; _hn = want; _hGo(k); }
+  });
   const opts = { attributes: true, attributeFilter: ['class', 'style'] };
-  OVERLAYS.forEach(o => { const el = document.getElementById(o.id); if (el) obs.observe(el, opts); });
-  const app = document.getElementById('app');
-  if (app) obs.observe(app, opts);
-  /* Хэрэглэгчийн шууд үйлдлийн үед бас шалгана. Хөтөч нь «хэрэглэгчийн
-     үйлдэлгүй» нэмэгдсэн history бичлэгийг ухрах үед алгасдаг тул
-     хамгаалалтыг товшилтын мөчид нь баталгаажуулж тавьсан нь найдвартай. */
-  ['click', 'touchend', 'pointerup'].forEach(ev =>
-    document.addEventListener(ev, () => syncBackGuard(), { passive: true }));
-  // Хөтчийн санах ойгоос (bfcache) сэргэхэд дахин шалгана
-  window.addEventListener('pageshow', () => syncBackGuard());
+  OVERLAYS.forEach(o => { const el = document.getElementById(o.id); if (el) mo.observe(el, opts); });
 })();
+
+/* Ачаалалтын үед бүртгэл ТҮЛХЭХГҮЙ. Тэр нь user activation-гүй тул
+   Chrome алгасаж/«client redirect» гэж хаяж болзошгүй бөгөөд _hn-ийг
+   бодит бус утгаар зөрүүлнэ. Эхний даралт (touchstart) заавал суурь
+   бүртгэлийг тавина — түүнд найдна. Анхны даралтаас өмнөх ухралт нь
+   аль хэдийн үндэс дээр байгаа тул зүгээр л аппаас гарна (зөв). */
+window.addEventListener('pageshow', () => { /* bfcache-аас сэргэхэд юу ч түлхэхгүй */ });
 
 
 /* ══════════════════════════════════════════════════════════
@@ -2738,7 +2793,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-20.3';
+const APP_VERSION = '2026-08-21.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
