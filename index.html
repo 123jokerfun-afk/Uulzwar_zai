@@ -637,6 +637,93 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 </head>
 <body>
 
+<!-- ИНТРО БИЧЛЭГ -->
+<div id="introOverlay" style="position:fixed;inset:0;z-index:9999;background:#08080A;
+  display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .5s ease">
+  <video id="introVid" muted playsinline webkit-playsinline preload="auto"
+    style="width:100%;height:100%;object-fit:contain;background:#08080A"></video>
+  <div style="position:absolute;bottom:calc(30px + env(safe-area-inset-bottom));left:50%;
+    transform:translateX(-50%);font-size:12px;font-weight:600;color:rgba(255,255,255,.5);
+    pointer-events:none;letter-spacing:.02em;
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif">Дэлгэц дарж алгасах</div>
+</div>
+<script>
+/* ══════════════════════════════════════════════════════════
+   ИНТРО БИЧЛЭГ
+   Апп нээгдэхэд бүтэн дэлгэцээр тоглоно. Бичлэг дуусах, дэлгэц
+   дарах, алдаа гарах, эсвэл хугацаа хэтрэхэд зөөлөн бүдгэрч
+   DOM-оос бүрэн арилна.
+
+   Бичлэгийг Cache Storage-д хадгална — дараагийн удаа сүлжээгүй ч
+   шууд тоглоно, мөн утасны галерей/файл менежерт харагдахгүй.
+   ⚠️ Бичлэгээ солих бүрд CACHE-ийн дугаарыг ахиулж, хуучныг нь
+   OLD_CACHES-д бичнэ — эс тэгвэл утсанд хадгалагдсан ХУУЧИН бичлэг
+   гарсаар байна.
+   ══════════════════════════════════════════════════════════ */
+(function () {
+  const ov = document.getElementById('introOverlay');
+  const vid = document.getElementById('introVid');
+  if (!ov || !vid) return;
+
+  const SRC = 'intro.mp4', CACHE = 'intro-v1', OLD_CACHES = [];
+  let dismissed = false, blobUrl = '', fillCache = null;
+
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    /* id-г тэр дор нь авна — бүдгэрч байх 0.5 сек дотор ухрах товч
+       дарагдвал интро дахин «олдож» аппын үйлдлийг залгихгүй */
+    ov.removeAttribute('id');
+    try { vid.pause(); } catch (e) {}
+    ov.style.opacity = '0';
+    setTimeout(() => {
+      ov.remove();
+      if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = ''; }
+    }, 520);
+    /* Далд санд хуулахыг интро ДУУССАНЫ дараа эхлүүлнэ — тоглож
+       байх үед зэрэг татвал сүлжээг булаацалдаж бичлэг тасалдана */
+    if (fillCache) { fillCache(); fillCache = null; }
+  }
+  window.__introDismiss = dismiss;
+
+  /* Гарах бүх нөхцөл */
+  ov.addEventListener('click', dismiss);
+  ov.addEventListener('touchstart', dismiss, { passive: true });   // зөвхөн click-ээр зарим утсанд саатна
+  vid.addEventListener('ended', dismiss);
+  vid.addEventListener('error', dismiss);
+
+  /* Удаан сүлжээнд бэлдэх хугацаа. БОГИНО БОЛГОВОЛ интро харагдахгүй
+     өнгөрнө — 4МБ бичлэгт 12 секунд тохирно. */
+  setTimeout(() => { if (!dismissed && vid.readyState < 2) dismiss(); }, 12000);
+  setTimeout(dismiss, 20000);                                       // аюулгүйн дээд хязгаар
+
+  function play(src) {
+    if (dismissed) return;
+    vid.src = src;
+    let p;
+    try { p = vid.play(); } catch (e) { setTimeout(dismiss, 1200); return; }
+    /* Autoplay блоклогдвол хэрэглэгчийг хоосон хар дэлгэц дээр үлдээхгүй */
+    if (p && p.catch) p.catch(() => { setTimeout(dismiss, 1200); });
+  }
+
+  (async function () {
+    try {
+      if (!('caches' in window)) { play(SRC); return; }
+      OLD_CACHES.forEach(k => { caches.delete(k).catch(() => {}); });
+      const c = await caches.open(CACHE);
+      const hit = await c.match(SRC);
+      if (hit) {
+        blobUrl = URL.createObjectURL(await hit.blob());
+        play(blobUrl);
+        return;
+      }
+      play(SRC);
+      fillCache = () => { c.add(SRC).catch(() => {}); };
+    } catch (e) { play(SRC); }
+  })();
+})();
+</script>
+
 <!-- LOGIN -->
 <div id="login">
   <div class="lg-brand">
@@ -2471,6 +2558,9 @@ function syncBackGuard() {
   } else unwindTry = 0;
 }
 window.addEventListener('popstate', () => {
+  /* Интро тоглож байвал хамгийн түрүүнд түүнийг л хаана */
+  const intro = document.getElementById('introOverlay');
+  if (intro) { intro.click(); return; }
   if (backSkip) { backSkip = false; syncBackGuard(); return; }   // өөрсдөө буцаасан
   const top = ovTop();
   /* Нөөц бичлэг доор нь үлдсэн тул энд ШИНЭ хамгаалалт түлхэх
@@ -2648,7 +2738,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-20.2';
+const APP_VERSION = '2026-08-20.3';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {

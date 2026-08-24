@@ -8,8 +8,13 @@
      • Firebase-ийн өгөгдлийн хүсэлтэд ОГТ хүрэхгүй — тэдгээрийг
        Firestore өөрөө офлайнд зохицуулна.
 */
-const CACHE = 'uulzvar-v19';
+const CACHE = 'uulzvar-v20';
 const CDN = ['cdn.jsdelivr.net', 'www.gstatic.com'];
+/* Интро бичлэгийн сан. Хуудас өөрөө удирддаг тул service worker
+   энэ санг УСТГАХГҮЙ — эс тэгвэл SW шинэчлэх бүрд 4МБ бичлэг дахин
+   татагдана. Мөн бичлэгийн хүсэлтэд ОГТ хүрэхгүй: видеог хөтөч өөрөө
+   хэсэгчлэн (Range) татдаг бөгөөд SW дундуур нь орвол тасалдана. */
+const KEEP = /^intro-/;
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -19,7 +24,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k !== CACHE && !KEEP.test(k)).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -36,6 +41,8 @@ self.addEventListener('fetch', e => {
 
   let url;
   try { url = new URL(req.url); } catch { return; }
+  // Видео — хөтөч өөрөө зохицуулна (Range хүсэлт)
+  if (/\.(mp4|webm|mov|m4v)$/i.test(url.pathname)) return;
   // Зөвхөн өөрийн сайт ба хэрэглэдэг CDN — бусдыг нь хөндөхгүй
   if (url.origin !== self.location.origin && !CDN.includes(url.hostname)) return;
 
