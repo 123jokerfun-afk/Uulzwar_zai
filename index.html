@@ -185,6 +185,11 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .lg-note.on { display: block; }
 /* Температурын талбар: ± товчоор тэмдэг сольдог. Утасны тоон
    гар дээр хасах тэмдэг байхгүй байдаг тул зайлшгүй. */
+/* Дээш/доош шударч тохируулдаг тоон талбар (температур, үений тоо).
+   Хэвтээ гүйлтэд саад болохгүйгээр босоо шударгыг барихын тулд
+   touch-action: pan-x. Бичих боломж хэвээр. */
+.spin { touch-action: pan-x; cursor: ns-resize; }
+.spin.spinning { background: rgba(120,150,255,.14); }
 .tmp-wrap { position: relative; }
 .tmp-wrap input { padding-right: 50px; }
 .tmp-sign {
@@ -829,16 +834,16 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="ct">Температур · Маягт-09</div>
     <div class="fg fg2">
       <div class="field">
-        <label>Агаарын хэм °C</label>
+        <label>Агаарын хэм °C ⇅</label>
         <div class="tmp-wrap">
-          <input type="number" id="sTAir" step="1" placeholder="21"/>
+          <input type="number" id="sTAir" step="1" placeholder="21" class="spin" data-min="-60" data-max="60"/>
           <button type="button" class="tmp-sign" onclick="flipTemp('sTAir')" title="Хасах/нэмэх">±</button>
         </div>
       </div>
       <div class="field">
-        <label>Зам төмрийн хэм °C</label>
+        <label>Зам төмрийн хэм °C ⇅</label>
         <div class="tmp-wrap">
-          <input type="number" id="sTRail" step="1" placeholder="29" oninput="showNormHint()"/>
+          <input type="number" id="sTRail" step="1" placeholder="29" oninput="showNormHint()" class="spin" data-min="-60" data-max="60"/>
           <button type="button" class="tmp-sign" onclick="flipTemp('sTRail')" title="Хасах/нэмэх">±</button>
         </div>
       </div>
@@ -848,8 +853,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <div class="card">
     <div class="ct">Үений тоо</div>
     <div class="fg fg2">
-      <div class="field"><label>Баруун</label><input type="number" id="sBar" value="43" min="1" max="100"/></div>
-      <div class="field"><label>Зүүн</label><input type="number" id="sZun" value="43" min="1" max="100"/></div>
+      <div class="field"><label>Баруун ⇅</label><input type="number" id="sBar" value="43" min="1" max="100" class="spin" data-min="1" data-max="200"/></div>
+      <div class="field"><label>Зүүн ⇅</label><input type="number" id="sZun" value="43" min="1" max="100" class="spin" data-min="1" data-max="200"/></div>
     </div>
   </div>
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
@@ -1507,6 +1512,75 @@ function showNormHint() {
   el.className = 'lg-hint ok';
   el.textContent = `${r.band}° → 1 уулзварт ${r.gap} мм байх ёстой`;
 }
+
+/* ── Тоон талбарыг дээш/доош шударч тохируулах ──
+   Дугуй шиг: хуруугаа дээш → өснө, доош → буурна. Мөн бичиж болно
+   (богино товшилт нь фокус өгч гар гаргана), дугуйн хүрд (wheel)-ээр
+   ч болно. Босоо шударгыг барьж хуудсыг гүйлгэхгүй (touch-action: pan-x),
+   гэхдээ хэвтээ гүйлт саадгүй. */
+function attachSpin(id, cb) {
+  const el = document.getElementById(id);
+  if (!el || el._spinBound) return;
+  el._spinBound = true;
+  const lo = el.dataset.min !== undefined ? +el.dataset.min : -Infinity;
+  const hi = el.dataset.max !== undefined ? +el.dataset.max : Infinity;
+  const STEP_PX = 11;                         // хэдэн пиксэлд 1 нэгж
+  const clamp = v => Math.max(lo, Math.min(hi, v));
+  const cur = () => {
+    const v = parseInt(el.value, 10);
+    if (Number.isFinite(v)) return v;
+    const ph = parseInt(el.placeholder, 10);
+    return Number.isFinite(ph) ? ph : 0;
+  };
+  const setVal = v => {
+    const nv = clamp(v);
+    if (String(nv) !== el.value) {
+      el.value = String(nv);
+      if (cb) try { cb(); } catch (e) {}
+    }
+  };
+  let pid = null, startY = 0, base = 0, dragging = false;
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pid = e.pointerId; startY = e.clientY; base = cur(); dragging = false;
+  });
+  el.addEventListener('pointermove', e => {
+    if (pid === null || e.pointerId !== pid) return;
+    const dy = startY - e.clientY;            // дээш = эерэг
+    if (!dragging) {
+      if (Math.abs(dy) < 6) return;           // товшилт vs чирэлт
+      dragging = true;
+      el.classList.add('spinning');
+      try { el.setPointerCapture(pid); } catch (e2) {}
+      el.blur();                              // гар гаргахгүй
+    }
+    if (e.cancelable) e.preventDefault();
+    setVal(base + Math.round(dy / STEP_PX));
+  });
+  const end = e => {
+    if (pid === null || (e && e.pointerId !== pid)) return;
+    if (dragging && e && e.cancelable) e.preventDefault();
+    try { el.releasePointerCapture(pid); } catch (e2) {}
+    pid = null; dragging = false; el.classList.remove('spinning');
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  // Дугуйн хүрд (десктоп/тест)
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    setVal(cur() + (e.deltaY < 0 ? 1 : -1));
+  }, { passive: false });
+}
+(function initSpins() {
+  const bind = () => {
+    attachSpin('sTAir');
+    attachSpin('sTRail', showNormHint);
+    attachSpin('sBar');
+    attachSpin('sZun');
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
+  else bind();
+})();
 
 /* Нууц үгийг харах/нуух — буруу бичсэн эсэхээ шалгахад хэрэгтэй */
 function togglePw() {
@@ -2806,7 +2880,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-21.2';
+const APP_VERSION = '2026-08-22.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
