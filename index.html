@@ -512,6 +512,19 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .adj-row .r-c { font-weight: 600; color: var(--accent-hi); }
 .adj-row .r-t { color: var(--muted); }
 .adj-row .r-s { font-weight: 700; text-align: right; white-space: nowrap; }
+/* Богино өндөртэй дэлгэц (хэвтээ эргүүлсэн утас) — дугуй болон зайг
+   багасгаж бүх зүйлийг viewport дотор багтаана. Апп нь босоо байдалд
+   зориулагдсан ч хэвтээ үед ч тайрагдахгүй байхаар хамгаална. */
+@media (max-height: 500px) {
+  .drum-ring { width: 116px; height: 116px; }
+  .drum-val { font-size: 40px; }
+  .drum-area { padding: 6px 10px 8px; margin-top: 6px; }
+  .nav-side { width: 60px; }
+  .nav-side-btn { width: 46px; height: 46px; font-size: 19px; }
+  .drum-hint { display: none; }
+  .joint-hdr { padding: 2px 8px 6px; }
+  .km-bar { margin-top: 6px; }
+}
 @media (orientation: landscape) {
   .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .sess-inner { max-height: 100vh; padding-bottom: calc(.9rem + var(--safe-b)) !important; }
   .adj-inner { max-width: min(98vw, 1040px); }
@@ -1122,7 +1135,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     start_url: "./",
     display: "standalone",
     /* Хөндлөн эргүүлж хүснэгтээ өргөнөөр харах боломжтой байг */
-    orientation: "any",
+    orientation: "portrait",
     background_color: "#05060a",
     theme_color: "#05060a",
     /* Хөвсгөр неон дүрс. Бүх зураг нь maskable-ийн аюулгүй тойрогт (80%)
@@ -2793,7 +2806,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-21.1';
+const APP_VERSION = '2026-08-21.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
