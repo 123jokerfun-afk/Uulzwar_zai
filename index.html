@@ -146,7 +146,7 @@ body::after {
    backdrop-filter үнэтэй тул зөвхөн ЦӨӨН том самбарт хэрэглэнэ;
    доторх мөрүүд нь энгийн тунгалаг дүүргэлттэй. */
 .km-bar, .hist-panel, .drum-area, .card, .me-bar,
-.km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .rst-inner,
+.km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .prof-inner, .rst-inner,
 .dir-tabs, .drum-ring {
   -webkit-backdrop-filter: blur(var(--blur)) saturate(165%);
           backdrop-filter: blur(var(--blur)) saturate(165%);
@@ -154,7 +154,7 @@ body::after {
 /* backdrop-filter дэмжихгүй хөтөч дээр илүү тунгалаг бус дэвсгэр */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .km-bar, .hist-panel, .drum-area, .card, .me-bar,
-  .km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .rst-inner {
+  .km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .prof-inner, .rst-inner {
     background-color: rgba(16,19,32,.94) !important;
   }
 }
@@ -230,6 +230,18 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .me-role.adm { color: var(--ink); background: var(--amber); }
 .me-role.wrk { color: var(--ink); background: var(--mint); }
 .me-out { font-size: 12px; font-weight: 600; min-height: 40px; padding: 10px 13px; border-radius: var(--r-xs); border: 1px solid var(--edge); background: var(--glass-2); color: var(--text-2); cursor: pointer; flex-shrink: 0; }
+.me-bar { cursor: pointer; }
+.me-chev { font-size: 24px; line-height: 1; color: var(--muted); flex-shrink: 0; padding: 0 2px; }
+/* Профайлын доод цонх */
+#profMod { display: none; position: fixed; inset: 0; background: rgba(3,4,9,.74); z-index: 210; align-items: flex-end; justify-content: center; }
+#profMod.on { display: flex; }
+.prof-inner { padding: 1rem 1rem 1.75rem; width: 100%; max-width: 480px; }
+.prof-head { display: flex; align-items: center; gap: 12px; margin-bottom: 1.1rem; }
+.prof-av { width: 52px; height: 52px; border-radius: var(--r-sm); background: var(--grad-accent); color: var(--ink); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, var(--glow-accent); }
+.prof-av.adm { background: linear-gradient(180deg,#ffd98a 0%, var(--amber) 100%); }
+.prof-name { font-size: 16px; font-weight: 700; letter-spacing: -.02em; }
+.prof-sub { font-size: 12px; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 7px; }
+.prof-out { width: 100%; min-height: 52px; padding: 15px; font-size: 14.5px; font-weight: 700; border-radius: var(--r-sm); border: 1px solid transparent; background: linear-gradient(180deg,#ff8b99 0%, var(--red) 100%); color: #fff; cursor: pointer; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 22px -4px rgba(255,90,110,.55); }
 .pd-locked { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; min-height: 46px; padding: 12px 13px; border: 1px solid rgba(77,141,255,.3); border-radius: var(--r-xs); background: rgba(77,141,255,.11); color: var(--text); }
 .pd-locked .lk { font-size: 11px; color: var(--muted); margin-left: auto; }
 
@@ -397,7 +409,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .vs-item.act.danger-s { background: var(--red); color: #fff; }
 
 /* ── SHEETS ── */
-.km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner {
+.km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .prof-inner {
   position: relative;
   background: rgba(255,255,255,.11);
   border: 1px solid var(--edge);
@@ -599,8 +611,9 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .sessv-cloud:disabled { opacity: .42; cursor: default; box-shadow: none; }
 
 /* Confirm dialogs */
-#rstMod, #delMod { display: none; position: fixed; inset: 0; background: rgba(3,4,9,.74); z-index: 300; align-items: center; justify-content: center; padding: 1.4rem; }
-#rstMod.on, #delMod.on { display: flex; }
+#rstMod, #delMod, #logoutMod { display: none; position: fixed; inset: 0; background: rgba(3,4,9,.74); z-index: 300; align-items: center; justify-content: center; padding: 1.4rem; }
+#rstMod.on, #delMod.on, #logoutMod.on { display: flex; }
+#logoutMod { z-index: 322; }
 #delMod { z-index: 320; }
 .rst-inner { background: rgba(255,255,255,.09); border: 1px solid var(--edge); border-radius: var(--r-xl); padding: 1.7rem 1.4rem 1.4rem; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 1.5px 0 rgba(255,255,255,.3) inset, 0 24px 60px -12px rgba(0,0,0,.8); animation: sheetUp .26s var(--spring); }
 .rst-icon { font-size: 38px; margin-bottom: 11px; }
@@ -796,13 +809,13 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   </div>
 
   <!-- Нэвтэрсэн хэрэглэгч -->
-  <div class="me-bar" id="meBar" style="display:none">
+  <div class="me-bar" id="meBar" style="display:none" role="button" tabindex="0" onclick="openProfMod()" title="Профайл">
     <div class="me-av" id="meAv">—</div>
     <div class="me-info">
       <div class="me-name" id="meName">—</div>
       <div class="me-sub"><span id="mePd">—</span> · <span class="me-role" id="meRole">—</span></div>
     </div>
-    <button class="me-out" onclick="doLogout()">Гарах</button>
+    <div class="me-chev" aria-hidden="true">›</div>
   </div>
 
   <!-- АДМИН САМБАР -->
@@ -1073,6 +1086,35 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     </div>
     <button class="sessv-cloud" id="btnSessCloud" onclick="uploadViewedSession()">☁️ Энэ хэмжилтийг админ руу илгээх</button>
     <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
+  </div>
+</div>
+
+<!-- Профайлын доод цонх -->
+<div id="profMod">
+  <div class="prof-inner">
+    <div class="sh-grip" aria-hidden="true"></div>
+    <div class="prof-head">
+      <div class="prof-av" id="profAv">—</div>
+      <div class="prof-meta">
+        <div class="prof-name" id="profName">—</div>
+        <div class="prof-sub"><span id="profPd">—</span> · <span class="me-role" id="profRole">—</span></div>
+      </div>
+    </div>
+    <button class="prof-out" onclick="askLogout()">Гарах</button>
+    <div class="mod-close" onclick="closeProfMod()">← Буцах</div>
+  </div>
+</div>
+
+<!-- Гарахыг баталгаажуулах -->
+<div id="logoutMod">
+  <div class="rst-inner">
+    <div class="rst-icon">👋</div>
+    <div class="rst-title">Гарах уу?</div>
+    <div class="rst-sub">Дахин нэвтрэхийн тулд нэвтрэх нэр, нууц үг хэрэгтэй. Илгээгээгүй хэмжилт байвал эхлээд илгээнэ үү.</div>
+    <div class="rst-btns">
+      <button class="rst-yes" onclick="confirmLogout()">Тийм, гарах</button>
+      <button onclick="closeLogoutMod()">Үгүй</button>
+    </div>
   </div>
 </div>
 
@@ -1677,9 +1719,35 @@ async function doReset() {
     showLoginError(AUTH_ERR[e.code] || ('Илгээж чадсангүй: ' + (e.message || e.code)));
   }
 }
+/* ── Профайл ба гарах ── */
+function openProfMod() {
+  const pr = CLOUD.profile || {};
+  const av = document.getElementById('profAv');
+  av.textContent = 'ПД' + (pr.pd != null ? pr.pd : '');
+  av.className = 'prof-av' + (pr.role === 'admin' ? ' adm' : '');
+  document.getElementById('profName').textContent = pr.name || '—';
+  document.getElementById('profPd').textContent = 'ПД-' + (pr.pd != null ? pr.pd : '');
+  const rl = document.getElementById('profRole');
+  rl.textContent = pr.role === 'admin' ? 'Админ' : 'Ажилтан';
+  rl.className = 'me-role' + (pr.role === 'admin' ? ' adm' : '');
+  document.getElementById('profMod').classList.add('on');
+}
+function closeProfMod() { document.getElementById('profMod').classList.remove('on'); }
+
+/* Профайл доторх «Гарах» → тийм/үгүй баталгаажуулах цонх */
+function askLogout() {
+  closeProfMod();
+  document.getElementById('logoutMod').classList.add('on');
+}
+function closeLogoutMod() { document.getElementById('logoutMod').classList.remove('on'); }
+
+/* «Тийм, гарах» дарсны дараа л жинхэнэ гарна */
+async function confirmLogout() {
+  closeLogoutMod();
+  await doLogout();
+}
 async function doLogout() {
   if (!CLOUD.auth) return;
-  if (!confirm('Гарах уу? Илгээгээгүй хэмжилт байвал эхлээд илгээнэ үү.')) return;
   CLOUD.sectionSessions = [];
   await CLOUD.auth.signOut();
 }
@@ -2611,6 +2679,7 @@ function closeSessViewMod() {
    ══════════════════════════════════════════════════════════ */
 /* Дээрээсээ доош — z-index-ийн дараалал */
 const OVERLAYS = [
+  { id: 'logoutMod',   close: () => closeLogoutMod() },
   { id: 'delMod',      close: () => closeDelMod() },
   { id: 'rstMod',      close: () => closeRstMod() },
   { id: 'importMod',   close: () => { document.getElementById('importMod').style.display = 'none'; } },
@@ -2621,6 +2690,7 @@ const OVERLAYS = [
   { id: 'sessActMod',  close: () => closeSessActMod() },
   { id: 'sessViewMod', close: () => closeSessViewMod() },
   { id: 'admDayMod',   close: () => closeAdmDayMod() },
+  { id: 'profMod',     close: () => closeProfMod() },
   { id: 'sessMod',     close: () => closeSessMod() },
   { id: 'kmMod',       close: () => closeKmMod() },
   { id: 'expMod',      close: () => closeExpMod() }
@@ -2775,7 +2845,7 @@ window.addEventListener('pageshow', () => { /* bfcache-аас сэргэхэд �
    ══════════════════════════════════════════════════════════ */
 (function () {
   const SHEETS = ['kmMod', 'sessMod', 'expMod', 'admDayMod', 'sessViewMod',
-                  'sessActMod', 'admActMod', 'dpMod', 'adjMod', 'adjResMod'];
+                  'sessActMod', 'admActMod', 'dpMod', 'adjMod', 'adjResMod', 'profMod'];
 
   function closeOverlayById(id) {
     const o = OVERLAYS.find(x => x.id === id);
@@ -2917,7 +2987,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-23.2';
+const APP_VERSION = '2026-08-24.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
