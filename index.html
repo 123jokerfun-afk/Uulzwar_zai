@@ -116,6 +116,7 @@ const TTL_DAYS = 30;
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; overscroll-behavior-y: none; touch-action: pan-x pan-y; }
+html { background: #05060a; }   /* ачаалалт/reload завсарт цагаан анивчихаас сэргийлнэ */
 /* Гүйдэг хэсгүүд дотроо гүйлт барина — доош татаж «шинэчлэх»-ээс сэргийлнэ */
 #setup, #app, .sheet-scroll, .adm-scroll, .vs-scroll { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 body {
@@ -658,10 +659,10 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 <body>
 
 <!-- ИНТРО БИЧЛЭГ -->
-<div id="introOverlay" style="position:fixed;inset:0;z-index:9999;background:#08080A;
+<div id="introOverlay" style="position:fixed;inset:0;z-index:9999;background:#05060a;
   display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .5s ease">
   <video id="introVid" muted playsinline webkit-playsinline preload="auto"
-    style="width:100%;height:100%;object-fit:contain;background:#08080A"></video>
+    style="width:100%;height:100%;object-fit:contain;background:#05060a"></video>
   <div style="position:absolute;bottom:calc(30px + env(safe-area-inset-bottom));left:50%;
     transform:translateX(-50%);font-size:12px;font-weight:600;color:rgba(255,255,255,.5);
     pointer-events:none;letter-spacing:.02em;
@@ -1183,12 +1184,9 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || swReloaded) return;   // анхны суулгалт дээр дахин ачаалах шаардлагагүй
       swReloaded = true;
-      // Хэмжилтийн дунд таслахгүй — дараагийн нээлтэд шинэчлэгдэнэ
-      if (typeof measuring === 'function' && measuring()) {
-        showStatus('🔄 Шинэчлэлт бэлэн — дараа нээхэд ороно', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
-        return;
-      }
-      location.reload();
+      /* Хэрэглэгч харж байхад ГЭНЭТ дахин ачаалахгүй — анивчихаас сэргийлж,
+         апп далд болмогц (эсвэл дараагийн нээлтэд) чимээгүй шинэчилнэ. */
+      reloadWhenHidden();
     });
   }
 
@@ -1211,43 +1209,24 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       applyUpdate();
     } catch {}
   }
-  async function applyUpdate() {
-    if (!pendingVersion) return;
-    // Хэмжилтийн дунд таслахгүй — дуусахаар нь орно
-    if (typeof measuring === 'function' && measuring()) {
-      // Нэг хэмжилтийн турш ганц удаа сануулна — дахин дахин гарахгүй
-      if (!deferNotified) {
-        deferNotified = true;
-        showStatus(`🔄 Шинэчлэлт бэлэн (${pendingVersion}) — хэмжилт дуусахад орно`, 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
-      }
-      return;
-    }
-    showStatus('🔄 Шинэчилж байна…', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
-    /* Кэшийг устгаад дахин ачаалах хооронд сүлжээ тасарвал апп нээгдэхээ
-       болино (талбарт бодит эрсдэл). Тиймээс зөвхөн сүлжээтэй үед л
-       устгана. Сүлжээгүй бол дахин ачаалахгүй — дараагийн боломжид орно.
-       sw.js нь навигацийг сүлжээ-түрүүлж авдаг тул кэш устгах албагүй. */
-    if (navigator.onLine === false) {
-      showStatus('📶 Сүлжээ алга — холбогдмогц шинэчилнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)');
-      return;
-    }
-    /* ⚠️ ДАХИН АЧААЛАХ ДАВТАЛТААС СЭРГИЙЛНЭ.
-       Шалтгаан: шинэчлэлт шалгагч нь './index.html?v=<хугацаа>' гэсэн
-       ДАВТАГДАШГҮЙ хаягаар татдаг тул CDN (GitHub Pages/Fastly)-ийн ирмэгээс
-       ямагт ХАМГИЙН ШИНИЙГ авдаг. Харин location.reload() нь энгийн
-       './index.html'-ийг ачаалдаг бөгөөд CDN хэдэн минутын турш ХУУЧИНг
-       өгсөөр байж болно. Ингэснээр: шалгагч «шинэ бий» гэж reload хийнэ →
-       reload хуучиныг авна → дахин «шинэ бий» → reload … давталт үүсч,
-       нээх бүрд интро тоглож анивчина.
-       Тиймээс нэг хувилбар руу 2 минутын дотор ГАНЦ л удаа reload хийнэ.
-       Хэрэв reload үр дүнгүй бол (CDN хуучныг өгсөөр) давтахгүй — дараа
-       нээхэд буюу CDN шинэчлэгдэхэд орно. */
+  /* Дахин ачаалах боломжтой эсэх (давталт, офлайн, хэмжилтийн хамгаалалт) */
+  function reloadBlocked() {
+    if (!pendingVersion) return 'none';
+    if (typeof measuring === 'function' && measuring()) return 'measuring';
+    if (navigator.onLine === false) return 'offline';
+    /* ⚠️ Reload давталтаас сэргийлнэ: шалгагч './index.html?v=<хугацаа>'
+       гэсэн давтагдашгүй хаягаар CDN-ээс хамгийн шинийг авдаг ч
+       location.reload() энгийн хаягийг ачаалдаг тул CDN хэдэн минут
+       хуучныг өгсөөр байж болно. Нэг хувилбар руу 2 мин-д ганц л удаа. */
     try {
       const prev = JSON.parse(sessionStorage.getItem('uz_upd') || 'null');
-      if (prev && prev.v === pendingVersion && (Date.now() - prev.t) < 120000) {
-        showStatus('🔄 Шинэчлэлт бэлэн — дараа нээхэд ороно', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
-        return;
-      }
+      if (prev && prev.v === pendingVersion && (Date.now() - prev.t) < 120000) return 'recent';
+    } catch (e) {}
+    return 'ok';
+  }
+  async function doUpdateReload() {
+    if (reloadBlocked() !== 'ok') return;
+    try {
       sessionStorage.setItem('uz_upd', JSON.stringify({ v: pendingVersion, t: Date.now() }));
       sessionStorage.setItem('uz_skipIntro', '1');   // reload дараа интрог алгасна
     } catch (e) {}
@@ -1257,8 +1236,35 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
         // Интро сан (intro-*)-г хадгална — шинэчлэлт бүрд 4МБ дахин татахгүй
         await Promise.all(keys.filter(k => !/^intro-/.test(k)).map(k => caches.delete(k)));
       }
-    } catch {}
-    setTimeout(() => location.reload(), 600);
+    } catch (e) {}
+    location.reload();
+  }
+  /* Дэлгэц далд болоход (апп-аас гармагц) чимээгүйхэн шинэчилнэ —
+     ингэснээр хэрэглэгч дахин ачаалахыг ХАРАХГҮЙ, анивчихгүй. */
+  let hideArmed = false;
+  function reloadWhenHidden() {
+    if (document.hidden) { doUpdateReload(); return; }
+    if (hideArmed) return;
+    hideArmed = true;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && pendingVersion) doUpdateReload();
+    });
+  }
+  function applyUpdate() {
+    if (!pendingVersion) return;
+    if (typeof measuring === 'function' && measuring()) {
+      // Хэмжилтийн дунд таслахгүй — ганц удаа сануулаад, гармагц шинэчилнэ
+      if (!deferNotified) {
+        deferNotified = true;
+        showStatus(`🔄 Шинэчлэлт бэлэн (${pendingVersion}) — хэмжилт дуусахад ороно`, 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
+      }
+      reloadWhenHidden();
+      return;
+    }
+    if (navigator.onLine === false) return;   // холбогдмогц дараагийн шалгалт орно
+    /* ХЭРЭГЛЭГЧ ХАРЖ БАЙХАД ДАХИН АЧААЛАХГҮЙ. Апп далд болоход шинэчилнэ.
+       (Апп-аас гарч ороход шинэ хувилбар аль хэдийн бэлэн байна.) */
+    reloadWhenHidden();
   }
   window.__checkForUpdate = checkForUpdate;
   window.__applyUpdate = () => { if (pendingVersion) applyUpdate(); };
@@ -2911,7 +2917,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-23.1';
+const APP_VERSION = '2026-08-23.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
