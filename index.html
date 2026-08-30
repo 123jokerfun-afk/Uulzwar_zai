@@ -685,6 +685,16 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   const vid = document.getElementById('introVid');
   if (!ov || !vid) return;
 
+  /* Шинэчлэлтийн улмаас дахин ачаалсан бол интрог ДАХИН тоглуулахгүй —
+     эс тэгвэл шинэчлэлт бүрд интро дахин гарч «анивчих» мэт харагдана. */
+  try {
+    if (sessionStorage.getItem('uz_skipIntro') === '1') {
+      sessionStorage.removeItem('uz_skipIntro');
+      ov.remove();
+      return;
+    }
+  } catch (e) {}
+
   const SRC = 'intro.mp4', CACHE = 'intro-v1', OLD_CACHES = [];
   let dismissed = false, blobUrl = '', fillCache = null;
 
@@ -1221,10 +1231,31 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       showStatus('📶 Сүлжээ алга — холбогдмогц шинэчилнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)');
       return;
     }
+    /* ⚠️ ДАХИН АЧААЛАХ ДАВТАЛТААС СЭРГИЙЛНЭ.
+       Шалтгаан: шинэчлэлт шалгагч нь './index.html?v=<хугацаа>' гэсэн
+       ДАВТАГДАШГҮЙ хаягаар татдаг тул CDN (GitHub Pages/Fastly)-ийн ирмэгээс
+       ямагт ХАМГИЙН ШИНИЙГ авдаг. Харин location.reload() нь энгийн
+       './index.html'-ийг ачаалдаг бөгөөд CDN хэдэн минутын турш ХУУЧИНг
+       өгсөөр байж болно. Ингэснээр: шалгагч «шинэ бий» гэж reload хийнэ →
+       reload хуучиныг авна → дахин «шинэ бий» → reload … давталт үүсч,
+       нээх бүрд интро тоглож анивчина.
+       Тиймээс нэг хувилбар руу 2 минутын дотор ГАНЦ л удаа reload хийнэ.
+       Хэрэв reload үр дүнгүй бол (CDN хуучныг өгсөөр) давтахгүй — дараа
+       нээхэд буюу CDN шинэчлэгдэхэд орно. */
+    try {
+      const prev = JSON.parse(sessionStorage.getItem('uz_upd') || 'null');
+      if (prev && prev.v === pendingVersion && (Date.now() - prev.t) < 120000) {
+        showStatus('🔄 Шинэчлэлт бэлэн — дараа нээхэд ороно', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
+        return;
+      }
+      sessionStorage.setItem('uz_upd', JSON.stringify({ v: pendingVersion, t: Date.now() }));
+      sessionStorage.setItem('uz_skipIntro', '1');   // reload дараа интрог алгасна
+    } catch (e) {}
     try {
       if (window.caches) {
         const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
+        // Интро сан (intro-*)-г хадгална — шинэчлэлт бүрд 4МБ дахин татахгүй
+        await Promise.all(keys.filter(k => !/^intro-/.test(k)).map(k => caches.delete(k)));
       }
     } catch {}
     setTimeout(() => location.reload(), 600);
@@ -2880,7 +2911,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-22.1';
+const APP_VERSION = '2026-08-23.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
