@@ -709,7 +709,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     }
   } catch (e) {}
 
-  const SRC = 'intro.mp4', CACHE = 'intro-v1', OLD_CACHES = [];
+  const SRC = 'intro.mp4', CACHE = 'intro-v2', OLD_CACHES = ['intro-v1'];
   let dismissed = false, blobUrl = '', fillCache = null;
 
   function dismiss() {
@@ -2987,7 +2987,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-08-24.1';
+const APP_VERSION = '2026-09-01.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
