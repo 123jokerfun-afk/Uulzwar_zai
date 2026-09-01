@@ -8,7 +8,7 @@
      • Firebase-ийн өгөгдлийн хүсэлтэд ОГТ хүрэхгүй — тэдгээрийг
        Firestore өөрөө офлайнд зохицуулна.
 */
-const CACHE = 'uulzvar-v26';
+const CACHE = 'uulzvar-v27';
 const CDN = ['cdn.jsdelivr.net', 'www.gstatic.com'];
 /* Интро бичлэгийн сан. Хуудас өөрөө удирддаг тул service worker
    энэ санг УСТГАХГҮЙ — эс тэгвэл SW шинэчлэх бүрд 4МБ бичлэг дахин
