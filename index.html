@@ -344,6 +344,31 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .hv::after { content: ' мм'; font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
 .he { font-size: 10px; color: var(--muted); flex-shrink: 0; opacity: .6; margin-left: 2px; }
 .hist-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 1.5rem; line-height: 1.6; }
+/* ── Хэмжилтийн ХҮСНЭГТ: Үе | Зүүн | Баруун ── */
+.hist-hint { font-size: 9px; font-weight: 500; color: var(--muted); letter-spacing: .02em; text-transform: none; opacity: .8; }
+.hist-km { margin-bottom: 14px; }
+.hist-km-ttl { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 7px; }
+.ht-hd { display: flex; gap: 6px; margin-bottom: 6px; padding: 0 2px; }
+.ht-hd .h-j { width: 44px; flex-shrink: 0; text-align: center; }
+.ht-hd .h-c { flex: 1; text-align: center; }
+.ht-hd span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.ht-hd .h-z { color: var(--mint); }
+.ht-hd .h-b { color: var(--accent-hi); }
+.ht-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.ht-j { width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; min-height: 50px; font-size: 14px; font-weight: 800; border-radius: var(--r-pill); border: 1.5px solid transparent; }
+.ht-j.even { color: var(--accent-hi); background: rgba(77,141,255,.16); border-color: rgba(77,141,255,.34); }   /* тэгш → цэнхэр */
+.ht-j.odd  { color: var(--mint);      background: rgba(90,240,180,.15); border-color: rgba(90,240,180,.32); }   /* сондгой → ногоон */
+.ht-c { flex: 1; min-height: 50px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 20px; font-weight: 700; letter-spacing: -.02em; border-radius: var(--r-pill); border: 1.5px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); }
+.ht-c .u { font-size: 9.5px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.ht-c.tap { cursor: pointer; position: relative; }
+.ht-c.tap:active { background: rgba(255,255,255,.13); }
+.ht-c.tap::after { content: '✎'; position: absolute; top: 5px; right: 13px; font-size: 8.5px; color: var(--muted); opacity: .5; }
+/* Утгын бөмбөлгийн ХҮРЭЭ: тэгш үе → цэнхэр, сондгой үе → ногоон.
+   (Тоо нь хэмжээнээс хамаарч valColor-оор өнгөтэй хэвээр.) */
+.ht-c.even { border-color: rgba(77,141,255,.55); }
+.ht-c.odd  { border-color: rgba(90,240,180,.5); }
+.ht-c.ht-empty { color: var(--muted); font-size: 15px; font-weight: 500; opacity: .4; }
+.ht-c.ht-na { background: transparent; border-color: transparent; }
 
 /* ── DOCK (drum) ── */
 .drum-area {
@@ -927,7 +952,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <!-- History (дээр) -->
     <div class="hist-panel">
       <div class="hist-inner">
-        <div class="hist-hdr">Оруулсан хэмжилтүүд</div>
+        <div class="hist-hdr">Оруулсан хэмжилтүүд <span class="hist-hint">· тоон дээр дарж засна</span></div>
         <div id="histList"></div>
       </div>
     </div>
@@ -3016,7 +3041,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-09-02.1';
+const APP_VERSION = '2026-09-02.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -3472,33 +3497,38 @@ function valColor(v) {
 }
 
 function renderHist() {
-  const list=document.getElementById('histList');
-  const maxJ=Math.max(C.bar,C.zun);
-  let html='', any=false;
-  // Show all kms, current km first
-  const kms=[curKm,...kmList().filter(k=>k!==curKm)];
-  kms.forEach(km=>{
-    let grp='';
-    for(let j=maxJ;j>=1;j--){
-      const b=data[km]?.[j]?.bar,z=data[km]?.[j]?.zun;
-      if(b!==null&&b!==undefined) {
-        any=true;
-        grp+=`<div class="hist-row" onclick="editEntry(${km},${j},'bar')">
-          <span class="hj">${j}</span><span class="hd-bar">Баруун</span>
-          <span class="hv" style="color:${valColor(b)}">${b}</span>
-          <span class="he">засах ✎</span></div>`;
-      }
-      if(z!==null&&z!==undefined) {
-        any=true;
-        grp+=`<div class="hist-row" onclick="editEntry(${km},${j},'zun')">
-          <span class="hj">${j}</span><span class="hd-zun">Зүүн</span>
-          <span class="hv" style="color:${valColor(z)}">${z}</span>
-          <span class="he">засах ✎</span></div>`;
-      }
+  const list = document.getElementById('histList');
+  const maxJ = Math.max(C.bar, C.zun);
+  let html = '', any = false;
+  // Одоогийн км эхэнд, бусад нь дараа
+  const kms = [curKm, ...kmList().filter(k => k !== curKm)];
+  kms.forEach(km => {
+    let rows = '';
+    // Хамгийн сүүлд оруулсан (том дугаар) дээрээ
+    for (let j = maxJ; j >= 1; j--) {
+      const b = data[km]?.[j]?.bar, z = data[km]?.[j]?.zun;
+      const hasB = b !== null && b !== undefined;
+      const hasZ = z !== null && z !== undefined;
+      if (!hasB && !hasZ) continue;
+      any = true;
+      // Зүүн багана
+      const par = (j % 2 === 0) ? 'even' : 'odd';
+      let zCell;
+      if (hasZ) zCell = `<span class="ht-c ${par} tap" onclick="editEntry(${km},${j},'zun')" style="color:${valColor(z)}">${z}<span class="u">мм</span></span>`;
+      else if (j <= C.zun) zCell = `<span class="ht-c ${par} ht-empty">–</span>`;
+      else zCell = `<span class="ht-c ht-na"></span>`;
+      // Баруун багана
+      let bCell;
+      if (hasB) bCell = `<span class="ht-c ${par} tap" onclick="editEntry(${km},${j},'bar')" style="color:${valColor(b)}">${b}<span class="u">мм</span></span>`;
+      else if (j <= C.bar) bCell = `<span class="ht-c ${par} ht-empty">–</span>`;
+      else bCell = `<span class="ht-c ht-na"></span>`;
+      rows += `<div class="ht-row"><span class="ht-j ${par}">${j}</span>${zCell}${bCell}</div>`;
     }
-    if(grp) html+=`<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">${km} км</div>${grp}</div>`;
+    if (rows) html += `<div class="hist-km"><div class="hist-km-ttl">${km} км</div>`
+      + `<div class="ht-hd"><span class="h-j">Үе</span><span class="h-c h-z">Зүүн</span><span class="h-c h-b">Баруун</span></div>`
+      + rows + `</div>`;
   });
-  list.innerHTML=any?html:'<div class="hist-empty">Хэмжилт оруулаагүй байна</div>';
+  list.innerHTML = any ? html : '<div class="hist-empty">Хэмжилт оруулаагүй байна</div>';
 }
 
 function editEntry(km,j,dir) {
