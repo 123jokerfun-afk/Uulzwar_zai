@@ -358,17 +358,24 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .ht-j { width: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; min-height: 50px; font-size: 14px; font-weight: 800; border-radius: var(--r-pill); border: 1.5px solid transparent; }
 .ht-j.even { color: var(--accent-hi); background: rgba(77,141,255,.16); border-color: rgba(77,141,255,.34); }   /* тэгш → цэнхэр */
 .ht-j.odd  { color: var(--mint);      background: rgba(90,240,180,.15); border-color: rgba(90,240,180,.32); }   /* сондгой → ногоон */
-.ht-c { flex: 1; min-height: 50px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 20px; font-weight: 700; letter-spacing: -.02em; border-radius: var(--r-pill); border: 1.5px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); }
-.ht-c .u { font-size: 9.5px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
-.ht-c.tap { cursor: pointer; position: relative; }
-.ht-c.tap:active { background: rgba(255,255,255,.13); }
-.ht-c.tap::after { content: '✎'; position: absolute; top: 5px; right: 13px; font-size: 8.5px; color: var(--muted); opacity: .5; }
-/* Утгын бөмбөлгийн ХҮРЭЭ: тэгш үе → цэнхэр, сондгой үе → ногоон.
-   (Тоо нь хэмжээнээс хамаарч valColor-оор өнгөтэй хэвээр.) */
-.ht-c.even { border-color: rgba(77,141,255,.55); }
-.ht-c.odd  { border-color: rgba(90,240,180,.5); }
-.ht-c.ht-empty { color: var(--muted); font-size: 15px; font-weight: 500; opacity: .4; }
-.ht-c.ht-na { background: transparent; border-color: transparent; }
+.ht-j.cur.even { background: rgba(77,141,255,.4); border-color: #a9c7ff; color: #fff; box-shadow: 0 0 16px -2px rgba(77,141,255,.8); }
+.ht-j.cur.odd  { background: rgba(90,240,180,.36); border-color: #9df4d4; color: #05221a; box-shadow: 0 0 16px -2px rgba(90,240,180,.7); }
+/* Утгын БӨМБӨЛӨГ — цэнхэр/ногоон дүүргэлттэй, том голлосон тоо.
+   Тоо нь хэмжээгээр (valColor) өнгөтэй хэвээр, дэвсгэрээс сүүдрээр
+   ялгаж тод харагдана. */
+.ht-c { position: relative; flex: 1; min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -.02em; border-radius: var(--r-pill); border: 1.5px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); text-shadow: 0 1px 4px rgba(0,0,0,.6); box-shadow: 0 1px 0 rgba(255,255,255,.14) inset; }
+.ht-c .u { font-size: 10px; font-weight: 600; color: rgba(255,255,255,.7); letter-spacing: 0; text-shadow: none; align-self: center; }
+.ht-c.tap { cursor: pointer; }
+.ht-c.tap::after { content: '✎'; position: absolute; top: 6px; right: 14px; font-size: 8.5px; color: rgba(255,255,255,.5); text-shadow: none; }
+/* Тэгш үе → цэнхэрээр дүүрэн, сондгой үе → ногоонор дүүрэн */
+.ht-c.even { border-color: rgba(77,141,255,.62); background: linear-gradient(180deg, rgba(77,141,255,.34) 0%, rgba(77,141,255,.17) 100%); }
+.ht-c.odd  { border-color: rgba(90,240,180,.56); background: linear-gradient(180deg, rgba(90,240,180,.30) 0%, rgba(90,240,180,.14) 100%); }
+/* Одоо ХЭМЖИЖ БАЙГАА үе + чиглэлийн нүд — гэрэлтэнэ */
+.ht-c.cur { border-width: 2.5px; transform: scale(1.015); }
+.ht-c.cur.even { border-color: #a9c7ff; background: linear-gradient(180deg, rgba(77,141,255,.6) 0%, rgba(77,141,255,.34) 100%); box-shadow: 0 0 0 1px rgba(120,170,255,.6), 0 6px 26px -3px rgba(77,141,255,.85), 0 1px 0 rgba(255,255,255,.35) inset; }
+.ht-c.cur.odd  { border-color: #9df4d4; background: linear-gradient(180deg, rgba(90,240,180,.54) 0%, rgba(90,240,180,.3) 100%); box-shadow: 0 0 0 1px rgba(120,255,210,.55), 0 6px 26px -3px rgba(90,240,180,.75), 0 1px 0 rgba(255,255,255,.35) inset; }
+.ht-c.ht-empty { color: rgba(255,255,255,.5); font-size: 17px; font-weight: 500; }
+.ht-c.ht-na { background: transparent; border-color: transparent; box-shadow: none; }
 
 /* ── DOCK (drum) ── */
 .drum-area {
@@ -3050,7 +3057,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-09-02.3';
+const APP_VERSION = '2026-09-02.4';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -3513,25 +3520,31 @@ function renderHist() {
   const kms = [curKm, ...kmList().filter(k => k !== curKm)];
   kms.forEach(km => {
     let rows = '';
+    const isCurKm = (km === curKm);
     // Хамгийн сүүлд оруулсан (том дугаар) дээрээ
     for (let j = maxJ; j >= 1; j--) {
       const b = data[km]?.[j]?.bar, z = data[km]?.[j]?.zun;
       const hasB = b !== null && b !== undefined;
       const hasZ = z !== null && z !== undefined;
-      if (!hasB && !hasZ) continue;
+      // Одоо хэмжиж байгаа үеийг өгөгдөлгүй ч харуулж, гэрэлтүүлнэ
+      const isCurJ = isCurKm && j === curJ;
+      if (!hasB && !hasZ && !isCurJ) continue;
       any = true;
-      // Зүүн багана
       const par = (j % 2 === 0) ? 'even' : 'odd';
+      const zCur = (isCurJ && curDir === 'zun') ? ' cur' : '';
+      const bCur = (isCurJ && curDir === 'bar') ? ' cur' : '';
+      // Зүүн багана
       let zCell;
-      if (hasZ) zCell = `<span class="ht-c ${par} tap" onclick="editEntry(${km},${j},'zun')" style="color:${valColor(z)}">${z}<span class="u">мм</span></span>`;
-      else if (j <= C.zun) zCell = `<span class="ht-c ${par} ht-empty">–</span>`;
+      if (hasZ) zCell = `<span class="ht-c ${par}${zCur} tap" onclick="editEntry(${km},${j},'zun')" style="color:${valColor(z)}">${z}<span class="u">мм</span></span>`;
+      else if (j <= C.zun) zCell = `<span class="ht-c ${par}${zCur} ht-empty">–</span>`;
       else zCell = `<span class="ht-c ht-na"></span>`;
       // Баруун багана
       let bCell;
-      if (hasB) bCell = `<span class="ht-c ${par} tap" onclick="editEntry(${km},${j},'bar')" style="color:${valColor(b)}">${b}<span class="u">мм</span></span>`;
-      else if (j <= C.bar) bCell = `<span class="ht-c ${par} ht-empty">–</span>`;
+      if (hasB) bCell = `<span class="ht-c ${par}${bCur} tap" onclick="editEntry(${km},${j},'bar')" style="color:${valColor(b)}">${b}<span class="u">мм</span></span>`;
+      else if (j <= C.bar) bCell = `<span class="ht-c ${par}${bCur} ht-empty">–</span>`;
       else bCell = `<span class="ht-c ht-na"></span>`;
-      rows += `<div class="ht-row"><span class="ht-j ${par}">${j}</span>${zCell}${bCell}</div>`;
+      const jCur = isCurJ ? ' cur' : '';
+      rows += `<div class="ht-row"><span class="ht-j ${par}${jCur}">${j}</span>${zCell}${bCell}</div>`;
     }
     if (rows) html += `<div class="hist-km"><div class="hist-km-ttl">${km} км</div>`
       + `<div class="ht-hd"><span class="h-j">Үе</span><span class="h-c h-z">Зүүн</span><span class="h-c h-b">Баруун</span></div>`
