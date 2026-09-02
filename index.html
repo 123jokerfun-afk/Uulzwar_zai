@@ -558,6 +558,15 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 /* Богино өндөртэй дэлгэц (хэвтээ эргүүлсэн утас) — дугуй болон зайг
    багасгаж бүх зүйлийг viewport дотор багтаана. Апп нь босоо байдалд
    зориулагдсан ч хэвтээ үед ч тайрагдахгүй байхаар хамгаална. */
+/* Маш нарийхан дэлгэц (Galaxy Fold-ийн гадна дэлгэц ~280px г.м) —
+   дугуй ба хажуугийн ←/→ товч багтахаар багасгана. */
+@media (max-width: 340px) {
+  .drum-ring { width: 148px; height: 148px; }
+  .drum-val { font-size: 44px; }
+  .nav-side { width: 58px; }
+  .nav-side-btn { width: 48px; height: 48px; font-size: 19px; }
+  .drum-area { padding: 14px 6px 22px; }
+}
 @media (max-height: 500px) {
   .drum-ring { width: 116px; height: 116px; }
   .drum-val { font-size: 40px; }
@@ -3041,7 +3050,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-09-02.2';
+const APP_VERSION = '2026-09-02.3';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
