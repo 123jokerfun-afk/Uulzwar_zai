@@ -2146,7 +2146,9 @@ function admActDelete() {
 }
 
 /* ── Session Storage ── */
-const SESS_KEY = 'uulzvar_sessions';
+/* Хуучин НИЙТЛЭГ түлхүүр — акаунтаар салгаагүй үеийнх. Нэг удаа
+   тухайн акаунт руу шилжүүлээд устгана (доор migrateLegacy). */
+const LEGACY_SESS_KEY = 'uulzvar_sessions';
 const DEV_NAME_KEY = 'uulzvar_device_name';
 
 /* Хуваалцсан хаягтай үед ажилтны нэрийг тухайн утсанд сануулна */
@@ -2165,11 +2167,38 @@ function setDeviceName(n) {
   try { localStorage.setItem(DEV_NAME_KEY, n); } catch {}
 }
 
+/* ── Хэмжилтийг АКАУНТААР ТУСГААРЛАЖ хадгална ──
+   Нэг утсыг олон ажилтан хэрэглэвэл нэг хүний хэмжилт нөгөөд
+   харагдахгүй. Нэвтэрсэн бол email-ээр, үүл тохируулаагүй офлайн
+   горимд ганц «local» эзнээр, нэвтрэх дэлгэц дээр (түр) «guest»-ээр. */
+function sessOwnerKey() {
+  const email = (window.CLOUD && CLOUD.profile && CLOUD.profile.email || '').trim().toLowerCase();
+  if (email) return 'uulzvar_sess__' + email;
+  // Акаунтгүй үе: үүл тохируулсан бол нэвтрэлт хүлээж буй ТҮР зочин,
+  // тохируулаагүй бол энэ утасны байнгын офлайн эзэн.
+  return cloudConfigured() ? 'uulzvar_sess__guest' : 'uulzvar_sess__local';
+}
 function getSessions() {
-  try { return JSON.parse(localStorage.getItem(SESS_KEY) || '[]'); } catch { return []; }
+  const key = sessOwnerKey();
+  let arr = null;
+  try { const raw = localStorage.getItem(key); arr = raw == null ? null : JSON.parse(raw); } catch { arr = null; }
+  if (arr == null) {
+    arr = [];
+    /* Энэ эзэн анх хандаж байна. Хуучин нийтлэг өгөгдлийг ЗӨВХӨН
+       жинхэнэ эзэн (нэвтэрсэн акаунт эсвэл офлайн local) нэг удаа
+       өөртөө шингээнэ — түр зочин (guest) хөндөхгүй, ингэснээр
+       нэвтэрсний дараа акаунт нь өөрийн хуучин өгөгдлөө авна. */
+    if (key !== 'uulzvar_sess__guest') {
+      let legacy = null;
+      try { legacy = JSON.parse(localStorage.getItem(LEGACY_SESS_KEY) || 'null'); } catch {}
+      if (Array.isArray(legacy) && legacy.length) arr = legacy;
+      try { localStorage.setItem(key, JSON.stringify(arr)); localStorage.removeItem(LEGACY_SESS_KEY); } catch {}
+    }
+  }
+  return Array.isArray(arr) ? arr : [];
 }
 function saveSessions(arr) {
-  try { localStorage.setItem(SESS_KEY, JSON.stringify(arr)); } catch {}
+  try { localStorage.setItem(sessOwnerKey(), JSON.stringify(arr)); } catch {}
 }
 
 /* Үүлэн дээрх TTL-тэй ижил хугацаа — утсан дээр ч 30 хоногоос хуучин нь үлдэхгүй */
@@ -2987,7 +3016,7 @@ function doRestart() {
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
    Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-09-01.1';
+const APP_VERSION = '2026-09-02.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
