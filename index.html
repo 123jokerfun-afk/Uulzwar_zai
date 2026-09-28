@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#e7ebf0">
+<meta name="theme-color" content="#dfe5ed">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Уулзвар">
@@ -716,15 +716,16 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
    Бүтэц, байрлал, хэмжээ хэвээрээ үлдэнэ.
    ══════════════════════════════════════════════════════════════ */
 :root {
-  --void: #e7ebf0;
-  --deep: #e7ebf0;
-  --sh-d: rgba(163,177,198,.55);      /* гүн сүүдэр */
-  --sh-l: rgba(255,255,255,.92);      /* гэрлийн тусгал */
+  --void: #dfe5ed;                    /* хуудасны дэвсгэр — гадаргуунаас БҮДЭГ */
+  --deep: #dfe5ed;
+  --surface: #eaeef4;                 /* товгор гадаргуу — дэвсгэрээс ЦАЙВАР */
+  --sh-d: #b9c2d0;                    /* гүн сүүдэр — бүтэн өнгө, илүү тод */
+  --sh-l: #ffffff;                    /* гэрлийн тусгал */
 
   /* Неоморфт тунгалаг давхарга байхгүй — бүх гадаргуу нэг өнгөтэй */
-  --glass-1: #e7ebf0;
-  --glass-2: #e7ebf0;
-  --glass-3: #e7ebf0;
+  --glass-1: #eaeef4;
+  --glass-2: #eaeef4;
+  --glass-3: #eaeef4;
   --edge: transparent;
   --edge-hi: rgba(163,177,198,.45);
   --blur: 0px;
@@ -738,7 +739,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   --red: #c92a2a;
   --ink: #ffffff;                     /* өргөлтөн дээрх бичвэр — цагаан */
 
-  --s1: #e7ebf0; --s2: #e7ebf0; --s3: #e7ebf0;
+  --s1: #eaeef4; --s2: #eaeef4; --s3: #eaeef4;
   --border: transparent; --border-hi: rgba(163,177,198,.45);
   --green: var(--mint); --warn: var(--amber); --danger: var(--red);
   --text: #2b333c; --text-2: #48515c; --muted: #5f6873;
@@ -749,9 +750,9 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   --grad-arc:    linear-gradient(90deg, #0d8a81 0%, #006cff 50%, #c4429a 100%);
 
   /* Гүн — сүүдэр + гэрлийн хос */
-  --lift:    7px 7px 15px var(--sh-d), -7px -7px 15px var(--sh-l);
-  --lift-lo: 4px 4px 9px var(--sh-d),  -4px -4px 9px var(--sh-l);
-  --lift-hi: 11px 11px 24px var(--sh-d), -11px -11px 24px var(--sh-l);
+  --lift:    inset 0 1px 0 #fff, 11px 11px 22px var(--sh-d), -11px -11px 22px var(--sh-l);
+  --lift-lo: inset 0 1px 0 #fff, 6px 6px 13px var(--sh-d), -6px -6px 13px var(--sh-l);
+  --lift-hi: inset 0 1.5px 0 #fff, 16px 16px 32px var(--sh-d), -16px -16px 32px var(--sh-l);
   --sunk:    inset 5px 5px 10px var(--sh-d), inset -5px -5px 10px var(--sh-l);
   --glow-accent: 0 6px 18px -5px rgba(75,86,214,.5);
   --glow-blue:   0 6px 18px -5px rgba(0,108,255,.45);
@@ -760,14 +761,12 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   color-scheme: light;
 }
 
-html { background: #e7ebf0; }
+html { background: #dfe5ed; }
 body {
   background:
-    radial-gradient(58% 42% at 10% 2%,   rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 100%),
-    radial-gradient(52% 38% at 94% 8%,   rgba(206,219,236,.8)  0%, rgba(206,219,236,0) 100%),
-    radial-gradient(50% 36% at 2%  48%,  rgba(214,224,238,.7)  0%, rgba(214,224,238,0) 100%),
-    radial-gradient(60% 40% at 52% 104%, rgba(202,214,232,.75) 0%, rgba(202,214,232,0) 100%),
-    #e7ebf0;
+    radial-gradient(80% 50% at 50% 0%,   rgba(255,255,255,.3) 0%, rgba(255,255,255,0) 100%),
+    radial-gradient(80% 50% at 50% 100%, rgba(190,203,222,.35) 0%, rgba(190,203,222,0) 100%),
+    #dfe5ed;
   background-attachment: fixed;
 }
 body::after { display: none; }                     /* ширхэг — зөөлөн гадаргууд хэрэггүй */
@@ -781,7 +780,7 @@ body::after { display: none; }                     /* ширхэг — зөөл�
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .km-bar, .hist-panel, .drum-area, .card, .me-bar,
   .km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner,
-  .exp-inner, .prof-inner, .rst-inner { background-color: #e7ebf0 !important; }
+  .exp-inner, .prof-inner, .rst-inner { background-color: #eaeef4 !important; }
 }
 
 /* Дарахад цайвар дээр гэрэлтүүлэх нь бүдгэрүүлдэг — бага зэрэг бараандуулна */
@@ -793,23 +792,23 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 /* ── Хонхойсон мөрүүд (жагсаалт, хүснэгт) ── */
 .hist-row, .sess-item, .adm-item, .adm-fold, .dp-item, .sessv-row,
 .adj-km, .adj-sum, .adj-grp {
-  background: #e7ebf0; border-color: transparent;
-  box-shadow: 4px 4px 9px var(--sh-d), -4px -4px 9px var(--sh-l);
+  background: #eaeef4; border-color: transparent;
+  box-shadow: inset 0 1px 0 #fff, 6px 6px 13px var(--sh-d), -6px -6px 13px var(--sh-l);
 }
 .hist-row:active, .sess-item:active, .adm-item:active, .adm-fold:active, .dp-item:active {
-  background: #e7ebf0; box-shadow: var(--sunk);
+  background: #eaeef4; box-shadow: var(--sunk);
 }
-.sess-item.lp { background: #e7ebf0; border-color: var(--accent); box-shadow: var(--sunk), 0 0 0 2px var(--accent); }
+.sess-item.lp { background: #eaeef4; border-color: var(--accent); box-shadow: var(--sunk), 0 0 0 2px var(--accent); }
 .adj-row { border-bottom: 1px solid rgba(163,177,198,.3); }
 .sessv-actions { border-top: 1px solid rgba(163,177,198,.3); }
-.hj { background: #e7ebf0; color: var(--text-2); box-shadow: var(--sunk); }
+.hj { background: #eaeef4; color: var(--text-2); box-shadow: var(--sunk); }
 
 /* ── Явцын мөр ── */
-.prog { background: #e7ebf0; box-shadow: var(--sunk); height: 7px; }
+.prog { background: #eaeef4; box-shadow: var(--sunk); height: 7px; }
 
 /* ── Түүхийн хүснэгтийн нүднүүд ── */
 .ht-c {
-  border: 1.5px solid transparent; background: #e7ebf0; color: var(--text);
+  border: 1.5px solid transparent; background: #eaeef4; color: var(--text);
   text-shadow: none; box-shadow: var(--sunk);
 }
 .ht-c .u { color: var(--muted); }
@@ -832,15 +831,15 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .drum-ring::before { background: conic-gradient(from 225deg,
     rgba(163,177,198,.5) 0deg, rgba(163,177,198,.5) 270deg, transparent 270deg); }
 .drum-val { text-shadow: none; }
-.darrow:active { background: #e7ebf0; box-shadow: var(--sunk); color: var(--text); }
+.darrow:active { background: #eaeef4; box-shadow: var(--sunk); color: var(--text); }
 
 /* ── Доод цонхнууд ── */
 .km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .prof-inner {
-  background: #e7ebf0; border-color: transparent;
+  background: #eaeef4; border-color: transparent;
   box-shadow: 0 -12px 34px -8px var(--sh-d);
 }
 .rst-inner, #msgMod .rst-inner {
-  background: #e7ebf0; border-color: transparent;
+  background: #eaeef4; border-color: transparent;
   box-shadow: 13px 13px 28px var(--sh-d), -13px -13px 28px var(--sh-l);
 }
 .sh-grip::after { background: rgba(163,177,198,.65); }
@@ -854,19 +853,19 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 }
 
 /* ── Нэвтрэх дэлгэц ── */
-.lg-err { background: #e7ebf0; border-color: transparent; color: var(--red); box-shadow: var(--sunk); }
-.lg-note { background: #e7ebf0; border-color: transparent; color: var(--amber); box-shadow: var(--sunk); }
+.lg-err { background: #eaeef4; border-color: transparent; color: var(--red); box-shadow: var(--sunk); }
+.lg-note { background: #eaeef4; border-color: transparent; color: var(--amber); box-shadow: var(--sunk); }
 
 /* ── Талбар дарагдах үеийн онцлол ── */
 .field input:focus, .field select:focus {
-  background: #e7ebf0; border-color: transparent;
+  background: #eaeef4; border-color: transparent;
   box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l), 0 0 0 2px rgba(0,108,255,.35);
 }
 .field input.miss, .field select.miss {
   border-color: transparent; box-shadow: var(--sunk), 0 0 0 2px rgba(201,42,42,.45);
 }
-.spin.spinning { background: #e7ebf0; box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l), 0 0 0 2px rgba(0,108,255,.3); }
-.tmp-sign { background: #e7ebf0; border-color: transparent; color: var(--text-2); box-shadow: var(--lift-lo); }
+.spin.spinning { background: #eaeef4; box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l), 0 0 0 2px rgba(0,108,255,.3); }
+.tmp-sign { background: #eaeef4; border-color: transparent; color: var(--text-2); box-shadow: var(--lift-lo); }
 .tmp-sign:active { box-shadow: var(--sunk); }
 
 /* ── Түүхийн хүснэгт: тэгш(цэнхэр)/сондгой(ногоон) ялгааг хадгална ── */
@@ -900,7 +899,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 /* Гадаргуу нь тусдаа давхарга — унаж буй хүн үүний АРД орж алга болно */
 .lo-btn::before {
   content: ''; position: absolute; inset: 0; z-index: 2; border-radius: var(--r-sm);
-  background: #e7ebf0; box-shadow: var(--lift); transition: .25s ease;
+  background: #eaeef4; box-shadow: var(--lift); transition: .25s ease;
 }
 .lo-btn:active::before { box-shadow: var(--sunk); transform: scale(.985); }
 .lo-btn .mo-text { position: relative; z-index: 10; font-size: 14.5px; font-weight: 700; color: var(--red); transition: .2s ease; }
@@ -954,7 +953,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .btn-sess, .km-chip, .km-mod-chip,
 .rst-btns button, .exp-btns button, .sessv-actions button, .sact-btns button,
 #installBanner, .tmp-sign, .dp-cancel {
-  background: #e7ebf0; border-color: transparent; box-shadow: var(--lift-lo);
+  background: #eaeef4; border-color: transparent; box-shadow: var(--lift-lo);
 }
 .btn-sess:active, .km-chip:active, .km-mod-chip:active,
 .rst-btns button:active, .exp-btns button:active, .sessv-actions button:active,
@@ -1511,8 +1510,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     display: "standalone",
     /* Хөндлөн эргүүлж хүснэгтээ өргөнөөр харах боломжтой байг */
     orientation: "portrait",
-    background_color: "#e7ebf0",
-    theme_color: "#e7ebf0",
+    background_color: "#eaeef4",
+    theme_color: "#eaeef4",
     /* Хөвсгөр неон дүрс. Бүх зураг нь maskable-ийн аюулгүй тойрогт (80%)
        багтсан. Тэмдэгтүүдийг encodeURIComponent өөрөө кодлоно — өмнөх
        хувилбарт '%23' гэж бичсэн нь дахин кодлогдож өнгө нь эвдэрдэг байв. */
