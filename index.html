@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0e1018">
+<meta name="theme-color" content="#e7ebf0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Уулзвар">
 <link id="appManifest" rel="manifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -40,105 +40,92 @@ const FIREBASE_CONFIG = {
 const TTL_DAYS = 30;
 </script>
 <style>
+/* ══════════════════════════════════════════════════════════════
+   НЕОМОРФ (soft UI) ЗАГВАР — апп бүхэлдээ
+   Гадаргуу, дэвсгэр нэг өнгөтэй; гүн нь зөвхөн сүүдэр, гэрлээр гарна.
+   ══════════════════════════════════════════════════════════════ */
 :root {
-  --bg: #0e1018;
-  --s1: #181c28;
-  --s2: #1e2336;
-  --border: #2a304a;
-  --accent: #4f8ef7;
-  --green: #22c97a;
-  --text: #eef0ff;
-  --muted: #6b739a;
-  --warn: #f0a500;
-  --danger: #f04545;
+  --bg:     #e7ebf0;
+  --s1:     #e7ebf0;      /* хуучин нэрс — inline style-д ашиглагдсан хэвээр */
+  --s2:     #e7ebf0;
+  --nm:     #e7ebf0;
+  --text:   #2b333c;
+  --muted:  #5f6873;
+  --accent: #006cff;
+  --green:  #0b7a4a;
+  --warn:   #a86400;
+  --danger: #c92a2a;
+  --border: rgba(163,177,198,.35);
+  --sh-d:   rgba(163,177,198,.55);   /* гүн сүүдэр */
+  --sh-l:   rgba(255,255,255,.92);   /* гэрлийн тусгал */
+  --nm-d:   rgba(163,177,198,.55);
+  --nm-l:   rgba(255,255,255,.92);
+  --scrim:  rgba(120,135,155,.45);   /* модалын халхавч */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
 html, body { height: 100%; overflow: hidden; }
-body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
 
-/* ══════════════════════════════════════════════════════════
-   НЭВТРЭХ ДЭЛГЭЦ — неоморф (аппын бараан өнгөнд тохируулсан)
-   ══════════════════════════════════════════════════════════ */
-:root {
-  --nm: #181c28;                          /* неоморф гадаргуу */
-  --nm-d: rgba(0,0,0,.6);                 /* гүн сүүдэр */
-  --nm-l: rgba(255,255,255,.05);          /* гэрлийн тусгал */
-}
+/* ══════════ НЭВТРЭХ ДЭЛГЭЦ ══════════ */
 #login {
   display: none; position: fixed; inset: 0; z-index: 60;
-  background: var(--nm); overflow-y: auto;
+  background: var(--bg); overflow-y: auto;
   align-items: center; justify-content: center; padding: 24px 16px;
-  font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
 }
 #login.on { display: flex; }
 
-/* Хөвөгч дэвсгэр бөмбөлгүүд */
-.nm-orb { position: absolute; border-radius: 50%; background: var(--nm); pointer-events: none; z-index: -1;
-  box-shadow: 14px 14px 28px var(--nm-d), -14px -14px 28px var(--nm-l);
+.nm-orb { position: absolute; border-radius: 50%; background: var(--bg); pointer-events: none; z-index: -1;
+  box-shadow: 15px 15px 30px var(--sh-d), -15px -15px 30px var(--sh-l);
   animation: nmFloat 6s ease-in-out infinite; }
 .nm-orb.o1 { width: 180px; height: 180px; top: 5%; left: 6%; }
 .nm-orb.o2 { width: 124px; height: 124px; right: 7%; bottom: 7%; animation-delay: 1.5s; }
 .nm-orb.o3 { width: 54px; height: 54px; right: 18%; top: 18%; animation-delay: 3s; }
 @keyframes nmFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
 
-.auth-wrap { width: 400px; max-width: 100%; perspective: 1600px; }
-.auth-card { position: relative; width: 100%; transform-style: preserve-3d;
-  transition: transform .9s cubic-bezier(.68,-.35,.27,1.4); }
-.auth-card.flipped { transform: rotateY(180deg); }
+.auth-wrap { width: 400px; max-width: 100%; }
+.auth-face { padding: 34px 26px 28px; border-radius: 34px; background: var(--bg);
+  box-shadow: 20px 20px 40px var(--sh-d), -20px -20px 40px var(--sh-l); }
 
-.auth-face { padding: 30px 26px 26px; border-radius: 32px; background: var(--nm);
-  box-shadow: 18px 18px 36px var(--nm-d), -18px -18px 36px var(--nm-l);
-  backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-.auth-login { position: relative; }              /* картын өндрийг энэ тогтооно */
-.auth-reset { position: absolute; inset: 0; transform: rotateY(180deg); overflow-y: auto;
-  display: flex; flex-direction: column; justify-content: center; }   /* нэвтрэх талаас намхан тул голлуулна */
-/* Ар талд эргэсэн нүүр нь дарагдалтыг барьж авахгүй байх
-   (backface-visibility ганцаараа үүнийг бүрэн зогсоодоггүй) */
-.auth-card:not(.flipped) .auth-reset,
-.auth-card.flipped .auth-login { pointer-events: none; }
-
-.nm-logo { width: 78px; height: 78px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center;
-  border-radius: 50%; font-size: 32px; background: var(--nm);
-  box-shadow: 9px 9px 18px var(--nm-d), -9px -9px 18px var(--nm-l); transition: .4s ease; }
+.nm-logo { width: 84px; height: 84px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 34px; background: var(--bg);
+  box-shadow: 9px 9px 18px var(--sh-d), -9px -9px 18px var(--sh-l); transition: .4s ease; }
 .nm-logo:active { transform: translateY(-4px) rotate(8deg); }
-.auth-face h1 { text-align: center; font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
-.auth-sub { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; margin-bottom: 22px; }
+.auth-face h1 { text-align: center; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.auth-sub { text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-bottom: 26px; }
 
-/* Мэдэгдлүүд */
-.lg-err, .rs-msg { display: none; font-size: 12.5px; border-radius: 12px; padding: 10px 13px; margin-bottom: 14px; line-height: 1.5; white-space: pre-line; }
-.lg-err { background: rgba(240,69,69,.12); border: 1px solid rgba(240,69,69,.55); color: #ff9b9b; }
-.lg-err.on, .rs-msg.on { display: block; }
-.rs-msg.bad { background: rgba(240,69,69,.12); border: 1px solid rgba(240,69,69,.55); color: #ff9b9b; }
-.rs-msg.ok  { background: rgba(34,201,122,.12); border: 1px solid rgba(34,201,122,.5); color: #8ce8bb; }
+.lg-err { display: none; font-size: 12.5px; border-radius: 14px; padding: 11px 14px; margin-bottom: 16px;
+  line-height: 1.5; white-space: pre-line; color: var(--danger); background: var(--bg);
+  box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+.lg-err.on { display: block; }
 
-/* Талбар — фокуслах үед цахилгаан хүрээ гарна */
-.nm-field { position: relative; width: 100%; height: 56px; margin-bottom: 18px; }
+/* Талбар — фокуслах үед цахилгаан хүрээ */
+.nm-field { position: relative; width: 100%; height: 58px; margin-bottom: 20px; }
 .el-border { position: absolute; inset: -2px; border-radius: 19px; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
 .el-border::before { content: ""; position: absolute; width: 180%; height: 180%; left: -40%; top: -40%;
   background: conic-gradient(from 0deg, transparent 0deg, transparent 30deg,
     #00eaff 45deg, #00aaff 65deg, #006cff 80deg, transparent 105deg, transparent 360deg);
   animation: elRotate 1.1s linear infinite; }
-.el-border::after { content: ""; position: absolute; inset: 2px; border-radius: 17px; background: var(--nm); }
+.el-border::after { content: ""; position: absolute; inset: 2px; border-radius: 17px; background: var(--bg); }
 .el-glow { position: absolute; inset: -5px; border-radius: 22px; pointer-events: none; opacity: 0; filter: blur(9px);
   background: conic-gradient(from 0deg, transparent 0deg, transparent 30deg,
     #00eaff 45deg, #00aaff 65deg, #006cff 80deg, transparent 105deg, transparent 360deg); }
 .nm-field:focus-within .el-border { opacity: 1; }
-.nm-field:focus-within .el-glow { opacity: .45; animation: elRotate 1.1s linear infinite; }
+.nm-field:focus-within .el-glow { opacity: .5; animation: elRotate 1.1s linear infinite; }
 @keyframes elRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-.nm-field input { position: absolute; inset: 2px; width: calc(100% - 4px); height: 52px;
-  border: none; outline: none; border-radius: 16px; background: var(--nm); color: var(--text);
-  font-size: 15px; font-family: inherit; padding: 0 46px 0 16px; z-index: 20;
-  box-shadow: inset 6px 6px 12px var(--nm-d), inset -6px -6px 12px var(--nm-l); transition: box-shadow .25s ease; }
-.nm-field input:focus { box-shadow: inset 3px 3px 7px var(--nm-d), inset -3px -3px 7px var(--nm-l); }
-.nm-field label { position: absolute; left: 16px; top: 18px; z-index: 30; color: var(--muted);
-  font-size: 14.5px; pointer-events: none; transition: all .25s ease; }
+.nm-field input { position: absolute; inset: 2px; width: calc(100% - 4px); height: 54px;
+  border: none; outline: none; border-radius: 16px; background: var(--bg); color: var(--text);
+  font-size: 15px; font-family: inherit; padding: 0 46px 0 18px; z-index: 20;
+  box-shadow: inset 6px 6px 12px var(--sh-d), inset -6px -6px 12px var(--sh-l); transition: box-shadow .25s ease; }
+.nm-field input:focus { box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l); }
+.nm-field label { position: absolute; left: 18px; top: 19px; z-index: 30; color: var(--muted);
+  font-size: 15px; pointer-events: none; transition: all .25s ease; }
 .nm-field input:focus + label,
 .nm-field input:not(:placeholder-shown) + label {
-  top: -9px; left: 12px; padding: 2px 8px; border-radius: 7px;
-  background: var(--nm); color: var(--accent); font-size: 10.5px; line-height: 14px; }
+  top: -8px; left: 13px; padding: 2px 8px; border-radius: 7px;
+  background: var(--bg); color: var(--accent); font-size: 10.5px; line-height: 14px; font-weight: 600; }
 
-.pass-toggle { position: absolute; right: 12px; top: 14px; width: 30px; height: 30px; z-index: 40;
+.pass-toggle { position: absolute; right: 12px; top: 15px; width: 30px; height: 30px; z-index: 40;
   display: flex; align-items: center; justify-content: center; border: none; background: transparent;
   color: var(--muted); cursor: pointer; padding: 0; }
 .pass-toggle:active { color: var(--accent); transform: scale(1.1); }
@@ -147,258 +134,312 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 .pass-toggle.on .ic-on { display: none; }
 .pass-toggle.on .ic-off { display: block; }
 
-/* Товч */
-.nm-btn { position: relative; isolation: isolate; width: 100%; height: 54px; border: none; border-radius: 17px;
-  background: var(--nm); color: var(--accent); font-size: 14.5px; font-weight: 700; letter-spacing: .3px;
-  font-family: inherit; cursor: pointer; overflow: hidden;
-  box-shadow: 8px 8px 16px var(--nm-d), -8px -8px 16px var(--nm-l); transition: .3s ease; }
-.nm-btn::before { content: ""; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(110deg, #006cff, #00cfff, #006cff); background-size: 200% 100%;
-  transform: translateY(100%); transition: transform .35s ease; }
-.nm-btn:hover::before, .nm-btn:active::before { transform: translateY(0); animation: nmBtnMove 1.5s linear infinite; }
-.nm-btn:hover, .nm-btn:active { color: #fff; }
-.nm-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,114,255,.35); }
-.nm-btn:active { transform: scale(.975); }
-.nm-btn[disabled] { opacity: .55; pointer-events: none; }
-@keyframes nmBtnMove { from { background-position: 0 50%; } to { background-position: 200% 50%; } }
-
-#lgBusy { display: none; text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 12px; }
+#lgBusy { display: none; text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 14px; }
 #lgBusy.on { display: block; }
 
-/* Эргүүлэх хэсэг */
-.switch-row { display: flex; align-items: center; justify-content: center; gap: 12px;
-  margin-top: 22px; font-size: 11.5px; color: var(--muted); text-align: center; }
-.switch-circle { width: 46px; height: 46px; flex-shrink: 0; border: none; border-radius: 50%;
-  background: var(--nm); color: var(--accent); cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 7px 7px 14px var(--nm-d), -7px -7px 14px var(--nm-l); transition: .35s ease; }
-.switch-circle svg { width: 20px; height: 20px; }
-.switch-circle:active { transform: scale(.9); color: #fff; background: var(--accent); }
-
-/* Намхан дэлгэц */
 @media (max-height: 720px) {
-  .auth-face { padding: 22px 22px 20px; }
-  .nm-logo { width: 62px; height: 62px; font-size: 26px; margin-bottom: 10px; }
-  .auth-sub { margin-bottom: 16px; }
-  .nm-field { margin-bottom: 14px; }
-  .switch-row { margin-top: 16px; }
+  .auth-face { padding: 24px 22px 22px; }
+  .nm-logo { width: 66px; height: 66px; font-size: 28px; margin-bottom: 12px; }
+  .auth-sub { margin-bottom: 18px; }
+  .nm-field { margin-bottom: 16px; }
   .nm-orb { display: none; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .nm-orb, .el-border::before, .el-glow, .nm-btn::before { animation: none !important; }
-  .auth-card { transition: none; }
-}
 
-/* User chip / session bar */
-.me-bar { display: flex; align-items: center; gap: 10px; background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: .75rem; }
-.me-av { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
-.me-av.adm { background: var(--warn); }
+/* ══════════ НИЙТЛЭГ НЕОМОРФ ЭЛЕМЕНТҮҮД ══════════ */
+
+/* Товгор товч (үндсэн үйлдэл) */
+.nm-btn, .btn-go {
+  position: relative; isolation: isolate; width: 100%; height: 56px; border: none; border-radius: 18px;
+  background: var(--bg); color: var(--accent); font-size: 14.5px; font-weight: 700; letter-spacing: .3px;
+  font-family: inherit; cursor: pointer; overflow: hidden; margin-top: 4px;
+  box-shadow: 8px 8px 16px var(--sh-d), -8px -8px 16px var(--sh-l); transition: .3s ease; }
+.nm-btn::before, .btn-go::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(110deg, #006cff, #00cfff, #006cff); background-size: 200% 100%;
+  transform: translateY(100%); transition: transform .35s ease; }
+.nm-btn:hover::before, .nm-btn:active::before,
+.btn-go:hover::before, .btn-go:active::before { transform: translateY(0); animation: nmBtnMove 1.5s linear infinite; }
+.nm-btn:hover, .nm-btn:active, .btn-go:hover, .btn-go:active { color: #fff; }
+.nm-btn:hover, .btn-go:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,108,255,.3); }
+.nm-btn:active, .btn-go:active { transform: scale(.975); }
+.nm-btn[disabled], .btn-go[disabled] { opacity: .55; pointer-events: none; }
+@keyframes nmBtnMove { from { background-position: 0 50%; } to { background-position: 200% 50%; } }
+
+/* Тогтмол өнгөтэй товчнууд (ногоон / улаан) */
+.nm-fill-green { color: var(--green) !important; }
+.nm-fill-green::before { background: linear-gradient(110deg, #0b7a4a, #12b473, #0b7a4a) !important; }
+.nm-fill-red { color: var(--danger) !important; }
+.nm-fill-red::before { background: linear-gradient(110deg, #c92a2a, #f06565, #c92a2a) !important; }
+
+/* Хоёрдогч (тайван) товч */
+.btn-sess, .exp-btns button, .rst-btns button, .sessv-actions button, .sess-comb {
+  width: 100%; padding: 14px; font-size: 13.5px; font-weight: 700; font-family: inherit;
+  border: none; border-radius: 15px; background: var(--bg); color: var(--muted); cursor: pointer;
+  box-shadow: 6px 6px 12px var(--sh-d), -6px -6px 12px var(--sh-l); transition: .22s ease; }
+.btn-sess { margin-top: 9px; }
+.btn-sess:active, .exp-btns button:active, .rst-btns button:active,
+.sessv-actions button:active, .sess-comb:active {
+  box-shadow: inset 5px 5px 10px var(--sh-d), inset -5px -5px 10px var(--sh-l); transform: scale(.985); }
+.exp-btns .eb1, .sessv-actions .sv-csv { color: var(--accent); }
+.exp-btns .eb-xlsx, .sessv-actions .sv-xlsx, .sess-comb { color: var(--green); }
+.rst-btns .rst-yes { color: var(--danger); }
+
+/* ══════════ ТОХИРГООНЫ ДЭЛГЭЦ ══════════ */
+#setup { display: none; height: 100vh; overflow-y: auto; padding: 1.25rem 1.1rem 2.5rem; max-width: 480px; margin: 0 auto; }
+.logo { display: flex; align-items: center; gap: 13px; margin-bottom: 1.4rem; padding-top: .4rem; }
+.logo-ic { width: 48px; height: 48px; border-radius: 15px; background: var(--bg); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  box-shadow: 6px 6px 12px var(--sh-d), -6px -6px 12px var(--sh-l); }
+.logo h1 { font-size: 15px; font-weight: 700; }
+.logo p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.card { background: var(--bg); border-radius: 22px; padding: 1.1rem 1rem; margin-bottom: 1rem;
+  box-shadow: 9px 9px 18px var(--sh-d), -9px -9px 18px var(--sh-l); }
+.ct { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .85rem; }
+.fg { display: grid; gap: 12px; }
+.fg2 { grid-template-columns: 1fr 1fr; }
+.fg3 { grid-template-columns: 1fr 1fr 1fr; }
+.field label { font-size: 10.5px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; padding-left: 4px; }
+.field input, .field select { width: 100%; font-size: 14px; font-family: inherit; padding: 12px 13px;
+  border: none; border-radius: 14px; background: var(--bg); color: var(--text); -webkit-appearance: none;
+  box-shadow: inset 5px 5px 10px var(--sh-d), inset -5px -5px 10px var(--sh-l); transition: box-shadow .2s ease; }
+.field input:focus, .field select:focus { outline: none;
+  box-shadow: inset 2px 2px 6px var(--sh-d), inset -2px -2px 6px var(--sh-l); }
+.field input[readonly] { color: var(--muted); }
+
+/* Нэвтэрсэн хэрэглэгчийн мөр */
+.me-bar { display: flex; align-items: center; gap: 11px; background: var(--bg); border-radius: 18px;
+  padding: 12px 13px; margin-bottom: 1rem;
+  box-shadow: 8px 8px 16px var(--sh-d), -8px -8px 16px var(--sh-l); }
+.me-av { width: 42px; height: 42px; border-radius: 13px; background: var(--bg); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800; flex-shrink: 0;
+  box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+.me-av.adm { color: var(--warn); }
 .me-info { flex: 1; min-width: 0; }
 .me-name { font-size: 13.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.me-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
-.me-role { font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: .04em; }
-.me-role.adm { color: var(--warn); background: rgba(240,165,0,.15); }
-.me-role.wrk { color: var(--green); background: rgba(34,201,122,.15); }
-.me-out { font-size: 11.5px; font-weight: 700; padding: 7px 11px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; flex-shrink: 0; }
-.me-out:active { background: var(--s2); }
-.pd-locked { display: flex; align-items: center; gap: 7px; font-size: 14px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(79,142,247,.08); color: var(--text); }
+.me-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.me-role { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.me-role.adm { color: var(--warn); }
+.me-role.wrk { color: var(--green); }
+.me-out { font-size: 11.5px; font-weight: 700; font-family: inherit; padding: 9px 13px; border-radius: 12px;
+  border: none; background: var(--bg); color: var(--muted); cursor: pointer; flex-shrink: 0;
+  box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l); transition: .2s ease; }
+.me-out:active { box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+
+.pd-locked { display: flex; align-items: center; gap: 7px; font-size: 14px; padding: 12px 13px;
+  border-radius: 14px; background: var(--bg); color: var(--accent); font-weight: 600;
+  box-shadow: inset 5px 5px 10px var(--sh-d), inset -5px -5px 10px var(--sh-l); }
 .pd-locked .lk { font-size: 11px; color: var(--muted); margin-left: auto; }
 
-/* Cloud status */
-.cloud-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--muted); padding: 8px 12px; background: var(--s2); border: 1px solid var(--border); border-radius: 9px; margin-bottom: .75rem; }
-.cloud-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+/* Үүлэн төлөв */
+.cloud-row { display: flex; align-items: center; gap: 9px; font-size: 11.5px; color: var(--muted);
+  padding: 11px 13px; background: var(--bg); border-radius: 14px; margin-bottom: .8rem;
+  box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+.cloud-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
 .cloud-dot.ok { background: var(--green); }
 .cloud-dot.off { background: var(--warn); }
 
-/* Admin panel */
-.adm-list { max-height: 46vh; overflow-y: auto; margin-bottom: .6rem; }
-.adm-item { display: flex; align-items: center; gap: 9px; padding: 10px 11px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 5px; }
+/* Админ самбар */
+.adm-list { max-height: 46vh; overflow-y: auto; margin-bottom: .7rem; padding: 2px; }
+.adm-item { display: flex; align-items: center; gap: 10px; padding: 12px 13px; border-radius: 15px;
+  background: var(--bg); margin-bottom: 9px;
+  box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l); }
 .adm-meta { flex: 1; min-width: 0; }
 .adm-who { font-size: 13px; font-weight: 700; }
-.adm-det { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.adm-cnt { font-size: 12px; font-weight: 800; color: var(--green); flex-shrink: 0; }
+.adm-det { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.adm-cnt { font-size: 13px; font-weight: 800; color: var(--green); flex-shrink: 0; }
 .adm-empty { font-size: 12.5px; color: var(--muted); text-align: center; padding: 1.5rem 0; line-height: 1.6; }
-.adm-note { font-size: 11px; color: var(--warn); background: rgba(240,165,0,.1); border: 1px solid rgba(240,165,0,.35); border-radius: 8px; padding: 8px 10px; margin-bottom: .6rem; line-height: 1.5; }
+.adm-note { font-size: 11px; color: var(--warn); background: var(--bg); border-radius: 13px;
+  padding: 11px 13px; margin-bottom: .7rem; line-height: 1.5;
+  box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
 
-/* ── SETUP ── */
-#setup { display: none; height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 480px; margin: 0 auto; }
-.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; padding-top: .5rem; }
-.logo-ic { width: 38px; height: 38px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 19px; }
-.logo h1 { font-size: 15px; font-weight: 700; }
-.logo p { font-size: 11px; color: var(--muted); }
-.card { background: var(--s1); border: 1px solid var(--border); border-radius: 13px; padding: 1rem; margin-bottom: .75rem; }
-.ct { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: .75rem; }
-.fg { display: grid; gap: 9px; }
-.fg2 { grid-template-columns: 1fr 1fr; }
-.fg3 { grid-template-columns: 1fr 1fr 1fr; }
-.field label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 3px; }
-.field input, .field select { width: 100%; font-size: 14px; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--s2); color: var(--text); -webkit-appearance: none; }
-.field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
-.btn-go { width: 100%; padding: 15px; font-size: 15px; font-weight: 700; background: var(--accent); color: #fff; border: none; border-radius: 11px; cursor: pointer; margin-top: .5rem; }
+/* ══════════ ХЭМЖИЛТИЙН ДЭЛГЭЦ ══════════ */
+#app { display: none; height: 100vh; flex-direction: column; max-width: 480px; margin: 0 auto; background: var(--bg); }
 
-/* ── MAIN APP ── */
-#app { display: none; height: 100vh; flex-direction: column; max-width: 480px; margin: 0 auto; }
-
-/* KM bar */
-.km-bar { background: var(--s1); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.km-back { font-size: 18px; color: var(--muted); cursor: pointer; padding: 3px 6px; }
-.km-scroll-wrap { flex: 1; overflow-x: auto; display: flex; gap: 6px; scrollbar-width: none; }
+/* КМ мөр */
+.km-bar { background: var(--bg); padding: 12px 13px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  box-shadow: 0 6px 14px var(--sh-d); z-index: 5; }
+.km-back { font-size: 18px; color: var(--muted); cursor: pointer; padding: 7px 9px; border-radius: 11px;
+  box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.km-back:active { box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
+.km-scroll-wrap { flex: 1; overflow-x: auto; display: flex; gap: 8px; scrollbar-width: none; padding: 3px 2px; }
 .km-scroll-wrap::-webkit-scrollbar { display: none; }
-.km-chip { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 6px 11px; border-radius: 7px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); cursor: pointer; transition: all .15s; }
-.km-chip.done { border-color: var(--green); color: var(--green); }
-.km-chip.cur { background: var(--accent); border-color: var(--accent); color: #fff; }
-.km-next-btn { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 6px 11px; border-radius: 7px; border: 1px solid var(--accent); color: var(--accent); background: transparent; cursor: pointer; }
+.km-chip { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 8px 13px; border-radius: 11px;
+  border: none; background: var(--bg); color: var(--muted); cursor: pointer; transition: all .18s;
+  box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.km-chip.done { color: var(--green); box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
+.km-chip.cur { color: #fff; background: linear-gradient(135deg, #006cff, #00aaff);
+  box-shadow: 0 4px 10px rgba(0,108,255,.4); }
+.km-next-btn { flex-shrink: 0; font-size: 12px; font-weight: 700; font-family: inherit; padding: 8px 12px;
+  border-radius: 11px; border: none; color: var(--accent); background: var(--bg); cursor: pointer;
+  box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.km-next-btn:active { box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
+.km-rst-btn { flex-shrink: 0; font-size: 15px; width: 36px; height: 36px; border-radius: 11px; border: none;
+  color: var(--muted); background: var(--bg); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.km-rst-btn:active { box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
 
-/* Progress */
-.prog { height: 3px; background: var(--border); flex-shrink: 0; }
-.prog-f { height: 100%; background: var(--accent); transition: width .25s; }
+/* Явцын мөр */
+.prog { height: 8px; margin: 10px 14px 0; border-radius: 6px; background: var(--bg); flex-shrink: 0; overflow: hidden;
+  box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
+.prog-f { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #006cff, #00cfff); transition: width .25s; }
 
-/* ── MAIN BODY ── */
 .body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-/* Joint header */
-.joint-hdr { padding: 12px 16px 8px; flex-shrink: 0; }
-.joint-hdr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.joint-title { font-size: 13px; color: var(--muted); }
-.joint-big { font-size: 28px; font-weight: 800; color: var(--text); }
-.dir-tabs { display: flex; gap: 6px; }
-.dir-tab { font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 20px; border: 1.5px solid var(--border); color: var(--muted); background: transparent; }
-.dir-tab.bar.act { background: var(--accent); border-color: var(--accent); color: #fff; }
-.dir-tab.zun.act { background: var(--green); border-color: var(--green); color: #fff; }
+/* Үений толгой */
+.joint-hdr { padding: 14px 16px 10px; flex-shrink: 0; }
+.joint-hdr-top { display: flex; align-items: center; justify-content: space-between; }
+.joint-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.joint-big { font-size: 32px; font-weight: 800; color: var(--text); line-height: 1.15; }
+.dir-tabs { display: flex; gap: 8px; }
+.dir-tab { font-size: 12px; font-weight: 700; padding: 9px 17px; border-radius: 20px; border: none;
+  color: var(--muted); background: var(--bg); cursor: pointer; transition: .2s ease;
+  box-shadow: 4px 4px 9px var(--sh-d), -4px -4px 9px var(--sh-l); }
+.dir-tab.bar.act { color: #fff; background: linear-gradient(135deg, #006cff, #00aaff); box-shadow: 0 5px 12px rgba(0,108,255,.4); }
+.dir-tab.zun.act { color: #fff; background: linear-gradient(135deg, #0b7a4a, #12b473); box-shadow: 0 5px 12px rgba(11,122,74,.4); }
 
-/* ── DRUM ── */
-.drum-area { flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 10px 8px 14px; gap: 0; position: relative; border-top: 1px solid var(--border); background: var(--bg); }
-
-.nav-side { width: 72px; height: 100%; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-.nav-side-btn { width: 62px; height: 62px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--muted); transition: all .12s; }
-.nav-side-btn:active { background: var(--s2); transform: scale(.93); }
+/* ══════════ ДУГУЙ ══════════ */
+.drum-area { flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  padding: 16px 8px 36px; position: relative; background: var(--bg); }
+.nav-side { width: 74px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.nav-side-btn { width: 64px; height: 64px; border-radius: 50%; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; font-size: 26px; color: var(--muted); transition: all .14s;
+  box-shadow: 7px 7px 14px var(--sh-d), -7px -7px 14px var(--sh-l); }
+.nav-side-btn:active { box-shadow: inset 5px 5px 10px var(--sh-d), inset -5px -5px 10px var(--sh-l); transform: scale(.95); }
+.nav-side-btn.go { color: var(--accent); }
 
 .drum-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
 
-/* Selector ring */
-.drum-ring { width: 180px; height: 180px; border-radius: 50%; border: 3px solid var(--border); background: var(--s1); display: flex; align-items: center; justify-content: center; position: relative; cursor: grab; flex-shrink: 0; }
+.drum-ring { width: 184px; height: 184px; border-radius: 50%; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; position: relative; cursor: grab; flex-shrink: 0;
+  box-shadow: 12px 12px 24px var(--sh-d), -12px -12px 24px var(--sh-l); }
+.drum-ring::before { content: ""; position: absolute; inset: 16px; border-radius: 50%;
+  box-shadow: inset 6px 6px 12px var(--sh-d), inset -6px -6px 12px var(--sh-l); }
 .drum-ring:active { cursor: grabbing; }
-.drum-val { font-size: 58px; font-weight: 900; color: var(--text); transition: all .1s; line-height: 1; }
+.drum-val { position: relative; font-size: 60px; font-weight: 800; color: var(--text); transition: color .15s; line-height: 1; }
 .drum-val.warn-v { color: var(--warn); }
 .drum-val.danger-v { color: var(--danger); }
-.drum-hint { position: absolute; bottom: -22px; font-size: 11px; color: var(--muted); text-align: center; white-space: nowrap; }
-.drum-arrows { position: absolute; right: -36px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
-.darrow { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
-.darrow:active { background: var(--border); }
+.drum-hint { position: absolute; bottom: -24px; font-size: 10.5px; color: var(--muted); text-align: center; white-space: nowrap; }
+.drum-arrows { position: absolute; right: -34px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; }
+.darrow { width: 30px; height: 30px; border-radius: 10px; background: var(--bg); color: var(--muted);
+  display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer;
+  box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.darrow:active { box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
 
-/* Value strip below drum — hidden */
 .val-strip { display: none; }
-.vs-item { font-size: 12px; font-weight: 600; min-width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer; border: 1px solid transparent; transition: all .1s; flex-shrink: 0; }
-.vs-item.act { background: var(--accent); color: #fff; border-color: var(--accent); font-size: 13px; transform: scale(1.12); }
+.vs-item { font-size: 12px; font-weight: 600; min-width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; color: var(--muted); cursor: pointer; flex-shrink: 0; }
+.vs-item.act { background: var(--accent); color: #fff; }
 .vs-item.warn-s { color: var(--warn); }
 .vs-item.danger-s { color: var(--danger); }
-.vs-item.act.warn-s { background: var(--warn); border-color: var(--warn); color: #fff; }
-.vs-item.act.danger-s { background: var(--danger); border-color: var(--danger); color: #fff; }
 
-/* History panel */
-.hist-panel { background: var(--s1); border-bottom: 1px solid var(--border); flex: 1; overflow-y: auto; }
-.hist-inner { padding: 10px 14px 16px; }
-.hist-hdr { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
-.hist-row { display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 4px; cursor: pointer; }
-.hist-row:active { background: var(--border); }
+/* ══════════ ТҮҮХ ══════════ */
+.hist-panel { flex: 1; overflow-y: auto; background: var(--bg);
+  box-shadow: inset 0 6px 12px -6px var(--sh-d); }
+.hist-inner { padding: 14px 15px 18px; }
+.hist-hdr { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 11px; }
+.hist-row { display: flex; align-items: center; gap: 9px; padding: 11px 13px; border-radius: 14px;
+  background: var(--bg); margin-bottom: 9px; cursor: pointer; transition: .18s ease;
+  box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l); }
+.hist-row:active { box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
 .hj { font-size: 12px; font-weight: 800; color: var(--muted); min-width: 20px; }
-.hd-bar { font-size: 10px; font-weight: 700; color: var(--accent); background: rgba(79,142,247,.15); padding: 2px 7px; border-radius: 4px; }
-.hd-zun { font-size: 10px; font-weight: 700; color: var(--green); background: rgba(34,201,122,.15); padding: 2px 7px; border-radius: 4px; }
-.hv { font-size: 15px; font-weight: 800; margin-left: auto; }
+.hd-bar { font-size: 10px; font-weight: 700; color: var(--accent); }
+.hd-zun { font-size: 10px; font-weight: 700; color: var(--green); }
+.hv { font-size: 16px; font-weight: 800; margin-left: auto; }
 .he { font-size: 10px; color: var(--muted); }
-.hist-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 1rem; }
+.hist-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 1.5rem 1rem; line-height: 1.6; }
+.hist-km { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 7px; padding-left: 3px; }
 
-/* KM modal */
-#kmMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
-#kmMod.on { display: flex; }
-.km-mod-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; }
-.km-mod-title { font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; margin-bottom: 1rem; }
-.km-grid { display: flex; flex-wrap: wrap; gap: 7px; }
-.km-mod-chip { font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); color: var(--muted); cursor: pointer; }
-.km-mod-chip.done { border-color: var(--green); color: var(--green); }
-.km-mod-chip.cur { background: var(--accent); border-color: var(--accent); color: #fff; }
-.mod-close { display: block; text-align: center; margin-top: 14px; font-size: 13px; color: var(--muted); cursor: pointer; }
+/* ══════════ МОДАЛУУД ══════════ */
+#kmMod, #sessMod, #sessViewMod, #expMod, #rstMod {
+  display: none; position: fixed; inset: 0; z-index: 200; justify-content: center;
+  background: var(--scrim); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+#kmMod.on, #sessMod.on, #sessViewMod.on, #expMod.on, #rstMod.on { display: flex; }
+#kmMod, #sessMod, #sessViewMod, #expMod { align-items: flex-end; }
+#sessViewMod { z-index: 210; }
+#rstMod { z-index: 300; align-items: center; padding: 1.5rem; }
 
-/* Warning toast */
-#warnToast { display: none; position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 300; padding: 13px 22px; border-radius: 12px; font-size: 15px; font-weight: 800; color: #fff; text-align: center; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,.5); animation: toastIn .2s ease; }
-@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(-8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+.km-mod-inner, .sess-inner, .sessv-inner, .exp-inner {
+  background: var(--bg); border-radius: 30px 30px 0 0; padding: 1.4rem 1.1rem 2.6rem;
+  width: 100%; max-width: 480px; box-shadow: 0 -12px 30px var(--sh-d); }
+.sess-inner { max-height: 80vh; display: flex; flex-direction: column; }
+.sessv-inner { max-height: 85vh; display: flex; flex-direction: column; }
 
-/* Install banner */
-#installBanner { display: none; align-items: center; gap: 10px; background: var(--s2); border: 1px solid var(--accent); border-radius: 11px; padding: 11px 14px; margin-bottom: .75rem; }
-#installBanner .ib-txt { flex: 1; font-size: 13px; color: var(--text); }
-#installBanner .ib-txt span { font-size: 11px; color: var(--muted); display: block; }
-#installBanner button { font-size: 13px; font-weight: 700; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; white-space: nowrap; }
-#iosBanner { display: none; background: var(--s2); border: 1px solid var(--border); border-radius: 11px; padding: 11px 14px; margin-bottom: .75rem; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.km-mod-title { font-size: 13px; font-weight: 700; color: var(--muted); text-align: center; margin-bottom: 1.1rem; }
+.km-grid { display: flex; flex-wrap: wrap; gap: 9px; padding: 2px; }
+.km-mod-chip { font-size: 13px; font-weight: 700; padding: 11px 15px; border-radius: 13px; border: none;
+  background: var(--bg); color: var(--muted); cursor: pointer;
+  box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l); }
+.km-mod-chip.done { color: var(--green); box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+.km-mod-chip.cur { color: #fff; background: linear-gradient(135deg, #006cff, #00aaff); box-shadow: 0 5px 12px rgba(0,108,255,.4); }
+.mod-close { display: block; text-align: center; margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
 
-/* Sessions modal */
-#sessMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
-#sessMod.on { display: flex; }
-.sess-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column; }
-.sess-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; flex-shrink: 0; }
-.sess-list { flex: 1; overflow-y: auto; }
-.sess-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 6px; cursor: pointer; }
-.sess-item:active { background: var(--border); }
-.sess-meta { flex: 1; }
+.sess-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; flex-shrink: 0; }
+.sess-list { flex: 1; overflow-y: auto; padding: 2px; }
+.sess-item { display: flex; align-items: center; gap: 11px; padding: 13px 14px; border-radius: 16px;
+  background: var(--bg); margin-bottom: 10px; cursor: pointer;
+  box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l); }
+.sess-item:active { box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+.sess-meta { flex: 1; min-width: 0; }
 .sess-date { font-size: 13px; font-weight: 700; color: var(--text); }
-.sess-info { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.sess-del { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--danger); font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-.sess-del:active { background: rgba(240,69,69,.15); }
+.sess-info { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.sess-del { width: 36px; height: 36px; border-radius: 12px; border: none; background: var(--bg);
+  color: var(--danger); font-size: 15px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.sess-del:active { box-shadow: inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l); }
 .sess-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 2rem 0; }
-.sess-comb { width: 100%; padding: 12px; font-size: 13px; font-weight: 700; background: var(--green); color: #fff; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 10px; flex-shrink: 0; }
+.sess-comb { margin-bottom: 14px; flex-shrink: 0; }
 .sess-worker { font-size: 11px; font-weight: 700; color: var(--accent); }
 
-/* Session view modal (read-only) */
-#sessViewMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 210; align-items: flex-end; justify-content: center; }
-#sessViewMod.on { display: flex; }
-.sessv-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1rem 1rem 2.5rem; width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column; }
-.sessv-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; flex-shrink: 0; }
-.sessv-sub { font-size: 11px; color: var(--muted); margin-bottom: 12px; flex-shrink: 0; }
-.sessv-body { flex: 1; overflow-y: auto; }
-.sessv-km { font-size: 11px; font-weight: 700; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; }
-.sessv-row { display: flex; align-items: center; gap: 7px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--s2); margin-bottom: 3px; }
-.ro-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-.ro-bar { color: var(--accent); background: rgba(79,142,247,.15); }
-.ro-zun { color: var(--green); background: rgba(34,201,122,.15); }
+.sessv-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; flex-shrink: 0; }
+.sessv-sub { font-size: 11px; color: var(--muted); margin-bottom: 14px; flex-shrink: 0; line-height: 1.5; }
+.sessv-body { flex: 1; overflow-y: auto; padding: 2px; }
+.sessv-km { font-size: 11px; font-weight: 700; color: var(--muted); margin: 14px 0 7px; text-transform: uppercase; }
+.sessv-row { display: flex; align-items: center; gap: 9px; padding: 10px 13px; border-radius: 13px;
+  background: var(--bg); margin-bottom: 7px;
+  box-shadow: 4px 4px 8px var(--sh-d), -4px -4px 8px var(--sh-l); }
+.ro-tag { font-size: 10px; font-weight: 700; }
+.ro-bar { color: var(--accent); }
+.ro-zun { color: var(--green); }
+.sessv-actions { display: flex; gap: 10px; padding-top: 14px; margin-top: 10px; flex-shrink: 0; }
 
-/* Sessv action buttons */
-.sessv-actions { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: 8px; flex-shrink: 0; }
-.sessv-actions button { flex: 1; padding: 12px; font-size: 13px; font-weight: 700; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
-.sessv-actions .sv-xlsx { background: var(--green); border-color: var(--green); color: #fff; }
-.sessv-actions .sv-csv { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rst-inner { background: var(--bg); border-radius: 26px; padding: 1.8rem 1.4rem; width: 100%; max-width: 340px;
+  text-align: center; box-shadow: 16px 16px 32px var(--sh-d), -16px -16px 32px var(--sh-l); }
+.rst-icon { font-size: 38px; margin-bottom: 12px; }
+.rst-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.rst-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.4rem; line-height: 1.55; }
+.rst-btns { display: flex; flex-direction: column; gap: 10px; }
 
-/* Restart confirm modal */
-#rstMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 300; align-items: center; justify-content: center; padding: 1.5rem; }
-#rstMod.on { display: flex; }
-.rst-inner { background: var(--s1); border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 340px; text-align: center; }
-.rst-icon { font-size: 36px; margin-bottom: 10px; }
-.rst-title { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
-.rst-sub { font-size: 13px; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.5; }
-.rst-btns { display: flex; flex-direction: column; gap: 8px; }
-.rst-btns button { padding: 13px; font-size: 14px; font-weight: 700; border-radius: 10px; border: 1px solid var(--border); background: var(--s2); color: var(--text); cursor: pointer; }
-.rst-btns .rst-yes { background: var(--danger); border-color: var(--danger); color: #fff; }
+.exp-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+.exp-sub { font-size: 12px; color: var(--muted); margin-bottom: 1.1rem; }
+.exp-btns { display: flex; flex-direction: column; gap: 10px; }
 
-/* Restart button in km-bar */
-.km-rst-btn { flex-shrink: 0; font-size: 16px; width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); color: var(--muted); background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.km-rst-btn:active { background: var(--s2); }
+/* ══════════ ТОСТ, ТУЗААМЖ ══════════ */
+/* Анхааруулга дээд талд, төлөвийн мэдэгдэл доод талд — давхцахгүй */
+#warnToast, #statusToast { display: none; position: fixed; left: 50%; transform: translateX(-50%);
+  padding: 14px 22px; border-radius: 16px; font-weight: 700; color: #fff; text-align: center;
+  pointer-events: none; box-shadow: 0 10px 26px rgba(120,135,155,.5);
+  max-width: calc(100vw - 32px); }
+#warnToast { top: 76px; z-index: 300; font-size: 15px; font-weight: 800; white-space: nowrap; animation: toastIn .2s ease; }
+#statusToast { bottom: 28px; z-index: 400; font-size: 14px; animation: toastUp .2s ease; }
+@keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(-8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+@keyframes toastUp { from { opacity:0; transform: translateX(-50%) translateY(8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
 
-/* Sessions button in setup */
-.btn-sess { width: 100%; padding: 12px; font-size: 14px; font-weight: 700; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 11px; cursor: pointer; margin-top: .4rem; }
+#installBanner { display: none; align-items: center; gap: 11px; background: var(--bg); border-radius: 18px;
+  padding: 13px 14px; margin-bottom: .8rem;
+  box-shadow: 7px 7px 14px var(--sh-d), -7px -7px 14px var(--sh-l); }
+#installBanner .ib-txt { flex: 1; font-size: 13px; color: var(--text); }
+#installBanner .ib-txt span { font-size: 11px; color: var(--muted); display: block; margin-top: 2px; }
+#installBanner button { font-size: 13px; font-weight: 700; font-family: inherit; background: var(--bg);
+  color: var(--accent); border: none; border-radius: 12px; padding: 10px 16px; cursor: pointer; white-space: nowrap;
+  box-shadow: 4px 4px 9px var(--sh-d), -4px -4px 9px var(--sh-l); }
+#installBanner button:active { box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l); }
+#iosBanner { display: none; background: var(--bg); border-radius: 18px; padding: 13px 15px; margin-bottom: .8rem;
+  font-size: 12px; color: var(--muted); line-height: 1.65;
+  box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
 
-/* Export btn row */
-.exp-btns { display: flex; flex-direction: column; gap: 8px; }
-.exp-btns button { width: 100%; padding: 13px; font-size: 14px; font-weight: 700; border: 1px solid var(--border); border-radius: 10px; background: var(--s2); color: var(--text); cursor: pointer; }
-.exp-btns .eb1 { background: var(--accent); border-color: var(--accent); color: #fff; }
-.exp-btns .eb-xlsx { background: var(--green); border-color: var(--green); color: #fff; }
-
-/* Status toast */
-#statusToast { display: none; position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 400; padding: 13px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; color: #fff; text-align: center; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,.5); white-space: nowrap; animation: toastIn .2s ease; }
-
-/* Export */
-#expMod { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: flex-end; justify-content: center; }
-#expMod.on { display: flex; }
-.exp-inner { background: var(--s1); border-radius: 18px 18px 0 0; padding: 1.25rem 1rem 2.5rem; width: 100%; max-width: 480px; }
-.exp-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.exp-sub { font-size: 12px; color: var(--muted); margin-bottom: 1rem; }
+@media (prefers-reduced-motion: reduce) {
+  .nm-orb, .el-border::before, .el-glow, .nm-btn::before, .btn-go::before { animation: none !important; }
+}
 </style>
 </head>
 <body>
@@ -410,70 +451,33 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   <div class="nm-orb o3"></div>
 
   <div class="auth-wrap">
-    <div class="auth-card" id="authCard">
+    <div class="auth-face">
+      <div class="nm-logo">🛤</div>
+      <h1>Уулзварын зайн хэмжилт</h1>
+      <p class="auth-sub">Замын хэсгийн ажилтны нэвтрэлт</p>
 
-      <!-- ── Нэвтрэх ── -->
-      <div class="auth-face auth-login">
-        <div class="nm-logo">🛤</div>
-        <h1>Уулзварын зайн хэмжилт</h1>
-        <p class="auth-sub">Замын хэсгийн ажилтны нэвтрэлт</p>
+      <div class="lg-err" id="lgErr"></div>
 
-        <div class="lg-err" id="lgErr"></div>
+      <form onsubmit="event.preventDefault(); doLogin();">
+        <div class="nm-field">
+          <div class="el-glow"></div><div class="el-border"></div>
+          <input type="email" id="lgEmail" placeholder=" " autocomplete="username" inputmode="email" required/>
+          <label for="lgEmail">Цахим хаяг</label>
+        </div>
 
-        <form onsubmit="event.preventDefault(); doLogin();">
-          <div class="nm-field">
-            <div class="el-glow"></div><div class="el-border"></div>
-            <input type="email" id="lgEmail" placeholder=" " autocomplete="username" inputmode="email" required/>
-            <label for="lgEmail">Цахим хаяг</label>
-          </div>
-
-          <div class="nm-field">
-            <div class="el-glow"></div><div class="el-border"></div>
-            <input type="password" id="lgPass" placeholder=" " autocomplete="current-password" required/>
-            <label for="lgPass">Нууц үг</label>
-            <button type="button" class="pass-toggle" onclick="togglePass('lgPass', this)" aria-label="Нууц үгийг харуулах">
-              <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-3.2 4.2M6.2 6.2A18 18 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.1-.9"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
-            </button>
-          </div>
-
-          <button type="submit" class="nm-btn" id="lgBtn">НЭВТРЭХ</button>
-          <div id="lgBusy">Шалгаж байна…</div>
-        </form>
-
-        <div class="switch-row">
-          <span>Нууц үгээ мартсан уу?</span>
-          <button type="button" class="switch-circle" onclick="flipAuth()" aria-label="Нууц үг сэргээх">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="m10 13 8.5-8.5M16 7l2.5 2.5M13.5 9.5 16 12"/></svg>
+        <div class="nm-field">
+          <div class="el-glow"></div><div class="el-border"></div>
+          <input type="password" id="lgPass" placeholder=" " autocomplete="current-password" required/>
+          <label for="lgPass">Нууц үг</label>
+          <button type="button" class="pass-toggle" onclick="togglePass('lgPass', this)" aria-label="Нууц үгийг харуулах">
+            <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-3.2 4.2M6.2 6.2A18 18 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.1-.9"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
           </button>
         </div>
-      </div>
 
-      <!-- ── Нууц үг сэргээх ── -->
-      <div class="auth-face auth-reset">
-        <div class="nm-logo">🔑</div>
-        <h1>Нууц үг сэргээх</h1>
-        <p class="auth-sub">Хаягаа бичихэд сэргээх холбоос<br>шуудангаар очно</p>
-
-        <div class="rs-msg" id="rsMsg"></div>
-
-        <form onsubmit="event.preventDefault(); doReset();">
-          <div class="nm-field">
-            <div class="el-glow"></div><div class="el-border"></div>
-            <input type="email" id="rsEmail" placeholder=" " autocomplete="username" inputmode="email" required/>
-            <label for="rsEmail">Цахим хаяг</label>
-          </div>
-          <button type="submit" class="nm-btn">ХОЛБООС ИЛГЭЭХ</button>
-        </form>
-
-        <div class="switch-row">
-          <span>Нэвтрэх хэсэг рүү буцах</span>
-          <button type="button" class="switch-circle" onclick="flipAuth()" aria-label="Буцах">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          </button>
-        </div>
-      </div>
-
+        <button type="submit" class="nm-btn" id="lgBtn">НЭВТРЭХ</button>
+        <div id="lgBusy">Шалгаж байна…</div>
+      </form>
     </div>
   </div>
 </div>
@@ -539,8 +543,8 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
   </div>
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
   <button class="btn-sess" onclick="openSessMod()">📂 Өмнөх хэмжилтүүд харах</button>
-  <button class="btn-sess" id="btnImport" style="color:var(--green);border-color:var(--green);margin-top:.3rem;" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
-  <button class="btn-sess" id="btnCombinedLocal" style="background:var(--green);color:#fff;border-color:var(--green);margin-top:.3rem;" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
+  <button class="btn-sess" id="btnImport" style="color:var(--green)" onclick="importData()">📥 Ажилчдын өгөгдөл нэмэх</button>
+  <button class="btn-sess" id="btnCombinedLocal" style="color:var(--green)" onclick="exportCombinedExcel()">📊 Бүгдийг нэг хүснэгтээр Excel татах</button>
   <input type="file" id="importFile" accept=".json" multiple style="display:none" onchange="handleImport(event)"/>
 
   <div id="installBanner">
@@ -557,7 +561,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <div class="km-back" onclick="openKmMod()">☰</div>
     <div class="km-scroll-wrap" id="kmStrip"></div>
     <button class="km-next-btn" onclick="nextKm()">→ км</button>
-    <button class="km-next-btn" style="border-color:var(--muted);color:var(--muted);" onclick="openExpMod()">↓</button>
+    <button class="km-next-btn" style="color:var(--muted)" onclick="openExpMod()">↓</button>
     <button class="km-rst-btn" onclick="openRstMod()" title="Дахин эхлүүлэх">⟳</button>
   </div>
   <div class="prog"><div class="prog-f" id="prog" style="width:0%"></div></div>
@@ -606,7 +610,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 
       <!-- RIGHT = Дараах (confirm + advance) -->
       <div class="nav-side" onclick="confirmAndNext()">
-        <div class="nav-side-btn" style="background:var(--accent);border-color:var(--accent);color:#fff;font-size:22px;">→</div>
+        <div class="nav-side-btn go" style="font-size:24px;">→</div>
       </div>
     </div>
   </div>
@@ -655,12 +659,12 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 <div id="statusToast"></div>
 
 <!-- Import result toast modal -->
-<div id="importMod" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:center;justify-content:center;padding:1.5rem;">
-  <div style="background:var(--s1);border-radius:16px;padding:1.5rem;width:100%;max-width:340px;text-align:center;">
+<div id="importMod" style="display:none;position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(3px);z-index:300;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:var(--bg);border-radius:26px;padding:1.8rem 1.4rem;width:100%;max-width:340px;text-align:center;box-shadow:16px 16px 32px var(--sh-d),-16px -16px 32px var(--sh-l);">
     <div style="font-size:32px;margin-bottom:10px" id="importIcon">✅</div>
     <div style="font-size:15px;font-weight:800;margin-bottom:8px" id="importTitle"></div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.5;white-space:pre-line;text-align:left;max-height:45vh;overflow-y:auto" id="importMsg"></div>
-    <button onclick="document.getElementById('importMod').style.display='none'" style="width:100%;padding:13px;font-size:14px;font-weight:700;border-radius:10px;border:none;background:var(--accent);color:#fff;cursor:pointer;">Ойлголоо</button>
+    <button onclick="document.getElementById('importMod').style.display='none'" class="btn-sess" style="color:var(--accent)">Ойлголоо</button>
   </div>
 </div>
 
@@ -679,11 +683,11 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     <div class="exp-title">Өгөгдөл татах</div>
     <div class="exp-sub" id="expSub">0 хэмжилт бичигдсэн</div>
     <div class="exp-btns">
-      <button class="eb-cloud" id="btnCloudSend" style="display:none;background:var(--green);border-color:var(--green);color:#fff;" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
+      <button class="eb-cloud" id="btnCloudSend" style="display:none;color:var(--green)" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
       <button class="eb-xlsx" onclick="exportExcel();closeExpMod()">📊 Дэлгэрэнгүй Excel татах</button>
       <button class="eb1" onclick="exportCSV();closeExpMod()">⬇ Дэлгэрэнгүй CSV татах</button>
       <button onclick="exportSum();closeExpMod()">⬇ Дүн CSV татах</button>
-      <button style="background:var(--green);border-color:var(--green);color:#fff;" onclick="shareData()">📤 Messenger-р явуулах</button>
+      <button style="color:var(--green)" onclick="shareData()">📤 Messenger-р явуулах</button>
     </div>
     <div class="mod-close" onclick="closeExpMod()">Хаах</div>
   </div>
@@ -699,10 +703,10 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
     start_url: "./",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#0e1018",
-    theme_color: "#0e1018",
+    background_color: "#e7ebf0",
+    theme_color: "#e7ebf0",
     icons: [{
-      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%230e1018'/><rect x='16' y='16' width='160' height='160' rx='24' fill='%23181c28'/><text x='96' y='120' font-size='90' text-anchor='middle' font-family='system-ui'>🛤</text></svg>`),
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%23e7ebf0'/><rect x='16' y='16' width='160' height='160' rx='24' fill='%23dde3ea'/><text x='96' y='120' font-size='90' text-anchor='middle' font-family='system-ui'>🛤</text></svg>`),
       sizes: "192x192", type: "image/svg+xml", purpose: "any maskable"
     }]
   };
@@ -838,8 +842,6 @@ async function loadProfile(user) {
 /* ── Дэлгэц солих ── */
 function showLogin() {
   document.getElementById('login').classList.add('on');
-  document.getElementById('authCard').classList.remove('flipped');
-  syncAuthFaces();
   document.getElementById('setup').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   setLoginBusy(false);
@@ -863,33 +865,6 @@ function showLoginError(msg) {
 }
 function clearLoginError() { document.getElementById('lgErr').classList.remove('on'); }
 
-/* Далд талыг фокус, дэлгэц уншигч, дарагдалтаас бүрэн хасна */
-function syncAuthFaces() {
-  const card = document.getElementById('authCard');
-  const flipped = card.classList.contains('flipped');
-  const login = card.querySelector('.auth-login');
-  const reset = card.querySelector('.auth-reset');
-  login.inert = flipped;  login.setAttribute('aria-hidden', flipped);
-  reset.inert = !flipped; reset.setAttribute('aria-hidden', !flipped);
-}
-
-/* Нэвтрэх ↔ нууц үг сэргээх хооронд картыг эргүүлнэ */
-function flipAuth() {
-  const card = document.getElementById('authCard');
-  const toReset = !card.classList.contains('flipped');
-  card.classList.toggle('flipped');
-  syncAuthFaces();
-  if (toReset) {
-    // Нэвтрэх талд бичсэн хаягийг зөөж өгнө
-    const em = (document.getElementById('lgEmail').value || '').trim();
-    if (em && !document.getElementById('rsEmail').value) document.getElementById('rsEmail').value = em;
-    document.getElementById('rsMsg').className = 'rs-msg';
-    setTimeout(() => document.getElementById('rsEmail').focus(), 500);
-  } else {
-    setTimeout(() => document.getElementById('lgEmail').focus(), 500);
-  }
-}
-
 /* Нууц үгийг харуулах / нуух */
 function togglePass(id, btn) {
   const input = document.getElementById(id);
@@ -897,12 +872,6 @@ function togglePass(id, btn) {
   input.type = show ? 'text' : 'password';
   btn.classList.toggle('on', show);
   btn.setAttribute('aria-label', show ? 'Нууц үгийг нуух' : 'Нууц үгийг харуулах');
-}
-
-function showResetMsg(msg, kind) {
-  const e = document.getElementById('rsMsg');
-  e.textContent = msg;
-  e.className = 'rs-msg on ' + kind;
 }
 
 /* ── Нэвтрэх / гарах ── */
@@ -927,17 +896,6 @@ async function doLogin() {
   } catch (e) {
     setLoginBusy(false);
     showLoginError(AUTH_ERR[e.code] || ('Нэвтэрч чадсангүй: ' + (e.message || e.code)));
-  }
-}
-async function doReset() {
-  const email = (document.getElementById('rsEmail').value || '').trim().toLowerCase();
-  if (!email) { showResetMsg('Цахим хаягаа бичнэ үү.', 'bad'); return; }
-  if (!CLOUD.auth) { showResetMsg('Firebase тохируулагдаагүй байна.', 'bad'); return; }
-  try {
-    await CLOUD.auth.sendPasswordResetEmail(email);
-    showResetMsg(`«${email}» хаяг руу нууц үг сэргээх холбоос илгээлээ. Шуудангаа шалгана уу.`, 'ok');
-  } catch (e) {
-    showResetMsg(AUTH_ERR[e.code] || ('Илгээж чадсангүй: ' + (e.message || e.code)), 'bad');
   }
 }
 async function doLogout() {
@@ -1024,11 +982,11 @@ function countFilled(c, d) {
 
 async function uploadCurrent(silent) {
   if (!CLOUD.on || !CLOUD.user || !currentSessionId) {
-    if (!silent) showStatus('⚠️ Нэвтрээгүй байна', '#f0a500');
+    if (!silent) showStatus('⚠️ Нэвтрээгүй байна', '#a86400');
     return false;
   }
   const cnt = countFilled(C, data);
-  if (!cnt) { if (!silent) showStatus('⚠️ Илгээх хэмжилт алга', '#f0a500'); return false; }
+  if (!cnt) { if (!silent) showStatus('⚠️ Илгээх хэмжилт алга', '#a86400'); return false; }
   const docId = CLOUD.user.uid + '__' + currentSessionId;
   const payload = {
     pd: myPd(), road: C.road, date: C.date, s: C.s, e: C.e, bar: C.bar, zun: C.zun, max: C.max || 37,
@@ -1041,10 +999,10 @@ async function uploadCurrent(silent) {
   };
   try {
     await CLOUD.db.collection('measurements').doc(docId).set(payload, { merge: true });
-    if (!silent) { showStatus(`☁️ ${cnt} хэмжилт илгээгдлээ`, '#22c97a'); closeExpMod(); }
+    if (!silent) { showStatus(`☁️ ${cnt} хэмжилт илгээгдлээ`, '#0b7a4a'); closeExpMod(); }
     return true;
   } catch (e) {
-    if (!silent) showStatus('❌ Илгээж чадсангүй: ' + (e.code || e.message), '#f04545');
+    if (!silent) showStatus('❌ Илгээж чадсангүй: ' + (e.code || e.message), '#c92a2a');
     return false;
   }
 }
@@ -1382,10 +1340,10 @@ function checkWarn(v) {
   const zone = getWarnZone(v);
   if (zone !== lastWarnZone) {
     lastWarnZone = zone;
-    if (zone === 3) showWarn('🚫 Хөдөлгөөн хаалаа', '#c0392b');
-    else if (zone === 2) showWarn('🚧 25км/цагийн хурд тогтоо', '#f04545');
-    else if (zone === 1) showWarn('⚠️ 60км/цагийн хурд тогтоох', '#f0a500');
-    else if (zone === 0) showWarn('⚠️ Байж болохгүй хэмжээнд хүрчээ', '#d97800');
+    if (zone === 3) showWarn('🚫 Хөдөлгөөн хаалаа', '#a11d1d');
+    else if (zone === 2) showWarn('🚧 25км/цагийн хурд тогтоо', '#c92a2a');
+    else if (zone === 1) showWarn('⚠️ 60км/цагийн хурд тогтоох', '#a86400');
+    else if (zone === 0) showWarn('⚠️ Байж болохгүй хэмжээнд хүрчээ', '#a35400');
     else if (warnTimer) { clearTimeout(warnTimer); warnTimer=null; document.getElementById('warnToast').style.display='none'; }
   }
 }
@@ -1549,7 +1507,7 @@ function renderHist() {
           <span class="he">засах ✎</span></div>`;
       }
     }
-    if(grp) html+=`<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px">${km} км</div>${grp}</div>`;
+    if(grp) html+=`<div style="margin-bottom:8px"><div class="hist-km">${km} км</div>${grp}</div>`;
   });
   list.innerHTML=any?html:'<div class="hist-empty">Хэмжилт оруулаагүй байна</div>';
 }
@@ -1650,7 +1608,7 @@ async function exportSessionExcel() {
   const c = sess.config, d = sess.data;
   const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
   await _exportExcelCore(c, d, fname);
-  showStatus('📊 Excel татагдлаа', '#22c97a');
+  showStatus('📊 Excel татагдлаа', '#0b7a4a');
 }
 
 /* ── CSV татах (saved session — modal-аас) ── */
@@ -1659,7 +1617,7 @@ function exportSessionCSV() {
   const sess = getSessions().find(s => s.id === currentViewSessId);
   if (!sess) return;
   _exportCSVDetailed(sess.config, sess.data);
-  showStatus('📄 CSV татагдлаа', '#4f8ef7');
+  showStatus('📄 CSV татагдлаа', '#006cff');
 }
 
 /* ── Excel core — өнгөтэй, 2 хуудас ── */
@@ -1917,7 +1875,7 @@ async function exportCombinedExcel() {
   }
   const comb = buildCombined();
   if (!comb.rows.length) {
-    showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#f0a500');
+    showStatus('⚠️ Хадгалсан хэмжилт алга байна', '#a86400');
     return;
   }
   const pdTag = (CLOUD.on && myPd()) ? `ПД-${myPd()} · ` : '';
@@ -2086,7 +2044,7 @@ async function exportCombinedExcel() {
   a.download = `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${new Date().toISOString().split('T')[0]}.xlsx`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  showStatus(`📊 ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#22c97a');
+  showStatus(`📊 ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, '#0b7a4a');
 }
 
 /* ── Status Toast ── */
@@ -2096,7 +2054,7 @@ function showStatus(msg, bg) {
   t.textContent = msg;
   t.style.background = bg;
   t.style.display = 'block';
-  t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'toastIn .2s ease';
+  t.style.animation = 'none'; void t.offsetWidth; t.style.animation = 'toastUp .2s ease';
   if (statusTimer) clearTimeout(statusTimer);
   statusTimer = setTimeout(() => { t.style.display = 'none'; }, 4000);
 }
@@ -2119,7 +2077,7 @@ async function shareData() {
         text: `Огноо: ${C.date}`
       });
     } catch(e) {
-      if (e.name !== 'AbortError') showStatus('❌ Явуулж чадсангүй', '#f04545');
+      if (e.name !== 'AbortError') showStatus('❌ Явуулж чадсангүй', '#c92a2a');
     }
   } else {
     // Fallback: download the file
@@ -2127,7 +2085,7 @@ async function shareData() {
     a.href = URL.createObjectURL(blob);
     a.download = filename;
     a.click();
-    showStatus('📁 Файл татагдлаа — Messenger-т илгээнэ үү', '#4f8ef7');
+    showStatus('📁 Файл татагдлаа — Messenger-т илгээнэ үү', '#006cff');
   }
 }
 
