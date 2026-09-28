@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Уулзвар">
 <link id="appManifest" rel="manifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
 <title>Уулзварын зайн хэмжилт</title>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"></script>
@@ -53,20 +56,138 @@ const TTL_DAYS = 30;
 html, body { height: 100%; overflow: hidden; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
 
-/* ── LOGIN ── */
-#login { display: none; height: 100vh; overflow-y: auto; padding: 1.25rem; max-width: 420px; margin: 0 auto; flex-direction: column; justify-content: center; }
+/* ══════════════════════════════════════════════════════════
+   НЭВТРЭХ ДЭЛГЭЦ — неоморф (аппын бараан өнгөнд тохируулсан)
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --nm: #181c28;                          /* неоморф гадаргуу */
+  --nm-d: rgba(0,0,0,.6);                 /* гүн сүүдэр */
+  --nm-l: rgba(255,255,255,.05);          /* гэрлийн тусгал */
+}
+#login {
+  display: none; position: fixed; inset: 0; z-index: 60;
+  background: var(--nm); overflow-y: auto;
+  align-items: center; justify-content: center; padding: 24px 16px;
+  font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+}
 #login.on { display: flex; }
-.lg-brand { text-align: center; margin-bottom: 1.5rem; }
-.lg-brand .lg-ic { width: 62px; height: 62px; background: var(--accent); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto .7rem; }
-.lg-brand h1 { font-size: 18px; font-weight: 800; }
-.lg-brand p { font-size: 12px; color: var(--muted); margin-top: 3px; }
-.lg-err { display: none; background: rgba(240,69,69,.13); border: 1px solid var(--danger); color: #ff9b9b; font-size: 12.5px; border-radius: 9px; padding: 10px 12px; margin-bottom: .7rem; line-height: 1.5; }
-.lg-err.on { display: block; }
-.lg-note { display: none; background: rgba(240,165,0,.12); border: 1px solid var(--warn); color: #ffd9a0; font-size: 12.5px; border-radius: 9px; padding: 10px 12px; margin-bottom: .7rem; line-height: 1.5; }
-.lg-note.on { display: block; }
-#lgBusy { display: none; text-align: center; font-size: 12px; color: var(--muted); margin-top: .7rem; }
+
+/* Хөвөгч дэвсгэр бөмбөлгүүд */
+.nm-orb { position: absolute; border-radius: 50%; background: var(--nm); pointer-events: none; z-index: -1;
+  box-shadow: 14px 14px 28px var(--nm-d), -14px -14px 28px var(--nm-l);
+  animation: nmFloat 6s ease-in-out infinite; }
+.nm-orb.o1 { width: 180px; height: 180px; top: 5%; left: 6%; }
+.nm-orb.o2 { width: 124px; height: 124px; right: 7%; bottom: 7%; animation-delay: 1.5s; }
+.nm-orb.o3 { width: 54px; height: 54px; right: 18%; top: 18%; animation-delay: 3s; }
+@keyframes nmFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+
+.auth-wrap { width: 400px; max-width: 100%; perspective: 1600px; }
+.auth-card { position: relative; width: 100%; transform-style: preserve-3d;
+  transition: transform .9s cubic-bezier(.68,-.35,.27,1.4); }
+.auth-card.flipped { transform: rotateY(180deg); }
+
+.auth-face { padding: 30px 26px 26px; border-radius: 32px; background: var(--nm);
+  box-shadow: 18px 18px 36px var(--nm-d), -18px -18px 36px var(--nm-l);
+  backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.auth-login { position: relative; }              /* картын өндрийг энэ тогтооно */
+.auth-reset { position: absolute; inset: 0; transform: rotateY(180deg); overflow-y: auto;
+  display: flex; flex-direction: column; justify-content: center; }   /* нэвтрэх талаас намхан тул голлуулна */
+/* Ар талд эргэсэн нүүр нь дарагдалтыг барьж авахгүй байх
+   (backface-visibility ганцаараа үүнийг бүрэн зогсоодоггүй) */
+.auth-card:not(.flipped) .auth-reset,
+.auth-card.flipped .auth-login { pointer-events: none; }
+
+.nm-logo { width: 78px; height: 78px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 32px; background: var(--nm);
+  box-shadow: 9px 9px 18px var(--nm-d), -9px -9px 18px var(--nm-l); transition: .4s ease; }
+.nm-logo:active { transform: translateY(-4px) rotate(8deg); }
+.auth-face h1 { text-align: center; font-size: 19px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.auth-sub { text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; margin-bottom: 22px; }
+
+/* Мэдэгдлүүд */
+.lg-err, .rs-msg { display: none; font-size: 12.5px; border-radius: 12px; padding: 10px 13px; margin-bottom: 14px; line-height: 1.5; white-space: pre-line; }
+.lg-err { background: rgba(240,69,69,.12); border: 1px solid rgba(240,69,69,.55); color: #ff9b9b; }
+.lg-err.on, .rs-msg.on { display: block; }
+.rs-msg.bad { background: rgba(240,69,69,.12); border: 1px solid rgba(240,69,69,.55); color: #ff9b9b; }
+.rs-msg.ok  { background: rgba(34,201,122,.12); border: 1px solid rgba(34,201,122,.5); color: #8ce8bb; }
+
+/* Талбар — фокуслах үед цахилгаан хүрээ гарна */
+.nm-field { position: relative; width: 100%; height: 56px; margin-bottom: 18px; }
+.el-border { position: absolute; inset: -2px; border-radius: 19px; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
+.el-border::before { content: ""; position: absolute; width: 180%; height: 180%; left: -40%; top: -40%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 30deg,
+    #00eaff 45deg, #00aaff 65deg, #006cff 80deg, transparent 105deg, transparent 360deg);
+  animation: elRotate 1.1s linear infinite; }
+.el-border::after { content: ""; position: absolute; inset: 2px; border-radius: 17px; background: var(--nm); }
+.el-glow { position: absolute; inset: -5px; border-radius: 22px; pointer-events: none; opacity: 0; filter: blur(9px);
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 30deg,
+    #00eaff 45deg, #00aaff 65deg, #006cff 80deg, transparent 105deg, transparent 360deg); }
+.nm-field:focus-within .el-border { opacity: 1; }
+.nm-field:focus-within .el-glow { opacity: .45; animation: elRotate 1.1s linear infinite; }
+@keyframes elRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.nm-field input { position: absolute; inset: 2px; width: calc(100% - 4px); height: 52px;
+  border: none; outline: none; border-radius: 16px; background: var(--nm); color: var(--text);
+  font-size: 15px; font-family: inherit; padding: 0 46px 0 16px; z-index: 20;
+  box-shadow: inset 6px 6px 12px var(--nm-d), inset -6px -6px 12px var(--nm-l); transition: box-shadow .25s ease; }
+.nm-field input:focus { box-shadow: inset 3px 3px 7px var(--nm-d), inset -3px -3px 7px var(--nm-l); }
+.nm-field label { position: absolute; left: 16px; top: 18px; z-index: 30; color: var(--muted);
+  font-size: 14.5px; pointer-events: none; transition: all .25s ease; }
+.nm-field input:focus + label,
+.nm-field input:not(:placeholder-shown) + label {
+  top: -9px; left: 12px; padding: 2px 8px; border-radius: 7px;
+  background: var(--nm); color: var(--accent); font-size: 10.5px; line-height: 14px; }
+
+.pass-toggle { position: absolute; right: 12px; top: 14px; width: 30px; height: 30px; z-index: 40;
+  display: flex; align-items: center; justify-content: center; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; padding: 0; }
+.pass-toggle:active { color: var(--accent); transform: scale(1.1); }
+.pass-toggle svg { width: 19px; height: 19px; }
+.pass-toggle .ic-off { display: none; }
+.pass-toggle.on .ic-on { display: none; }
+.pass-toggle.on .ic-off { display: block; }
+
+/* Товч */
+.nm-btn { position: relative; isolation: isolate; width: 100%; height: 54px; border: none; border-radius: 17px;
+  background: var(--nm); color: var(--accent); font-size: 14.5px; font-weight: 700; letter-spacing: .3px;
+  font-family: inherit; cursor: pointer; overflow: hidden;
+  box-shadow: 8px 8px 16px var(--nm-d), -8px -8px 16px var(--nm-l); transition: .3s ease; }
+.nm-btn::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(110deg, #006cff, #00cfff, #006cff); background-size: 200% 100%;
+  transform: translateY(100%); transition: transform .35s ease; }
+.nm-btn:hover::before, .nm-btn:active::before { transform: translateY(0); animation: nmBtnMove 1.5s linear infinite; }
+.nm-btn:hover, .nm-btn:active { color: #fff; }
+.nm-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,114,255,.35); }
+.nm-btn:active { transform: scale(.975); }
+.nm-btn[disabled] { opacity: .55; pointer-events: none; }
+@keyframes nmBtnMove { from { background-position: 0 50%; } to { background-position: 200% 50%; } }
+
+#lgBusy { display: none; text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 12px; }
 #lgBusy.on { display: block; }
-.lg-forgot { display: block; text-align: center; margin-top: 1rem; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+
+/* Эргүүлэх хэсэг */
+.switch-row { display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin-top: 22px; font-size: 11.5px; color: var(--muted); text-align: center; }
+.switch-circle { width: 46px; height: 46px; flex-shrink: 0; border: none; border-radius: 50%;
+  background: var(--nm); color: var(--accent); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 7px 7px 14px var(--nm-d), -7px -7px 14px var(--nm-l); transition: .35s ease; }
+.switch-circle svg { width: 20px; height: 20px; }
+.switch-circle:active { transform: scale(.9); color: #fff; background: var(--accent); }
+
+/* Намхан дэлгэц */
+@media (max-height: 720px) {
+  .auth-face { padding: 22px 22px 20px; }
+  .nm-logo { width: 62px; height: 62px; font-size: 26px; margin-bottom: 10px; }
+  .auth-sub { margin-bottom: 16px; }
+  .nm-field { margin-bottom: 14px; }
+  .switch-row { margin-top: 16px; }
+  .nm-orb { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-orb, .el-border::before, .el-glow, .nm-btn::before { animation: none !important; }
+  .auth-card { transition: none; }
+}
 
 /* User chip / session bar */
 .me-bar { display: flex; align-items: center; gap: 10px; background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: .75rem; }
@@ -284,28 +405,77 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 
 <!-- LOGIN -->
 <div id="login">
-  <div class="lg-brand">
-    <div class="lg-ic">🛤</div>
-    <h1>Уулзварын зайн хэмжилт</h1>
-    <p>Замын хэсгийн ажилтны нэвтрэлт</p>
-  </div>
-  <div class="lg-err" id="lgErr"></div>
-  <div class="lg-note" id="lgNote"></div>
-  <div class="card">
-    <div class="fg">
-      <div class="field">
-        <label>Цахим хаяг</label>
-        <input type="email" id="lgEmail" autocomplete="username" inputmode="email" placeholder="pd6.bataa@uulzvar.mn"/>
+  <div class="nm-orb o1"></div>
+  <div class="nm-orb o2"></div>
+  <div class="nm-orb o3"></div>
+
+  <div class="auth-wrap">
+    <div class="auth-card" id="authCard">
+
+      <!-- ── Нэвтрэх ── -->
+      <div class="auth-face auth-login">
+        <div class="nm-logo">🛤</div>
+        <h1>Уулзварын зайн хэмжилт</h1>
+        <p class="auth-sub">Замын хэсгийн ажилтны нэвтрэлт</p>
+
+        <div class="lg-err" id="lgErr"></div>
+
+        <form onsubmit="event.preventDefault(); doLogin();">
+          <div class="nm-field">
+            <div class="el-glow"></div><div class="el-border"></div>
+            <input type="email" id="lgEmail" placeholder=" " autocomplete="username" inputmode="email" required/>
+            <label for="lgEmail">Цахим хаяг</label>
+          </div>
+
+          <div class="nm-field">
+            <div class="el-glow"></div><div class="el-border"></div>
+            <input type="password" id="lgPass" placeholder=" " autocomplete="current-password" required/>
+            <label for="lgPass">Нууц үг</label>
+            <button type="button" class="pass-toggle" onclick="togglePass('lgPass', this)" aria-label="Нууц үгийг харуулах">
+              <svg class="ic-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-3.2 4.2M6.2 6.2A18 18 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.1-.9"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+            </button>
+          </div>
+
+          <button type="submit" class="nm-btn" id="lgBtn">НЭВТРЭХ</button>
+          <div id="lgBusy">Шалгаж байна…</div>
+        </form>
+
+        <div class="switch-row">
+          <span>Нууц үгээ мартсан уу?</span>
+          <button type="button" class="switch-circle" onclick="flipAuth()" aria-label="Нууц үг сэргээх">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="m10 13 8.5-8.5M16 7l2.5 2.5M13.5 9.5 16 12"/></svg>
+          </button>
+        </div>
       </div>
-      <div class="field">
-        <label>Нууц үг</label>
-        <input type="password" id="lgPass" autocomplete="current-password" placeholder="••••••••"/>
+
+      <!-- ── Нууц үг сэргээх ── -->
+      <div class="auth-face auth-reset">
+        <div class="nm-logo">🔑</div>
+        <h1>Нууц үг сэргээх</h1>
+        <p class="auth-sub">Хаягаа бичихэд сэргээх холбоос<br>шуудангаар очно</p>
+
+        <div class="rs-msg" id="rsMsg"></div>
+
+        <form onsubmit="event.preventDefault(); doReset();">
+          <div class="nm-field">
+            <div class="el-glow"></div><div class="el-border"></div>
+            <input type="email" id="rsEmail" placeholder=" " autocomplete="username" inputmode="email" required/>
+            <label for="rsEmail">Цахим хаяг</label>
+          </div>
+          <button type="submit" class="nm-btn">ХОЛБООС ИЛГЭЭХ</button>
+        </form>
+
+        <div class="switch-row">
+          <span>Нэвтрэх хэсэг рүү буцах</span>
+          <button type="button" class="switch-circle" onclick="flipAuth()" aria-label="Буцах">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+        </div>
       </div>
+
     </div>
-    <button class="btn-go" id="lgBtn" onclick="doLogin()">Нэвтрэх →</button>
-    <div id="lgBusy">Шалгаж байна…</div>
   </div>
-  <div class="lg-forgot" onclick="doReset()">Нууц үгээ мартсан уу?</div>
 </div>
 
 <!-- SETUP -->
@@ -668,6 +838,8 @@ async function loadProfile(user) {
 /* ── Дэлгэц солих ── */
 function showLogin() {
   document.getElementById('login').classList.add('on');
+  document.getElementById('authCard').classList.remove('flipped');
+  syncAuthFaces();
   document.getElementById('setup').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   setLoginBusy(false);
@@ -690,10 +862,47 @@ function showLoginError(msg) {
   e.classList.add('on');
 }
 function clearLoginError() { document.getElementById('lgErr').classList.remove('on'); }
-function showLoginNote(msg) {
-  const e = document.getElementById('lgNote');
+
+/* Далд талыг фокус, дэлгэц уншигч, дарагдалтаас бүрэн хасна */
+function syncAuthFaces() {
+  const card = document.getElementById('authCard');
+  const flipped = card.classList.contains('flipped');
+  const login = card.querySelector('.auth-login');
+  const reset = card.querySelector('.auth-reset');
+  login.inert = flipped;  login.setAttribute('aria-hidden', flipped);
+  reset.inert = !flipped; reset.setAttribute('aria-hidden', !flipped);
+}
+
+/* Нэвтрэх ↔ нууц үг сэргээх хооронд картыг эргүүлнэ */
+function flipAuth() {
+  const card = document.getElementById('authCard');
+  const toReset = !card.classList.contains('flipped');
+  card.classList.toggle('flipped');
+  syncAuthFaces();
+  if (toReset) {
+    // Нэвтрэх талд бичсэн хаягийг зөөж өгнө
+    const em = (document.getElementById('lgEmail').value || '').trim();
+    if (em && !document.getElementById('rsEmail').value) document.getElementById('rsEmail').value = em;
+    document.getElementById('rsMsg').className = 'rs-msg';
+    setTimeout(() => document.getElementById('rsEmail').focus(), 500);
+  } else {
+    setTimeout(() => document.getElementById('lgEmail').focus(), 500);
+  }
+}
+
+/* Нууц үгийг харуулах / нуух */
+function togglePass(id, btn) {
+  const input = document.getElementById(id);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.classList.toggle('on', show);
+  btn.setAttribute('aria-label', show ? 'Нууц үгийг нуух' : 'Нууц үгийг харуулах');
+}
+
+function showResetMsg(msg, kind) {
+  const e = document.getElementById('rsMsg');
   e.textContent = msg;
-  e.classList.add('on');
+  e.className = 'rs-msg on ' + kind;
 }
 
 /* ── Нэвтрэх / гарах ── */
@@ -721,15 +930,14 @@ async function doLogin() {
   }
 }
 async function doReset() {
-  const email = (document.getElementById('lgEmail').value || '').trim().toLowerCase();
-  if (!email) { showLoginError('Эхлээд цахим хаягаа бичнэ үү, дараа нь энд дарна уу.'); return; }
-  if (!CLOUD.auth) { showLoginError('Firebase тохируулагдаагүй байна.'); return; }
+  const email = (document.getElementById('rsEmail').value || '').trim().toLowerCase();
+  if (!email) { showResetMsg('Цахим хаягаа бичнэ үү.', 'bad'); return; }
+  if (!CLOUD.auth) { showResetMsg('Firebase тохируулагдаагүй байна.', 'bad'); return; }
   try {
     await CLOUD.auth.sendPasswordResetEmail(email);
-    clearLoginError();
-    showLoginNote(`«${email}» хаяг руу нууц үг сэргээх холбоос илгээлээ. Шуудангаа шалгана уу.`);
+    showResetMsg(`«${email}» хаяг руу нууц үг сэргээх холбоос илгээлээ. Шуудангаа шалгана уу.`, 'ok');
   } catch (e) {
-    showLoginError(AUTH_ERR[e.code] || ('Илгээж чадсангүй: ' + (e.message || e.code)));
+    showResetMsg(AUTH_ERR[e.code] || ('Илгээж чадсангүй: ' + (e.message || e.code)), 'bad');
   }
 }
 async function doLogout() {
