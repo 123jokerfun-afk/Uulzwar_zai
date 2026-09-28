@@ -90,8 +90,7 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
   border-radius: 50%; font-size: 34px; background: var(--bg);
   box-shadow: 9px 9px 18px var(--sh-d), -9px -9px 18px var(--sh-l); transition: .4s ease; }
 .nm-logo:active { transform: translateY(-4px) rotate(8deg); }
-.auth-face h1 { text-align: center; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-.auth-sub { text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.5; margin-bottom: 26px; }
+.auth-face h1 { text-align: center; font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 26px; }
 
 .lg-err { display: none; font-size: 12.5px; border-radius: 14px; padding: 11px 14px; margin-bottom: 16px;
   line-height: 1.5; white-space: pre-line; color: var(--danger); background: var(--bg);
@@ -140,7 +139,7 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
 @media (max-height: 720px) {
   .auth-face { padding: 24px 22px 22px; }
   .nm-logo { width: 66px; height: 66px; font-size: 28px; margin-bottom: 12px; }
-  .auth-sub { margin-bottom: 18px; }
+  .auth-face h1 { margin-bottom: 18px; }
   .nm-field { margin-bottom: 16px; }
   .nm-orb { display: none; }
 }
@@ -220,10 +219,75 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
 .me-role { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
 .me-role.adm { color: var(--warn); }
 .me-role.wrk { color: var(--green); }
-.me-out { font-size: 11.5px; font-weight: 700; font-family: inherit; padding: 9px 13px; border-radius: 12px;
-  border: none; background: var(--bg); color: var(--muted); cursor: pointer; flex-shrink: 0;
-  box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l); transition: .2s ease; }
-.me-out:active { box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); }
+/* ── Гарах товч: хаалгаар гарч, унаж алга болдог хөдөлгөөн ── */
+.me-out { position: relative; flex-shrink: 0; width: 106px; height: 40px;
+  background: none; border: none; padding: 0 0 0 12px; text-align: left; cursor: pointer;
+  font-family: inherit; outline: none;
+  --door-t: rotateY(18deg); --door-d: .2s; --door-delay: 0s;
+  --person-t: none; --person-d: .1s; --body-d: .1s;
+  --arm1: none; --arm2: none; --leg1: none; --leg2: none; }
+/* Товчны гадаргуу нь тусдаа давхарга — унаж буй хүн үүний АРД орж алга болно */
+.me-out::before { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: 12px;
+  background: var(--bg); box-shadow: 5px 5px 10px var(--sh-d), -5px -5px 10px var(--sh-l);
+  transition: .25s ease; }
+.me-out:active::before { box-shadow: inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l); transform: scale(.97); }
+.mo-text { position: relative; z-index: 10; font-size: 11.5px; font-weight: 700; color: var(--muted); transition: .2s ease; }
+.me-out svg { display: block; position: absolute; }
+
+.mo-frame { width: 30px; z-index: 3; right: 9px; bottom: 4px; fill: #aeb7c2; }
+.mo-flash { opacity: 0; fill: #e8a33d; }
+.mo-door { width: 30px; z-index: 5; right: 9px; bottom: 4px; transform-origin: 100% 50%;
+  transform: perspective(100px) var(--door-t); transition: var(--door-d) ease var(--door-delay); }
+.mo-door path { fill: #39424e; stroke: #39424e; stroke-width: 4; }
+.mo-door circle { fill: #aeb7c2; }
+
+.mo-person { z-index: 4; width: 27px; right: 21px; bottom: 7px; fill: #2b333c;
+  transform: var(--person-t); transition: var(--person-d) cubic-bezier(.2,.1,.8,.9); }
+.mo-person .a1, .mo-person .a2, .mo-person .l1, .mo-person .l2 { transition: var(--body-d) ease-in-out; }
+.mo-person .a1 { transform: var(--arm1); transform-origin: 52% 45%; }
+.mo-person .a2 { transform: var(--arm2); transform-origin: 47% 43%; }
+.mo-person .l1 { transform: var(--leg1); transform-origin: 47% 64.5%; }
+.mo-person .l2 { transform: var(--leg2); transform-origin: 43% 63%; }
+
+.me-out:hover .mo-text { opacity: .75; }
+.me-out:hover { --door-t: rotateY(26deg); --person-t: translateX(2px);
+  --arm1: rotate(-5deg); --arm2: rotate(5deg); --leg1: rotate(-10deg); --leg2: rotate(20deg); }
+
+/* 1. Хаалга нээгдэж, хүн алхана */
+.me-out.clicked { --door-t: rotateY(45deg);
+  --person-t: translateX(21px); --person-d: .3s; --body-d: .3s;
+  --arm1: translateX(-4px) translateY(-2px) rotate(120deg);
+  --arm2: translateX(4px) rotate(-110deg);
+  --leg1: translateX(-3px) rotate(80deg);
+  --leg2: translateX(4px) rotate(-60deg); }
+
+/* 2. Хаалга хаагдана */
+.me-out.anim1 { --door-t: none; --door-d: .1s; --door-delay: .25s; --person-d: .4s;
+  --arm1: rotate(60deg); --arm2: rotate(-45deg); --leg1: rotate(-5deg); --leg2: rotate(10deg); }
+
+/* 3. Доргиж, хүн доошоо унана */
+.me-out.anim2 { animation: moShake .2s linear; --person-d: 1.1s; --body-d: .4s;
+  --arm1: rotate(-60deg); --arm2: rotate(30deg); --leg1: rotate(-30deg); --leg2: rotate(20deg); }
+@keyframes moShake { 0%,100% { transform: rotate(-1deg); } 50% { transform: rotate(2deg); } }
+.me-out.anim2 .mo-flash { animation: moFlash .3s linear; }
+@keyframes moFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Унах үед fixed болгоно — ингэснээр дэлгэц уртсаж, гүйлгэлт үүсэхгүй */
+.me-out.anim2 .mo-person { position: fixed; z-index: 1; right: auto; bottom: auto;
+  left: var(--fall-x); top: var(--fall-y);
+  animation: moSpin 1.1s infinite linear;
+  transition: top 1.1s cubic-bezier(.7,.1,1,1) .05s; }
+.me-out.anim2.falling .mo-person { top: var(--fall-end); }
+@keyframes moSpin { from { transform: rotate(0deg) scale(1.25); } to { transform: rotate(359deg) scale(1.25); } }
+
+/* 4. Гарлаа */
+.me-out.logged-out .mo-door, .me-out.logged-out .mo-frame {
+  --door-d: .1s; --door-delay: 0s; transform: translateX(10px) scale(0); }
+.me-out.logged-out .mo-text { color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .me-out, .me-out * { animation: none !important; transition: none !important; }
+}
 
 .pd-locked { display: flex; align-items: center; gap: 7px; font-size: 14px; padding: 12px 13px;
   border-radius: 14px; background: var(--bg); color: var(--accent); font-weight: 600;
@@ -454,7 +518,6 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
     <div class="auth-face">
       <div class="nm-logo">🛤</div>
       <h1>Уулзварын зайн хэмжилт</h1>
-      <p class="auth-sub">Замын хэсгийн ажилтны нэвтрэлт</p>
 
       <div class="lg-err" id="lgErr"></div>
 
@@ -462,7 +525,7 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
         <div class="nm-field">
           <div class="el-glow"></div><div class="el-border"></div>
           <input type="email" id="lgEmail" placeholder=" " autocomplete="username" inputmode="email" required/>
-          <label for="lgEmail">Цахим хаяг</label>
+          <label for="lgEmail">Нэвтрэх нэр</label>
         </div>
 
         <div class="nm-field">
@@ -496,7 +559,37 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
       <div class="me-name" id="meName">—</div>
       <div class="me-sub"><span id="mePd">—</span> · <span class="me-role" id="meRole">—</span></div>
     </div>
-    <button class="me-out" onclick="doLogout()">Гарах</button>
+    <button class="me-out" id="meOut" onclick="doLogout()" aria-label="Гарах">
+      <span class="mo-text">Гарах</span>
+      <svg class="mo-frame" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M93.4 86.3H58.6c-1.9 0-3.4-1.5-3.4-3.4V17.1c0-1.9 1.5-3.4 3.4-3.4h34.8c1.9 0 3.4 1.5 3.4 3.4v65.8c0 1.9-1.5 3.4-3.4 3.4z"/>
+        <path class="mo-flash" d="M40.5 43.7L26.6 31.4l-2.5 6.7zM41.9 50.4l-19.5-4-1.4 6.3zM40 57.4l-17.7 3.9 3.9 5.7z"/>
+      </svg>
+      <svg class="mo-door" viewBox="0 0 100 100" aria-hidden="true">
+        <path d="M93.4 86.3H58.6c-1.9 0-3.4-1.5-3.4-3.4V17.1c0-1.9 1.5-3.4 3.4-3.4h34.8c1.9 0 3.4 1.5 3.4 3.4v65.8c0 1.9-1.5 3.4-3.4 3.4z"/>
+        <circle cx="66" cy="50" r="3.7"/>
+      </svg>
+      <svg class="mo-person" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="52.1" cy="32.4" r="6.4"/>
+        <path d="M50.7 62.8c-1.2 2.5-3.6 5-7.2 4-3.2-.9-4.9-3.5-4-7.8.7-3.4 3.1-13.8 4.1-15.8 1.7-3.4 1.6-4.6 7-3.7 4.3.7 4.6 2.5 4.3 5.4-.4 3.7-2.8 15.1-4.2 17.9z"/>
+        <g class="a1">
+          <path d="M55.5 56.5l-6-9.5c-1-1.5-.6-3.5.9-4.4 1.5-1 3.7-1.1 4.6.4l6.1 10c1 1.5.3 3.5-1.1 4.4-1.5.9-3.5.5-4.5-.9z"/>
+          <path d="M69.4 59.9L58.1 58c-1.7-.3-2.9-1.9-2.6-3.7.3-1.7 1.9-2.9 3.7-2.6l11.4 1.9c1.7.3 2.9 1.9 2.6 3.7-.4 1.7-2 2.9-3.8 2.6z"/>
+        </g>
+        <g class="a2">
+          <path d="M34.2 43.6L45 40.3c1.7-.6 3.5.3 4 2 .6 1.7-.3 4-2 4.5l-10.8 2.8c-1.7.6-3.5-.3-4-2-.6-1.6.3-3.4 2-4z"/>
+          <path d="M27.1 56.2L32 45.7c.7-1.6 2.6-2.3 4.2-1.6 1.6.7 2.3 2.6 1.6 4.2L33 58.8c-.7 1.6-2.6 2.3-4.2 1.6-1.7-.7-2.4-2.6-1.7-4.2z"/>
+        </g>
+        <g class="l1">
+          <path d="M52.1 73.2s-7-5.7-7.9-6.5c-.9-.9-1.2-3.5-.1-4.9 1.1-1.4 3.8-1.9 5.2-.9l7.9 7c1.4 1.1 1.7 3.5.7 4.9-1.1 1.4-4.4 1.5-5.8.4z"/>
+          <path d="M52.6 84.4l-1-12.8c-.1-1.9 1.5-3.6 3.5-3.7 2-.1 3.7 1.4 3.8 3.4l1 12.8c.1 1.9-1.5 3.6-3.5 3.7-2 0-3.7-1.5-3.8-3.4z"/>
+        </g>
+        <g class="l2">
+          <path d="M37.8 72.7s1.3-10.2 1.6-11.4 2.4-2.8 4.1-2.6c1.7.2 3.6 2.3 3.4 4l-1.8 11.1c-.2 1.7-1.7 3.3-3.4 3.1-1.8-.2-4.1-2.4-3.9-4.2z"/>
+          <path d="M29.5 82.3l9.6-10.9c1.3-1.4 3.6-1.5 5.1-.1 1.5 1.4.4 4.9-.9 6.3l-8.5 9.6c-1.3 1.4-3.6 1.5-5.1.1-1.4-1.3-1.5-3.5-.2-5z"/>
+        </g>
+      </svg>
+    </button>
   </div>
 
   <!-- АДМИН САМБАР -->
@@ -634,7 +727,6 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
     <div class="sessv-body" id="sessVBody"></div>
     <div class="sessv-actions">
       <button class="sv-xlsx" onclick="exportSessionExcel()">📊 Excel татах</button>
-      <button class="sv-csv" onclick="exportSessionCSV()">📄 CSV татах</button>
     </div>
     <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
   </div>
@@ -685,8 +777,6 @@ body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; background: va
     <div class="exp-btns">
       <button class="eb-cloud" id="btnCloudSend" style="display:none;color:var(--green)" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
       <button class="eb-xlsx" onclick="exportExcel();closeExpMod()">📊 Дэлгэрэнгүй Excel татах</button>
-      <button class="eb1" onclick="exportCSV();closeExpMod()">⬇ Дэлгэрэнгүй CSV татах</button>
-      <button onclick="exportSum();closeExpMod()">⬇ Дүн CSV татах</button>
       <button style="color:var(--green)" onclick="shareData()">📤 Messenger-р явуулах</button>
     </div>
     <div class="mod-close" onclick="closeExpMod()">Хаах</div>
@@ -813,7 +903,7 @@ async function loadProfile(user) {
   const email = (user.email || '').toLowerCase();
   const snap = await CLOUD.db.collection('users').doc(email).get();
   if (!snap.exists) {
-    showLoginError(`«${email}» хаяг Firebase-д бүртгэлтэй ч эрх нь тохируулагдаагүй байна.\nАдминд хандаж «users» цуглуулгад бүртгэл нэмүүлнэ үү.`);
+    showLoginError(`«${email}» нэр Firebase-д бүртгэлтэй ч эрх нь тохируулагдаагүй байна.\nАдминд хандаж «users» цуглуулгад бүртгэл нэмүүлнэ үү.`);
     await CLOUD.auth.signOut();
     return null;
   }
@@ -841,6 +931,7 @@ async function loadProfile(user) {
 
 /* ── Дэлгэц солих ── */
 function showLogin() {
+  resetLogoutBtn();
   document.getElementById('login').classList.add('on');
   document.getElementById('setup').style.display = 'none';
   document.getElementById('app').style.display = 'none';
@@ -876,11 +967,11 @@ function togglePass(id, btn) {
 
 /* ── Нэвтрэх / гарах ── */
 const AUTH_ERR = {
-  'auth/invalid-email': 'Цахим хаяг буруу байна.',
-  'auth/user-disabled': 'Энэ хаягийг түр хаасан байна.',
-  'auth/user-not-found': 'Ийм хаяг бүртгэлгүй байна.',
+  'auth/invalid-email': 'Нэвтрэх нэр буруу байна.',
+  'auth/user-disabled': 'Энэ бүртгэлийг түр хаасан байна.',
+  'auth/user-not-found': 'Ийм нэвтрэх нэр бүртгэлгүй байна.',
   'auth/wrong-password': 'Нууц үг буруу байна.',
-  'auth/invalid-credential': 'Хаяг эсвэл нууц үг буруу байна.',
+  'auth/invalid-credential': 'Нэвтрэх нэр эсвэл нууц үг буруу байна.',
   'auth/too-many-requests': 'Хэт олон удаа буруу оролдлоо. Хэсэг хүлээгээд дахин оролдоно уу.',
   'auth/network-request-failed': 'Интернэт холболт алга байна.'
 };
@@ -888,7 +979,7 @@ async function doLogin() {
   const email = (document.getElementById('lgEmail').value || '').trim().toLowerCase();
   const pass = document.getElementById('lgPass').value || '';
   clearLoginError();
-  if (!email || !pass) { showLoginError('Хаяг болон нууц үгээ бөглөнө үү.'); return; }
+  if (!email || !pass) { showLoginError('Нэвтрэх нэр, нууц үгээ бөглөнө үү.'); return; }
   setLoginBusy(true);
   try {
     await CLOUD.auth.signInWithEmailAndPassword(email, pass);
@@ -898,9 +989,49 @@ async function doLogin() {
     showLoginError(AUTH_ERR[e.code] || ('Нэвтэрч чадсангүй: ' + (e.message || e.code)));
   }
 }
+/* Гарах товчийг анхны байдалд нь буцаана (дараагийн удаа дахин ажиллана) */
+function resetLogoutBtn() {
+  const btn = document.getElementById('meOut');
+  if (!btn) return;
+  btn.className = 'me-out';
+  btn.style.removeProperty('--fall-x');
+  btn.style.removeProperty('--fall-y');
+  btn.style.removeProperty('--fall-end');
+  btn.querySelector('.mo-text').textContent = 'Гарах';
+}
+
+/* Хаалгаар гарч, унаж алга болох хөдөлгөөн. Дуусмагц promise-оо биелүүлнэ. */
+function playLogoutAnim() {
+  const btn = document.getElementById('meOut');
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!btn || calm) return Promise.resolve();
+
+  // Унах үед fixed болох тул эхлэх байрлалыг нь урьдчилан хэмжинэ
+  const r = btn.querySelector('.mo-person').getBoundingClientRect();
+  btn.style.setProperty('--fall-x', r.left + 'px');
+  btn.style.setProperty('--fall-y', r.top + 'px');
+  btn.style.setProperty('--fall-end', (window.innerHeight + 120) + 'px');
+
+  return new Promise(resolve => {
+    btn.classList.add('clicked');                                  // хаалга нээгдэж, хүн алхана
+    setTimeout(() => btn.classList.add('anim1'), 300);             // хаалга хаагдана
+    setTimeout(() => {
+      btn.classList.add('anim2');                                  // доргиж, хүн унана
+      // fixed болсны дараа л шилжилт эхлэхийн тулд нэг кадр хүлээнэ
+      requestAnimationFrame(() => requestAnimationFrame(() => btn.classList.add('falling')));
+    }, 900);
+    setTimeout(() => {
+      btn.classList.add('logged-out');
+      btn.querySelector('.mo-text').textContent = 'Гарлаа';
+      setTimeout(resolve, 420);   // «Гарлаа» бичиг нүдэнд тусах богино завсар
+    }, 2100);
+  });
+}
+
 async function doLogout() {
   if (!CLOUD.auth) return;
   if (!confirm('Гарах уу? Илгээгээгүй хэмжилт байвал эхлээд илгээнэ үү.')) return;
+  await playLogoutAnim();
   CLOUD.sectionSessions = [];
   await CLOUD.auth.signOut();
 }
@@ -908,6 +1039,7 @@ async function doLogout() {
 /* ── Профайлыг дэлгэцэнд тусгах ── */
 function applyProfile() {
   const p = CLOUD.profile;
+  resetLogoutBtn();
   document.getElementById('meBar').style.display = 'flex';
   document.getElementById('meAv').textContent = 'ПД' + p.pd;
   document.getElementById('meAv').className = 'me-av' + (p.role === 'admin' ? ' adm' : '');
@@ -1547,54 +1679,6 @@ function openExpMod() {
 }
 function closeExpMod() { document.getElementById('expMod').classList.remove('on'); }
 
-/* ── Export CSV ── */
-function exportCSV() { _exportCSVDetailed(C, data); }
-function exportSum() { _exportCSVSum(C, data); }
-
-function _exportCSVDetailed(c, d) {
-  const maxJ=Math.max(c.bar,c.zun);
-  const cols=Array.from({length:maxJ},(_,i)=>i+1);
-  let rows=[['№','КМ','Чиглэл',...cols,'Нийт','Дундаж'].join(',')];
-  let n=1;
-  for (let km=c.s; km<=c.e; km++) {
-    ['bar','zun'].forEach((dir,di)=>{
-      const count=dir==='bar'?c.bar:c.zun;
-      const vals=Array.from({length:maxJ},(_,i)=>{
-        if(i>=count) return '';
-        const v=d[km]?.[i+1]?.[dir];
-        return v===null||v===undefined?'':v;
-      });
-      const nums=vals.filter(v=>v!=='').map(Number);
-      const total=nums.length?Math.round(nums.reduce((a,x)=>a+x,0)):'';
-      const avg=nums.length?(nums.reduce((a,x)=>a+x,0)/nums.length).toFixed(1):'';
-      rows.push([n++,km,di===0?'баруун':'зүүн',...vals,total,avg].join(','));
-    });
-  }
-  dl(rows.join('\n'),`уулзвар_${c.s}-${c.e}км_${c.date}.csv`);
-}
-function _exportCSVSum(c, d) {
-  let rows=[['КМ','баруун нийт','баруун дундаж','зүүн нийт','зүүн дундаж','Хэтрүүлсэн'].join(',')];
-  for (let km=c.s; km<=c.e; km++) {
-    const bv=[],zv=[];
-    for(let j=1;j<=c.bar;j++){const v=d[km]?.[j]?.bar;if(v!==null&&v!==undefined)bv.push(v);}
-    for(let j=1;j<=c.zun;j++){const v=d[km]?.[j]?.zun;if(v!==null&&v!==undefined)zv.push(v);}
-    const bT=bv.length?Math.round(bv.reduce((a,x)=>a+x,0)):'';
-    const zT=zv.length?Math.round(zv.reduce((a,x)=>a+x,0)):'';
-    const bA=bv.length?(bv.reduce((a,x)=>a+x,0)/bv.length).toFixed(1):'';
-    const zA=zv.length?(zv.reduce((a,x)=>a+x,0)/zv.length).toFixed(1):'';
-    const over=[...bv,...zv].filter(v=>v>(c.max||37)).length||'';
-    rows.push([km,bT,bA,zT,zA,over].join(','));
-  }
-  dl(rows.join('\n'),`дүн_${c.date}.csv`);
-}
-function dl(content,name) {
-  const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=name;
-  a.click();
-}
-
 /* ── Excel татах (active session) ── */
 async function exportExcel() {
   await _exportExcelCore(C, data, `уулзвар_${C.s}-${C.e}км_${C.date}.xlsx`);
@@ -1609,15 +1693,6 @@ async function exportSessionExcel() {
   const fname = `уулзвар_${c.road}зам_${c.s}-${c.e}км_${c.date}.xlsx`;
   await _exportExcelCore(c, d, fname);
   showStatus('📊 Excel татагдлаа', '#0b7a4a');
-}
-
-/* ── CSV татах (saved session — modal-аас) ── */
-function exportSessionCSV() {
-  if (!currentViewSessId) return;
-  const sess = getSessions().find(s => s.id === currentViewSessId);
-  if (!sess) return;
-  _exportCSVDetailed(sess.config, sess.data);
-  showStatus('📄 CSV татагдлаа', '#006cff');
 }
 
 /* ── Excel core — өнгөтэй, 2 хуудас ── */
