@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#05060a">
+<meta name="theme-color" content="#e7ebf0">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Уулзвар">
 <link id="appManifest" rel="manifest">
 <title>Уулзварын зайн хэмжилт</title>
@@ -708,6 +708,264 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ЦАЙВАР НЕОМОРФ ДАВХАРГА
+   Дээрх шилэн системийн токенуудыг дахин тодорхойлж, бараан
+   дэвсгэр тооцож шууд бичсэн цөөн дүрмийг дарж бичнэ.
+   Бүтэц, байрлал, хэмжээ хэвээрээ үлдэнэ.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --void: #e7ebf0;
+  --deep: #e7ebf0;
+  --sh-d: rgba(163,177,198,.55);      /* гүн сүүдэр */
+  --sh-l: rgba(255,255,255,.92);      /* гэрлийн тусгал */
+
+  /* Неоморфт тунгалаг давхарга байхгүй — бүх гадаргуу нэг өнгөтэй */
+  --glass-1: #e7ebf0;
+  --glass-2: #e7ebf0;
+  --glass-3: #e7ebf0;
+  --edge: transparent;
+  --edge-hi: rgba(163,177,198,.45);
+  --blur: 0px;
+
+  /* Цайвар дэвсгэр дээр уншигдахуйц болгож бараандуулсан өргөлтүүд */
+  --accent: #006cff;  --accent-hi: #4d9bff;
+  --indigo: #4b56d6;  --indigo-hi: #7d88f0;
+  --pink: #c4429a;
+  --mint: #0b7a4a;    --teal: #0d8a81;
+  --amber: #a86400;
+  --red: #c92a2a;
+  --ink: #ffffff;                     /* өргөлтөн дээрх бичвэр — цагаан */
+
+  --s1: #e7ebf0; --s2: #e7ebf0; --s3: #e7ebf0;
+  --border: transparent; --border-hi: rgba(163,177,198,.45);
+  --green: var(--mint); --warn: var(--amber); --danger: var(--red);
+  --text: #2b333c; --text-2: #48515c; --muted: #5f6873;
+
+  --grad-accent: linear-gradient(180deg, #7d88f0 0%, #4b56d6 100%);
+  --grad-blue:   linear-gradient(180deg, #4d9bff 0%, #006cff 100%);
+  --grad-green:  linear-gradient(180deg, #17a768 0%, #0b7a4a 100%);
+  --grad-arc:    linear-gradient(90deg, #0d8a81 0%, #006cff 50%, #c4429a 100%);
+
+  /* Гүн — сүүдэр + гэрлийн хос */
+  --lift:    7px 7px 15px var(--sh-d), -7px -7px 15px var(--sh-l);
+  --lift-lo: 4px 4px 9px var(--sh-d),  -4px -4px 9px var(--sh-l);
+  --lift-hi: 11px 11px 24px var(--sh-d), -11px -11px 24px var(--sh-l);
+  --sunk:    inset 5px 5px 10px var(--sh-d), inset -5px -5px 10px var(--sh-l);
+  --glow-accent: 0 6px 18px -5px rgba(75,86,214,.5);
+  --glow-blue:   0 6px 18px -5px rgba(0,108,255,.45);
+  --glow-mint:   0 6px 18px -5px rgba(11,122,74,.45);
+
+  color-scheme: light;
+}
+
+html { background: #e7ebf0; }
+body {
+  background:
+    radial-gradient(58% 42% at 10% 2%,   rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 100%),
+    radial-gradient(52% 38% at 94% 8%,   rgba(206,219,236,.8)  0%, rgba(206,219,236,0) 100%),
+    radial-gradient(50% 36% at 2%  48%,  rgba(214,224,238,.7)  0%, rgba(214,224,238,0) 100%),
+    radial-gradient(60% 40% at 52% 104%, rgba(202,214,232,.75) 0%, rgba(202,214,232,0) 100%),
+    #e7ebf0;
+  background-attachment: fixed;
+}
+body::after { display: none; }                     /* ширхэг — зөөлөн гадаргууд хэрэггүй */
+
+/* Шилэн бүдгэрүүлэлт хэрэггүй болов */
+.km-bar, .hist-panel, .drum-area, .card, .me-bar,
+.km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner,
+.exp-inner, .prof-inner, .rst-inner, .dir-tabs, .drum-ring {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .km-bar, .hist-panel, .drum-area, .card, .me-bar,
+  .km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner,
+  .exp-inner, .prof-inner, .rst-inner { background-color: #e7ebf0 !important; }
+}
+
+/* Дарахад цайвар дээр гэрэлтүүлэх нь бүдгэрүүлдэг — бага зэрэг бараандуулна */
+button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-back:active,
+.hist-row:active, .sess-item:active, .adm-item:active, .adm-fold:active, .dp-item:active {
+  filter: brightness(.97);
+}
+
+/* ── Хонхойсон мөрүүд (жагсаалт, хүснэгт) ── */
+.hist-row, .sess-item, .adm-item, .adm-fold, .dp-item, .sessv-row,
+.adj-km, .adj-sum, .adj-grp {
+  background: #e7ebf0; border-color: transparent;
+  box-shadow: 4px 4px 9px var(--sh-d), -4px -4px 9px var(--sh-l);
+}
+.hist-row:active, .sess-item:active, .adm-item:active, .adm-fold:active, .dp-item:active {
+  background: #e7ebf0; box-shadow: var(--sunk);
+}
+.sess-item.lp { background: #e7ebf0; border-color: var(--accent); box-shadow: var(--sunk), 0 0 0 2px var(--accent); }
+.adj-row { border-bottom: 1px solid rgba(163,177,198,.3); }
+.sessv-actions { border-top: 1px solid rgba(163,177,198,.3); }
+.hj { background: #e7ebf0; color: var(--text-2); box-shadow: var(--sunk); }
+
+/* ── Явцын мөр ── */
+.prog { background: #e7ebf0; box-shadow: var(--sunk); height: 7px; }
+
+/* ── Түүхийн хүснэгтийн нүднүүд ── */
+.ht-c {
+  border: 1.5px solid transparent; background: #e7ebf0; color: var(--text);
+  text-shadow: none; box-shadow: var(--sunk);
+}
+.ht-c .u { color: var(--muted); }
+.ht-c.tap::after { color: var(--muted); }
+.ht-c.ht-empty { color: var(--muted); }
+.ht-c.cur.even {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(180deg, #4d9bff 0%, #006cff 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 18px -4px rgba(0,108,255,.55);
+}
+.ht-c.cur.odd {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(180deg, #17a768 0%, #0b7a4a 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 6px 18px -4px rgba(11,122,74,.5);
+}
+.ht-c.cur.even .u, .ht-c.cur.odd .u { color: rgba(255,255,255,.85); }
+
+/* ── Дугуй ── */
+.drum-ring { box-shadow: var(--lift-hi); }
+.drum-ring::before { background: conic-gradient(from 225deg,
+    rgba(163,177,198,.5) 0deg, rgba(163,177,198,.5) 270deg, transparent 270deg); }
+.drum-val { text-shadow: none; }
+.darrow:active { background: #e7ebf0; box-shadow: var(--sunk); color: var(--text); }
+
+/* ── Доод цонхнууд ── */
+.km-mod-inner, .sess-inner, .adj-inner, .dp-inner, .sact-inner, .sessv-inner, .exp-inner, .prof-inner {
+  background: #e7ebf0; border-color: transparent;
+  box-shadow: 0 -12px 34px -8px var(--sh-d);
+}
+.rst-inner, #msgMod .rst-inner {
+  background: #e7ebf0; border-color: transparent;
+  box-shadow: 13px 13px 28px var(--sh-d), -13px -13px 28px var(--sh-l);
+}
+.sh-grip::after { background: rgba(163,177,198,.65); }
+.sh-grip:active::after { background: rgba(120,135,155,.9); }
+
+/* Халхавч — цайвар дээр бараан биш, бүдэг цэнхэр */
+#kmMod, #sessMod, #profMod, #admDayMod, #sessActMod, #admActMod, #sessViewMod,
+#adjMod, #adjResMod, #dpMod, #rstMod, #delMod, #logoutMod, #msgMod, #expMod {
+  background: rgba(120,135,155,.42);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+
+/* ── Нэвтрэх дэлгэц ── */
+.lg-err { background: #e7ebf0; border-color: transparent; color: var(--red); box-shadow: var(--sunk); }
+.lg-note { background: #e7ebf0; border-color: transparent; color: var(--amber); box-shadow: var(--sunk); }
+
+/* ── Талбар дарагдах үеийн онцлол ── */
+.field input:focus, .field select:focus {
+  background: #e7ebf0; border-color: transparent;
+  box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l), 0 0 0 2px rgba(0,108,255,.35);
+}
+.field input.miss, .field select.miss {
+  border-color: transparent; box-shadow: var(--sunk), 0 0 0 2px rgba(201,42,42,.45);
+}
+.spin.spinning { background: #e7ebf0; box-shadow: inset 3px 3px 7px var(--sh-d), inset -3px -3px 7px var(--sh-l), 0 0 0 2px rgba(0,108,255,.3); }
+.tmp-sign { background: #e7ebf0; border-color: transparent; color: var(--text-2); box-shadow: var(--lift-lo); }
+.tmp-sign:active { box-shadow: var(--sunk); }
+
+/* ── Түүхийн хүснэгт: тэгш(цэнхэр)/сондгой(ногоон) ялгааг хадгална ── */
+.ht-hd .h-b { color: var(--accent); }
+.ht-hd .h-z { color: var(--mint); }
+.ht-j { border: 1.5px solid transparent; }
+.ht-j.even { color: #0057cc; background: rgba(0,108,255,.13);  border-color: rgba(0,108,255,.3);  box-shadow: none; }
+.ht-j.odd  { color: #0b7a4a; background: rgba(11,122,74,.13);  border-color: rgba(11,122,74,.3);  box-shadow: none; }
+.ht-j.cur.even { color: #fff; background: linear-gradient(180deg,#4d9bff 0%,#006cff 100%); border-color: transparent; box-shadow: 0 4px 14px -3px rgba(0,108,255,.6); }
+.ht-j.cur.odd  { color: #fff; background: linear-gradient(180deg,#17a768 0%,#0b7a4a 100%); border-color: transparent; box-shadow: 0 4px 14px -3px rgba(11,122,74,.55); }
+
+.ht-c.even { color: #0b3f8f; border-color: transparent;
+  background: rgba(0,108,255,.1);
+  box-shadow: inset 4px 4px 8px rgba(140,160,190,.5), inset -4px -4px 8px rgba(255,255,255,.85); }
+.ht-c.odd  { color: #08492c; border-color: transparent;
+  background: rgba(11,122,74,.1);
+  box-shadow: inset 4px 4px 8px rgba(140,165,180,.5), inset -4px -4px 8px rgba(255,255,255,.85); }
+.ht-c.ht-na { background: transparent; box-shadow: none; border-color: transparent; }
+
+/* ══════════════════════════════════════════════════════════════
+   «Тийм, гарах» товч — хаалгаар гарч, унаж алга болох хөдөлгөөн
+   ══════════════════════════════════════════════════════════════ */
+.lo-btn {
+  position: relative; display: block; width: 100%; min-height: 56px; height: 56px;
+  padding: 0 0 0 20px; text-align: left; background: none !important; border: none !important;
+  box-shadow: none !important; cursor: pointer; overflow: visible;
+  --door-t: rotateY(18deg); --door-d: .2s; --door-delay: 0s;
+  --person-t: none; --person-d: .1s; --body-d: .1s;
+  --arm1: none; --arm2: none; --leg1: none; --leg2: none;
+}
+/* Гадаргуу нь тусдаа давхарга — унаж буй хүн үүний АРД орж алга болно */
+.lo-btn::before {
+  content: ''; position: absolute; inset: 0; z-index: 2; border-radius: var(--r-sm);
+  background: #e7ebf0; box-shadow: var(--lift); transition: .25s ease;
+}
+.lo-btn:active::before { box-shadow: var(--sunk); transform: scale(.985); }
+.lo-btn .mo-text { position: relative; z-index: 10; font-size: 14.5px; font-weight: 700; color: var(--red); transition: .2s ease; }
+.lo-btn svg { display: block; position: absolute; }
+
+.lo-btn .mo-frame { width: 34px; z-index: 3; right: 16px; bottom: 11px; fill: #aeb7c2; }
+.lo-btn .mo-flash { opacity: 0; fill: #e8a33d; }
+.lo-btn .mo-door { width: 34px; z-index: 5; right: 16px; bottom: 11px; transform-origin: 100% 50%;
+  transform: perspective(110px) var(--door-t); transition: var(--door-d) ease var(--door-delay); }
+.lo-btn .mo-door path { fill: #39424e; stroke: #39424e; stroke-width: 4; }
+.lo-btn .mo-door circle { fill: #aeb7c2; }
+.lo-btn .mo-person { z-index: 4; width: 31px; right: 30px; bottom: 14px; fill: #2b333c;
+  transform: var(--person-t); transition: var(--person-d) cubic-bezier(.2,.1,.8,.9); }
+.lo-btn .mo-person .a1, .lo-btn .mo-person .a2,
+.lo-btn .mo-person .l1, .lo-btn .mo-person .l2 { transition: var(--body-d) ease-in-out; }
+.lo-btn .mo-person .a1 { transform: var(--arm1); transform-origin: 52% 45%; }
+.lo-btn .mo-person .a2 { transform: var(--arm2); transform-origin: 47% 43%; }
+.lo-btn .mo-person .l1 { transform: var(--leg1); transform-origin: 47% 64.5%; }
+.lo-btn .mo-person .l2 { transform: var(--leg2); transform-origin: 43% 63%; }
+
+/* 1. Хаалга нээгдэж, хүн алхана */
+.lo-btn.clicked { --door-t: rotateY(45deg);
+  --person-t: translateX(24px); --person-d: .3s; --body-d: .3s;
+  --arm1: translateX(-4px) translateY(-2px) rotate(120deg);
+  --arm2: translateX(4px) rotate(-110deg);
+  --leg1: translateX(-3px) rotate(80deg);
+  --leg2: translateX(4px) rotate(-60deg); }
+/* 2. Хаалга хаагдана */
+.lo-btn.anim1 { --door-t: none; --door-d: .1s; --door-delay: .25s; --person-d: .4s;
+  --arm1: rotate(60deg); --arm2: rotate(-45deg); --leg1: rotate(-5deg); --leg2: rotate(10deg); }
+/* 3. Доргиж, хүн унана */
+.lo-btn.anim2 { animation: moShake .2s linear; --person-d: 1.1s; --body-d: .4s;
+  --arm1: rotate(-60deg); --arm2: rotate(30deg); --leg1: rotate(-30deg); --leg2: rotate(20deg); }
+@keyframes moShake { 0%,100% { transform: rotate(-1deg); } 50% { transform: rotate(2deg); } }
+.lo-btn.anim2 .mo-flash { animation: moFlash .3s linear; }
+@keyframes moFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* Унах үед fixed — хуудсыг уртасгахгүй */
+.lo-btn.anim2 .mo-person { position: fixed; z-index: 1; right: auto; bottom: auto;
+  left: var(--fall-x); top: var(--fall-y);
+  animation: moSpin 1.1s infinite linear;
+  transition: top 1.1s cubic-bezier(.7,.1,1,1) .05s; }
+.lo-btn.anim2.falling .mo-person { top: var(--fall-end); }
+@keyframes moSpin { from { transform: rotate(0deg) scale(1.25); } to { transform: rotate(359deg) scale(1.25); } }
+/* 4. Гарлаа */
+.lo-btn.logged-out .mo-door, .lo-btn.logged-out .mo-frame {
+  --door-d: .1s; --door-delay: 0s; transform: translateX(10px) scale(0); }
+
+@media (prefers-reduced-motion: reduce) { .lo-btn, .lo-btn * { animation: none !important; transition: none !important; } }
+
+/* ── Хоёрдогч товчнууд: цайвар дээр хүрээгүй болсон тул товгор болгоно ── */
+.btn-sess, .km-chip, .km-mod-chip,
+.rst-btns button, .exp-btns button, .sessv-actions button, .sact-btns button,
+#installBanner, .tmp-sign, .dp-cancel {
+  background: #e7ebf0; border-color: transparent; box-shadow: var(--lift-lo);
+}
+.btn-sess:active, .km-chip:active, .km-mod-chip:active,
+.rst-btns button:active, .exp-btns button:active, .sessv-actions button:active,
+.sact-btns button:active { box-shadow: var(--sunk); }
+/* Өнгөт (gradient) товчнуудад энэ хамаарахгүй */
+.rst-btns .rst-yes, .exp-btns .eb1, .exp-btns .eb-xlsx,
+.sessv-actions .sv-xlsx, .sessv-actions .sv-csv, .sact-btns .sa-send,
+.km-chip.cur, .km-mod-chip.cur { border-color: transparent; }
+.km-chip.done { color: var(--mint); box-shadow: var(--sunk); }
+.km-mod-chip.done { color: var(--mint); box-shadow: var(--sunk); }
+.lo-btn { box-shadow: none !important; background: none !important; }
 </style>
 </head>
 <body>
@@ -1153,7 +1411,25 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="rst-title">Гарах уу?</div>
     <div class="rst-sub">Дахин нэвтрэхийн тулд нэвтрэх нэр, нууц үг хэрэгтэй. Илгээгээгүй хэмжилт байвал эхлээд илгээнэ үү.</div>
     <div class="rst-btns">
-      <button class="rst-yes" onclick="confirmLogout()">Тийм, гарах</button>
+      <button class="rst-yes lo-btn" id="logoutYes" onclick="confirmLogout()">
+        <span class="mo-text">Тийм, гарах</span>
+        <svg class="mo-frame" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M93.4 86.3H58.6c-1.9 0-3.4-1.5-3.4-3.4V17.1c0-1.9 1.5-3.4 3.4-3.4h34.8c1.9 0 3.4 1.5 3.4 3.4v65.8c0 1.9-1.5 3.4-3.4 3.4z"/>
+          <path class="mo-flash" d="M40.5 43.7L26.6 31.4l-2.5 6.7zM41.9 50.4l-19.5-4-1.4 6.3zM40 57.4l-17.7 3.9 3.9 5.7z"/>
+        </svg>
+        <svg class="mo-door" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M93.4 86.3H58.6c-1.9 0-3.4-1.5-3.4-3.4V17.1c0-1.9 1.5-3.4 3.4-3.4h34.8c1.9 0 3.4 1.5 3.4 3.4v65.8c0 1.9-1.5 3.4-3.4 3.4z"/>
+          <circle cx="66" cy="50" r="3.7"/>
+        </svg>
+        <svg class="mo-person" viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="52.1" cy="32.4" r="6.4"/>
+          <path d="M50.7 62.8c-1.2 2.5-3.6 5-7.2 4-3.2-.9-4.9-3.5-4-7.8.7-3.4 3.1-13.8 4.1-15.8 1.7-3.4 1.6-4.6 7-3.7 4.3.7 4.6 2.5 4.3 5.4-.4 3.7-2.8 15.1-4.2 17.9z"/>
+          <g class="a1"><path d="M55.5 56.5l-6-9.5c-1-1.5-.6-3.5.9-4.4 1.5-1 3.7-1.1 4.6.4l6.1 10c1 1.5.3 3.5-1.1 4.4-1.5.9-3.5.5-4.5-.9z"/><path d="M69.4 59.9L58.1 58c-1.7-.3-2.9-1.9-2.6-3.7.3-1.7 1.9-2.9 3.7-2.6l11.4 1.9c1.7.3 2.9 1.9 2.6 3.7-.4 1.7-2 2.9-3.8 2.6z"/></g>
+          <g class="a2"><path d="M34.2 43.6L45 40.3c1.7-.6 3.5.3 4 2 .6 1.7-.3 4-2 4.5l-10.8 2.8c-1.7.6-3.5-.3-4-2-.6-1.6.3-3.4 2-4z"/><path d="M27.1 56.2L32 45.7c.7-1.6 2.6-2.3 4.2-1.6 1.6.7 2.3 2.6 1.6 4.2L33 58.8c-.7 1.6-2.6 2.3-4.2 1.6-1.7-.7-2.4-2.6-1.7-4.2z"/></g>
+          <g class="l1"><path d="M52.1 73.2s-7-5.7-7.9-6.5c-.9-.9-1.2-3.5-.1-4.9 1.1-1.4 3.8-1.9 5.2-.9l7.9 7c1.4 1.1 1.7 3.5.7 4.9-1.1 1.4-4.4 1.5-5.8.4z"/><path d="M52.6 84.4l-1-12.8c-.1-1.9 1.5-3.6 3.5-3.7 2-.1 3.7 1.4 3.8 3.4l1 12.8c.1 1.9-1.5 3.6-3.5 3.7-2 0-3.7-1.5-3.8-3.4z"/></g>
+          <g class="l2"><path d="M37.8 72.7s1.3-10.2 1.6-11.4 2.4-2.8 4.1-2.6c1.7.2 3.6 2.3 3.4 4l-1.8 11.1c-.2 1.7-1.7 3.3-3.4 3.1-1.8-.2-4.1-2.4-3.9-4.2z"/><path d="M29.5 82.3l9.6-10.9c1.3-1.4 3.6-1.5 5.1-.1 1.5 1.4.4 4.9-.9 6.3l-8.5 9.6c-1.3 1.4-3.6 1.5-5.1.1-1.4-1.3-1.5-3.5-.2-5z"/></g>
+        </svg>
+      </button>
       <button onclick="closeLogoutMod()">Үгүй</button>
     </div>
   </div>
@@ -1235,8 +1511,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     display: "standalone",
     /* Хөндлөн эргүүлж хүснэгтээ өргөнөөр харах боломжтой байг */
     orientation: "portrait",
-    background_color: "#05060a",
-    theme_color: "#05060a",
+    background_color: "#e7ebf0",
+    theme_color: "#e7ebf0",
     /* Хөвсгөр неон дүрс. Бүх зураг нь maskable-ийн аюулгүй тойрогт (80%)
        багтсан. Тэмдэгтүүдийг encodeURIComponent өөрөө кодлоно — өмнөх
        хувилбарт '%23' гэж бичсэн нь дахин кодлогдож өнгө нь эвдэрдэг байв. */
@@ -1783,8 +2059,48 @@ function askLogout() {
 function closeLogoutMod() { document.getElementById('logoutMod').classList.remove('on'); }
 
 /* «Тийм, гарах» дарсны дараа л жинхэнэ гарна */
+/* Товчийг анхны байдалд нь буцаана */
+function resetLogoutBtn() {
+  const btn = document.getElementById('logoutYes');
+  if (!btn) return;
+  btn.className = 'rst-yes lo-btn';
+  btn.style.removeProperty('--fall-x');
+  btn.style.removeProperty('--fall-y');
+  btn.style.removeProperty('--fall-end');
+  const t = btn.querySelector('.mo-text');
+  if (t) t.textContent = 'Тийм, гарах';
+}
+
+/* Хаалгаар гарч, унаж алга болох хөдөлгөөн */
+function playLogoutAnim() {
+  const btn = document.getElementById('logoutYes');
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!btn || calm) return Promise.resolve();
+
+  const r = btn.querySelector('.mo-person').getBoundingClientRect();
+  btn.style.setProperty('--fall-x', r.left + 'px');
+  btn.style.setProperty('--fall-y', r.top + 'px');
+  btn.style.setProperty('--fall-end', (window.innerHeight + 120) + 'px');
+
+  return new Promise(resolve => {
+    btn.classList.add('clicked');                       // хаалга нээгдэж, хүн алхана
+    setTimeout(() => btn.classList.add('anim1'), 300);  // хаалга хаагдана
+    setTimeout(() => {
+      btn.classList.add('anim2');                       // доргиж, хүн унана
+      requestAnimationFrame(() => requestAnimationFrame(() => btn.classList.add('falling')));
+    }, 900);
+    setTimeout(() => {
+      btn.classList.add('logged-out');
+      btn.querySelector('.mo-text').textContent = 'Гарлаа';
+      setTimeout(resolve, 420);                         // бичгийг харах богино завсар
+    }, 2100);
+  });
+}
+
 async function confirmLogout() {
+  await playLogoutAnim();
   closeLogoutMod();
+  resetLogoutBtn();
   await doLogout();
 }
 async function doLogout() {
