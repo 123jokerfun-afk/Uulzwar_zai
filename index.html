@@ -973,6 +973,79 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   box-shadow: inset 2px 2px 5px rgba(170,145,150,.4), inset -2px -2px 5px rgba(255,255,255,.85);
 }
 .adm-note b { color: var(--red); font-weight: 800; }
+
+/* ══════════════════════════════════════════════════════════════
+   НЭВТРЭХ ТОВЧ — хаалга нээгдэж, бяцхан хүн дотогш орох хөдөлгөөн
+   ══════════════════════════════════════════════════════════════ */
+/* Товчийг цайвар неоморф болгоно — хаалга, хүн тод ялгарна */
+.lg-portal { position: relative; overflow: hidden; isolation: isolate;
+  background: var(--surface) !important; color: var(--accent) !important;
+  box-shadow: var(--lift) !important; }
+.lg-portal:active { box-shadow: var(--sunk) !important; transform: scale(.985); }
+.lg-portal[disabled] { opacity: 1 !important; }
+.lp-text { position: relative; z-index: 3; transition: opacity .22s ease; }
+.lg-portal.playing .lp-text { opacity: 0; }
+
+.lp-stage { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none;
+  transition: opacity .22s ease; }
+.lg-portal.playing .lp-stage { opacity: 1; }
+
+/* Шал — нимгэн зураас */
+.lp-floor { position: absolute; left: 12%; right: 12%; bottom: 13px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(150,165,190,.5) 22%, rgba(150,165,190,.5) 78%, transparent); }
+
+/* Хаалганы хүрээ */
+.lp-door { position: absolute; left: 50%; bottom: 8px; width: 34px; height: 44px;
+  margin-left: -17px; border-radius: 5px; overflow: hidden;
+  background: #eef2f7; box-shadow: 0 0 0 2.5px #e3e8f0, 0 2px 6px rgba(0,0,0,.28); }
+/* Гэрэлт үүд */
+.lp-glow { position: absolute; inset: 2px; border-radius: 3px; opacity: 0;
+  background: radial-gradient(60% 55% at 50% 50%, #9ff4ff 0%, #45d8f0 45%, #1aa8cc 100%); }
+/* Хоёр хавтас — хажуу тийш сална */
+.lp-leaf { position: absolute; top: 0; bottom: 0; width: 50%; background: #eef2f7;
+  box-shadow: inset 0 0 0 1px #dfe5ee; }
+.lp-leaf.l { left: 0;  border-right: 1px solid #dfe5ee; }
+.lp-leaf.r { right: 0; border-left: 1px solid #dfe5ee; }
+.lp-leaf::after { content: ''; position: absolute; top: 50%; width: 4px; height: 2px;
+  margin-top: -1px; border-radius: 1px; background: #5ec8e8; }
+.lp-leaf.l::after { right: 3px; }
+.lp-leaf.r::after { left: 3px; }
+
+/* Хүн */
+.lp-person { position: absolute; left: 50%; bottom: 6px; width: 34px; height: 34px;
+  margin-left: -17px; fill: #2b333c; }
+.lp-person .hd { fill: #1aa8cc; }
+
+/* ── Хөдөлгөөний дараалал ── */
+.lg-portal.playing .lp-leaf.l { animation: lpOpenL .42s .18s ease forwards; }
+.lg-portal.playing .lp-leaf.r { animation: lpOpenR .42s .18s ease forwards; }
+.lg-portal.playing .lp-glow   { animation: lpGlow  .5s  .22s ease forwards; }
+.lg-portal.playing .lp-person { animation: lpWalk 1.5s cubic-bezier(.35,0,.7,1) forwards; }
+.lg-portal.playing .lp-person .a1 { animation: lpSwingA .3s .05s 4 alternate ease-in-out; }
+.lg-portal.playing .lp-person .a2 { animation: lpSwingB .3s .05s 4 alternate ease-in-out; }
+.lg-portal.playing .lp-person .l1 { animation: lpSwingB .3s .05s 4 alternate ease-in-out; }
+.lg-portal.playing .lp-person .l2 { animation: lpSwingA .3s .05s 4 alternate ease-in-out; }
+
+@keyframes lpOpenL { to { transform: translateX(-102%); } }
+@keyframes lpOpenR { to { transform: translateX(102%); } }
+@keyframes lpGlow  { to { opacity: 1; } }
+@keyframes lpWalk {
+  0%   { transform: translateX(-46px) scale(1);   opacity: 1; }
+  58%  { transform: translateX(-4px)  scale(1);   opacity: 1; }
+  74%  { transform: translateX(0)     scale(.92); opacity: .95; }
+  100% { transform: translateX(4px)   scale(.45); opacity: 0; }
+}
+@keyframes lpSwingA { from { transform: rotate(-17deg); } to { transform: rotate(17deg); } }
+@keyframes lpSwingB { from { transform: rotate(17deg); }  to { transform: rotate(-17deg); } }
+.lp-person .a1 { transform-origin: 52% 45%; }
+.lp-person .a2 { transform-origin: 47% 43%; }
+.lp-person .l1 { transform-origin: 47% 64.5%; }
+.lp-person .l2 { transform-origin: 43% 63%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lg-portal.playing .lp-text { opacity: 1; }
+  .lg-portal.playing .lp-stage { display: none; }
+}
 </style>
 </head>
 <body>
@@ -1101,7 +1174,25 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
         </div>
       </div>
     </div>
-    <button class="btn-go" id="lgBtn" onclick="doLogin()">Нэвтрэх →</button>
+    <button class="btn-go lg-portal" id="lgBtn" onclick="doLogin()">
+      <span class="lp-text">Нэвтрэх →</span>
+      <span class="lp-stage" aria-hidden="true">
+        <span class="lp-floor"></span>
+        <span class="lp-door">
+          <span class="lp-glow"></span>
+          <span class="lp-leaf l"></span>
+          <span class="lp-leaf r"></span>
+        </span>
+        <svg class="lp-person" viewBox="0 0 100 100">
+          <circle class="hd" cx="52.1" cy="32.4" r="6.4"/>
+          <path d="M50.7 62.8c-1.2 2.5-3.6 5-7.2 4-3.2-.9-4.9-3.5-4-7.8.7-3.4 3.1-13.8 4.1-15.8 1.7-3.4 1.6-4.6 7-3.7 4.3.7 4.6 2.5 4.3 5.4-.4 3.7-2.8 15.1-4.2 17.9z"/>
+          <g class="a1"><path d="M55.5 56.5l-6-9.5c-1-1.5-.6-3.5.9-4.4 1.5-1 3.7-1.1 4.6.4l6.1 10c1 1.5.3 3.5-1.1 4.4-1.5.9-3.5.5-4.5-.9z"/><path d="M69.4 59.9L58.1 58c-1.7-.3-2.9-1.9-2.6-3.7.3-1.7 1.9-2.9 3.7-2.6l11.4 1.9c1.7.3 2.9 1.9 2.6 3.7-.4 1.7-2 2.9-3.8 2.6z"/></g>
+          <g class="a2"><path d="M34.2 43.6L45 40.3c1.7-.6 3.5.3 4 2 .6 1.7-.3 4-2 4.5l-10.8 2.8c-1.7.6-3.5-.3-4-2-.6-1.6.3-3.4 2-4z"/><path d="M27.1 56.2L32 45.7c.7-1.6 2.6-2.3 4.2-1.6 1.6.7 2.3 2.6 1.6 4.2L33 58.8c-.7 1.6-2.6 2.3-4.2 1.6-1.7-.7-2.4-2.6-1.7-4.2z"/></g>
+          <g class="l1"><path d="M52.1 73.2s-7-5.7-7.9-6.5c-.9-.9-1.2-3.5-.1-4.9 1.1-1.4 3.8-1.9 5.2-.9l7.9 7c1.4 1.1 1.7 3.5.7 4.9-1.1 1.4-4.4 1.5-5.8.4z"/><path d="M52.6 84.4l-1-12.8c-.1-1.9 1.5-3.6 3.5-3.7 2-.1 3.7 1.4 3.8 3.4l1 12.8c.1 1.9-1.5 3.6-3.5 3.7-2 0-3.7-1.5-3.8-3.4z"/></g>
+          <g class="l2"><path d="M37.8 72.7s1.3-10.2 1.6-11.4 2.4-2.8 4.1-2.6c1.7.2 3.6 2.3 3.4 4l-1.8 11.1c-.2 1.7-1.7 3.3-3.4 3.1-1.8-.2-4.1-2.4-3.9-4.2z"/><path d="M29.5 82.3l9.6-10.9c1.3-1.4 3.6-1.5 5.1-.1 1.5 1.4.4 4.9-.9 6.3l-8.5 9.6c-1.3 1.4-3.6 1.5-5.1.1-1.4-1.3-1.5-3.5-.2-5z"/></g>
+        </svg>
+      </span>
+    </button>
     <div id="lgBusy">Шалгаж байна…</div>
   </div>
   <div class="lg-forgot" onclick="doReset()">Нууц үгээ мартсан уу?</div>
@@ -1799,12 +1890,16 @@ async function loadProfile(user) {
 
 /* ── Дэлгэц солих ── */
 function showLogin() {
+  resetSignInAnim();
   document.getElementById('login').classList.add('on');
   document.getElementById('setup').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   setLoginBusy(false);
 }
-function showSetup() {
+async function showSetup() {
+  // Нэвтрэх хөдөлгөөн тоглож байвал дуустал нь хүлээнэ (дундуур нь тасалдахгүй)
+  if (signInAnim) { try { await signInAnim; } catch {} signInAnim = null; }
+  resetSignInAnim();
   document.getElementById('login').classList.remove('on');
   document.getElementById('setup').style.display = 'block';
   document.getElementById('app').style.display = 'none';
@@ -1818,7 +1913,7 @@ function showSetup() {
 function setLoginBusy(on) {
   document.getElementById('lgBusy').classList.toggle('on', on);
   document.getElementById('lgBtn').disabled = on;
-  document.getElementById('lgBtn').style.opacity = on ? '.55' : '1';
+  document.getElementById('lgBtn').style.opacity = '1';
 }
 function showLoginError(msg) {
   const e = document.getElementById('lgErr');
@@ -2000,6 +2095,27 @@ function resetPwField() {
   if (b) { b.classList.remove('on'); b.textContent = '👁'; b.title = 'Нууц үгийг харах'; }
 }
 
+/* Нэвтрэх товчны хаалганы хөдөлгөөн.
+   Сүлжээний хүсэлттэй ЗЭРЭГ тоглоно — ингэснээр хүлээлт нэмэгдэхгүй. */
+let signInAnim = null;
+const SIGNIN_ANIM_MS = 1550;
+
+function playSignInAnim() {
+  const btn = document.getElementById('lgBtn');
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!btn || calm) { signInAnim = null; return Promise.resolve(); }
+  btn.classList.remove('playing');
+  void btn.offsetWidth;                       // дахин эхлүүлэхийн тулд
+  btn.classList.add('playing');
+  signInAnim = new Promise(r => setTimeout(r, SIGNIN_ANIM_MS));
+  return signInAnim;
+}
+function resetSignInAnim() {
+  const btn = document.getElementById('lgBtn');
+  if (btn) btn.classList.remove('playing');
+  signInAnim = null;
+}
+
 async function doLogin() {
   const raw = document.getElementById('lgEmail').value || '';
   const pass = document.getElementById('lgPass').value || '';
@@ -2012,6 +2128,7 @@ async function doLogin() {
     return;
   }
   setLoginBusy(true);
+  playSignInAnim();
   let lastErr = null;
   // Домэйн бүрээр оролдоно — аль нь бүртгэлтэй нь олдоно
   for (const email of acc.emails) {
@@ -2026,6 +2143,7 @@ async function doLogin() {
           code !== 'auth/invalid-email') break;
     }
   }
+  resetSignInAnim();          // амжилтгүй бол хөдөлгөөнийг шууд зогсооно
   setLoginBusy(false);
   showLoginError(AUTH_ERR[lastErr && lastErr.code] ||
     ('Нэвтэрч чадсангүй: ' + ((lastErr && (lastErr.message || lastErr.code)) || '')));
