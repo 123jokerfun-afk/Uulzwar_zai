@@ -160,7 +160,7 @@ body::after {
 }
 
 button, .km-chip, .km-mod-chip, .dir-tab, .darrow, .nav-side-btn, .hist-row,
-.sess-item, .adm-item, .adm-fold, .dp-item, .mod-close, .km-back, .lg-forgot {
+.sess-item, .adm-item, .adm-fold, .dp-item, .mod-close, .km-back {
   transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast),
               transform var(--t-fast), box-shadow var(--t-fast), opacity var(--t-fast), filter var(--t-fast);
 }
@@ -182,8 +182,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .lg-brand p { font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 7px; }
 .lg-err { display: none; background: rgba(255,90,110,.14); border: 1px solid rgba(255,90,110,.36); color: #ffc0c8; font-size: 12.5px; border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: .65rem; line-height: 1.55; }
 .lg-err.on { display: block; }
-.lg-note { display: none; background: rgba(255,194,77,.12); border: 1px solid rgba(255,194,77,.34); color: #ffe0a8; font-size: 12.5px; border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: .65rem; line-height: 1.55; }
-.lg-note.on { display: block; }
 /* Температурын талбар: ± товчоор тэмдэг сольдог. Утасны тоон
    гар дээр хасах тэмдэг байхгүй байдаг тул зайлшгүй. */
 /* Дээш/доош шударч тохируулдаг тоон талбар (температур, үений тоо).
@@ -216,8 +214,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .lg-hint.bad { color: var(--amber); }
 #lgBusy { display: none; text-align: center; font-size: 12px; color: var(--muted); margin-top: .8rem; }
 #lgBusy.on { display: block; }
-.lg-forgot { display: block; text-align: center; margin-top: 1.1rem; font-size: 13px; color: var(--muted); cursor: pointer; padding: 12px; }
-.lg-forgot:active { color: var(--accent-hi); }
 
 /* Glass card / user chip */
 .me-bar { display: flex; align-items: center; gap: 11px; background: var(--glass-1); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 11px 13px; margin-bottom: .6rem; box-shadow: var(--lift-lo); }
@@ -647,7 +643,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .sessv-actions { display: flex; gap: 9px; padding-top: 12px; margin-top: 10px; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,.08); }
 .sessv-actions button { flex: 1; min-height: 48px; padding: 13px; font-size: 13px; font-weight: 600; border-radius: var(--r-sm); border: 1px solid var(--edge); background: var(--glass-2); color: var(--text); cursor: pointer; }
 .sessv-actions .sv-xlsx { background: var(--grad-green); border-color: transparent; color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, var(--glow-mint); }
-.sessv-actions .sv-csv { background: var(--grad-blue); border-color: transparent; color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, var(--glow-blue); }
 .sessv-cloud { display: none; width: 100%; min-height: 50px; padding: 14px; font-size: 13.5px; font-weight: 600; border-radius: var(--r-sm); border: none; background: var(--grad-green); color: var(--ink); cursor: pointer; margin-top: 10px; flex-shrink: 0; box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, var(--glow-mint); }
 .sessv-cloud:disabled { opacity: .42; cursor: default; box-shadow: none; }
 
@@ -854,7 +849,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 
 /* ── Нэвтрэх дэлгэц ── */
 .lg-err { background: #eaeef4; border-color: transparent; color: var(--red); box-shadow: var(--sunk); }
-.lg-note { background: #eaeef4; border-color: transparent; color: var(--amber); box-shadow: var(--sunk); }
 
 /* ── Талбар дарагдах үеийн онцлол ── */
 .field input:focus, .field select:focus {
@@ -960,7 +954,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .sact-btns button:active { box-shadow: var(--sunk); }
 /* Өнгөт (gradient) товчнуудад энэ хамаарахгүй */
 .rst-btns .rst-yes, .exp-btns .eb1, .exp-btns .eb-xlsx,
-.sessv-actions .sv-xlsx, .sessv-actions .sv-csv, .sact-btns .sa-send,
+.sessv-actions .sv-xlsx, .sact-btns .sa-send,
 .km-chip.cur, .km-mod-chip.cur { border-color: transparent; }
 .km-chip.done { color: var(--mint); box-shadow: var(--sunk); }
 .km-mod-chip.done { color: var(--mint); box-shadow: var(--sunk); }
@@ -975,123 +969,80 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .adm-note b { color: var(--red); font-weight: 800; }
 
 /* ══════════════════════════════════════════════════════════════
-   НЭВТРЭХ ТОВЧ — хаалга нээгдэж, бяцхан хүн дотогш орох хөдөлгөөн
+   НЭВТРЭХ — хаалганы үзэгдэл ба талбарын бяцхан зөөгч
+   Хүнийг JS-ээр кадр бүрд зурна (үе мөчийг урвуу кинематикаар бодно),
+   тиймээс хөл газар дээр гулсахгүй, ямар ч хурдад зөв алхана.
    ══════════════════════════════════════════════════════════════ */
+:root { --lp-cyan: #26bed0; }
+
 /* Товчийг цайвар неоморф болгоно — хаалга, хүн тод ялгарна */
-.lg-portal { position: relative; overflow: hidden; isolation: isolate;
+.lg-portal { position: relative; overflow: hidden; isolation: isolate; min-height: 92px;
   background: var(--surface) !important; color: var(--accent) !important;
   box-shadow: var(--lift) !important; }
 .lg-portal:active { box-shadow: var(--sunk) !important; transform: scale(.985); }
-.lg-portal[disabled] { opacity: 1 !important; }
+.lg-portal[disabled] { opacity: 1 !important; cursor: wait; }
 .lp-text { position: relative; z-index: 3; transition: opacity .22s ease; }
 .lg-portal.playing .lp-text { opacity: 0; }
 
-.lp-stage { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none;
-  transition: opacity .22s ease; }
-.lg-portal.playing .lp-stage { opacity: 1; }
+/* Тайз. Нарийн (210px) байх тусам хүн харьцангуй том харагдана — алхаа нь
+   зөв байхын тулд хүн заавал том байх шаардлагатай (доорх LP_STRIDE-г үз) */
+.lp-stage { position: absolute; left: 50%; top: 50%; width: 210px; height: 92px;
+  transform: translate(-50%, -50%); z-index: 2; opacity: 0; pointer-events: none; }
 
-/* Шал — нимгэн зураас */
-.lp-floor { position: absolute; left: 12%; right: 12%; bottom: 13px; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(150,165,190,.5) 22%, rgba(150,165,190,.5) 78%, transparent); }
+/* Шал */
+.lp-floor { position: absolute; bottom: 9px; left: 16px; right: 16px; height: 2px;
+  background: linear-gradient(90deg, transparent, #b8c1cf 25%, #b8c1cf 75%, transparent);
+  box-shadow: 0 1px 1px #fff; }
 
-/* Хаалганы хүрээ */
-.lp-door { position: absolute; left: 50%; bottom: 8px; width: 34px; height: 44px;
-  margin-left: -17px; border-radius: 5px; overflow: hidden;
-  background: #eef2f7; box-shadow: 0 0 0 2.5px #e3e8f0, 0 2px 6px rgba(0,0,0,.28); }
-/* Гэрэлт үүд */
-.lp-glow { position: absolute; inset: 2px; border-radius: 3px; opacity: 0;
-  background: radial-gradient(60% 55% at 50% 50%, #9ff4ff 0%, #45d8f0 45%, #1aa8cc 100%); }
-/* Хоёр хавтас — хажуу тийш сална */
-.lp-leaf { position: absolute; top: 0; bottom: 0; width: 50%; background: #eef2f7;
-  box-shadow: inset 0 0 0 1px #dfe5ee; }
-.lp-leaf.l { left: 0;  border-right: 1px solid #dfe5ee; }
-.lp-leaf.r { right: 0; border-left: 1px solid #dfe5ee; }
-.lp-leaf::after { content: ''; position: absolute; top: 50%; width: 4px; height: 2px;
-  margin-top: -1px; border-radius: 1px; background: #5ec8e8; }
+/* Хаалга */
+.lp-door { position: absolute; left: 80px; top: 17px; width: 50px; height: 65px;
+  border: 3px solid #edf1f5; border-radius: 4px; background: #a7bccb;
+  box-shadow: 3px 3px 5px #a0aabb, -3px -3px 5px #fff; perspective: 160px; z-index: 2; }
+.lp-hole { position: absolute; inset: 0;
+  background: radial-gradient(ellipse, #48c9d88c, transparent 75%), linear-gradient(120deg, #a6bcca, #c0d4df);
+  box-shadow: inset 2px 2px 5px #6d93aa66; }
+.lp-leaf { position: absolute; top: 0; bottom: 0; width: 50%; background: var(--surface);
+  border: 1px solid #eff4f8; box-shadow: inset 1px 1px 2px #fff, inset -1px -1px 2px #aab6c6; z-index: 3; }
+.lp-leaf.l { left: 0; transform-origin: left; }
+.lp-leaf.r { right: 0; transform-origin: right; }
+.lp-leaf::after { content: ''; position: absolute; width: 3px; height: 3px; top: 29px;
+  border-radius: 50%; background: var(--lp-cyan); box-shadow: 0 0 4px #33c6d8; }
 .lp-leaf.l::after { right: 3px; }
 .lp-leaf.r::after { left: 3px; }
+/* Хаалганы гэрэлтэлт — зөвшөөрвөл цэнхэр, татгалзвал улаан */
+.lp-door::before { content: ''; position: absolute; inset: -5px; border-radius: 6px;
+  box-shadow: 0 0 9px 3px var(--lp-glow-color, #21c9d4); opacity: var(--lp-glow, 0); }
+.lp-thresh { position: absolute; bottom: -5px; left: -5px; right: -5px; height: 4px;
+  border-radius: 2px; background: #e9eef4; box-shadow: 1px 2px 3px #aab4c5; }
 
-/* Хүн — алхаанд зориулж үе мөчөөр нь зурсан */
-.lp-actor { position: absolute; left: 50%; bottom: 5px; width: 26px; height: 40px;
-  margin-left: -13px; transform: translateX(-46px); }
-.lp-person { display: block; width: 100%; height: 100%; overflow: visible;
-  fill: none; stroke: #2f3945; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.lp-person .hd { fill: #16a6cc; stroke: none; }
-.lp-person .ft { stroke-width: 2.6; }
-.lp-person .armA, .lp-person .armB, .lp-person .foreA, .lp-person .foreB { stroke-width: 2.4; }
-.lp-person .far { stroke: #8f9bab; }          /* хойд мөчүүд бүдэг — гүн мэдрэгдэнэ */
-/* Үе мөчний эргэлтийн цэгүүдийг viewBox-ийн координатаар яг таг зааж өгнө */
-.lp-person g { transform-box: view-box; }
-.bob   { transform-origin: 20px 36px; }
-.armA, .armB { transform-origin: 20px 17px; }
-.foreA, .foreB { transform-origin: 20px 26px; }
-.legA, .legB { transform-origin: 20px 36px; }
-.shinA, .shinB { transform-origin: 20px 47px; }
+/* Хүн. Хөл нь шалан дээр (тайзны 81px) гишгэнэ: 37.8 + 36×LP_K = 81 */
+.lp-actor { position: absolute; left: 0; top: 37.8px; width: 21.6px; height: 46.8px; z-index: 4;
+  transform-origin: 50% 100%; will-change: transform, opacity; }
+.lp-actor svg { display: block; width: 21.6px; height: 46.8px; overflow: visible; }
 
-/* ── Хөдөлгөөний дараалал ── */
-.lg-portal.playing .lp-leaf.l { animation: lpOpenL .42s .12s ease forwards; }
-.lg-portal.playing .lp-leaf.r { animation: lpOpenR .42s .12s ease forwards; }
-.lg-portal.playing .lp-glow   { animation: lpGlow  .5s  .16s ease forwards; }
-/* Явах нь ЖИГД хурдтай — эс тэгвээс гулсаж байгаа мэт харагдана */
-.lg-portal.playing .lp-actor  { animation: lpTravel .9s .15s linear forwards; }
-.lg-portal.playing .lp-person { animation: lpFade .4s 1.02s ease-in forwards; }
-/* Алхаа нь хаалганд шингэтлээ үргэлжилнэ. Хэмнэл (.5s) нь явах
-   хурдтай тааруулсан — эс тэгвээс хөл газар дээр гулсаж байгаа мэт болно. */
-.lg-portal.playing .bob    { animation: wBob .5s .15s linear infinite; }
-.lg-portal.playing .legA   { animation: wLegA .5s .15s linear infinite; }
-.lg-portal.playing .legB   { animation: wLegB .5s .15s linear infinite; }
-.lg-portal.playing .shinA { animation: wShinA .5s .15s linear infinite; }
-.lg-portal.playing .shinB { animation: wShinB .5s .15s linear infinite; }
-.lg-portal.playing .armA   { animation: wArmA .5s .15s linear infinite; }
-.lg-portal.playing .armB   { animation: wArmB .5s .15s linear infinite; }
-.lg-portal.playing .foreA { animation: wForeA .5s .15s linear infinite; }
-.lg-portal.playing .foreB { animation: wForeB .5s .15s linear infinite; }
-
-@keyframes lpOpenL { to { transform: translateX(-102%); } }
-@keyframes lpOpenR { to { transform: translateX(102%); } }
-@keyframes lpGlow  { to { opacity: 1; } }
-@keyframes lpTravel { to { transform: translateX(3px); } }
-@keyframes lpFade  { to { opacity: 0; transform: scale(.5); } }
-
-/* SVG-д эерэг эргэлт = цагийн зүүний дагуу, өөрөөр хэлбэл мөч АРАГШАА явна */
-@keyframes wLegA {                       /* урд хөл */
-  0%   { transform: rotate(-24deg); }    /* өсгий газарт хүрэв */
-  50%  { transform: rotate(22deg); }     /* хөл ард, хуруу салав */
-  100% { transform: rotate(-24deg); }
-}
-@keyframes wLegB {                       /* хойд хөл — хагас үеээр хоцорно */
-  0%   { transform: rotate(22deg); }
-  50%  { transform: rotate(-24deg); }
-  100% { transform: rotate(22deg); }
-}
-@keyframes wShinA {                      /* өвдөг — хөл ард байхад эвхэгдэнэ */
-  0% { transform: rotate(2deg); }  30% { transform: rotate(7deg); }
-  55% { transform: rotate(38deg); } 80% { transform: rotate(14deg); }
-  100% { transform: rotate(2deg); }
-}
-@keyframes wShinB {
-  0% { transform: rotate(38deg); }  25% { transform: rotate(14deg); }
-  50% { transform: rotate(2deg); }  80% { transform: rotate(7deg); }
-  100% { transform: rotate(38deg); }
-}
-@keyframes wArmA {                       /* гар нь хөлтэйгөө ЭСРЭГ даллана */
-  0% { transform: rotate(30deg); } 50% { transform: rotate(-26deg); } 100% { transform: rotate(30deg); }
-}
-@keyframes wArmB {
-  0% { transform: rotate(-26deg); } 50% { transform: rotate(30deg); } 100% { transform: rotate(-26deg); }
-}
-@keyframes wForeA { 0% { transform: rotate(-10deg); } 50% { transform: rotate(-26deg); } 100% { transform: rotate(-10deg); } }
-@keyframes wForeB { 0% { transform: rotate(-26deg); } 50% { transform: rotate(-10deg); } 100% { transform: rotate(-26deg); } }
-/* Алхам бүрд бие бага зэрэг дээш өргөгдөнө — алхаж байгаа мэдрэмж үүнээс гарна */
-@keyframes wBob {
-  0% { transform: translateY(0); }   25% { transform: translateY(-1.3px); }
-  50% { transform: translateY(0); }  75% { transform: translateY(-1.3px); }
-  100% { transform: translateY(0); }
-}
+/* ── Талбар дээрх бяцхан зөөгч ──
+   Нэвтрэх нэр / нууц үг рүү дарахад үнэмлэхээ барьсан хүн гүйж ирнэ */
+.in-wrap { position: relative; }
+#lgEmail { padding-right: 46px; }
+.pw-wrap input { padding-right: 92px; }
+.fld-clip { position: absolute; top: 0; bottom: 0; right: 0; width: 46px;
+  overflow: hidden; border-radius: 0 var(--r-xs) var(--r-xs) 0; pointer-events: none; z-index: 2; }
+.pw-wrap .fld-clip { right: 48px; border-radius: 0; }
+.fp-person { position: absolute; right: 9px; top: 50%; margin-top: -17px;
+  width: 19px; height: 34px; pointer-events: none;
+  filter: drop-shadow(0 1px 1px #748c9933); }
+.fp-person svg { display: block; width: 19px; height: 34px; overflow: visible; }
+.fp-body { transform-origin: 10px 31px; animation: fpBreathe 2s ease-in-out infinite; }
+.fp-person.in-transit .fp-body { animation: none; }
+.fp-person.typing .fp-wave { animation: fpWave .28s ease-in-out 2 alternate; transform-origin: 10px 13px; }
+@keyframes fpBreathe { 50% { transform: translateY(-.45px) rotate(.7deg); } }
+@keyframes fpWave { to { transform: rotate(-17deg); } }
 
 @media (prefers-reduced-motion: reduce) {
   .lg-portal.playing .lp-text { opacity: 1; }
   .lg-portal.playing .lp-stage { display: none; }
+  .fp-body { animation: none !important; }
+  .fp-person.typing .fp-wave { animation: none !important; }
 }
 </style>
 </head>
@@ -1199,17 +1150,17 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <div class="lg-brand">
     <div class="lg-ic">🛤</div>
     <h1>Уулзварын зайн хэмжилт</h1>
-    <p>Замын хэсгийн ажилтны нэвтрэлт</p>
   </div>
   <div class="lg-err" id="lgErr"></div>
-  <div class="lg-note" id="lgNote"></div>
   <div class="card">
     <div class="fg">
       <div class="field">
         <label>Нэвтрэх нэр</label>
-        <input type="text" id="lgEmail" autocomplete="username" autocapitalize="none"
-               autocorrect="off" spellcheck="false" placeholder="ПД-6 ажилтан"
-               oninput="showAccountHint()"/>
+        <div class="in-wrap">
+          <input type="text" id="lgEmail" autocomplete="username" autocapitalize="none"
+                 autocorrect="off" spellcheck="false" placeholder="ПД-6 ажилтан"
+                 oninput="showAccountHint()"/>
+        </div>
         <div class="lg-hint" id="lgHint"></div>
       </div>
       <div class="field">
@@ -1223,39 +1174,31 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     </div>
     <button class="btn-go lg-portal" id="lgBtn" onclick="doLogin()">
       <span class="lp-text">Нэвтрэх →</span>
-      <span class="lp-stage" aria-hidden="true">
+      <span class="lp-stage" id="lpStage" aria-hidden="true">
         <span class="lp-floor"></span>
-        <span class="lp-door">
-          <span class="lp-glow"></span>
+        <span class="lp-door" id="lpDoor">
+          <span class="lp-hole"></span>
           <span class="lp-leaf l"></span>
           <span class="lp-leaf r"></span>
+          <span class="lp-thresh"></span>
         </span>
-        <span class="lp-actor">
-          <svg class="lp-person" viewBox="0 0 40 62">
-            <circle class="hd" cx="20" cy="8" r="5.2"/>
-            <g class="bob">
-              <!-- хойд гар, хойд хөл (бүдэг) -->
-              <g class="limb far">
-                <g class="armB">
-                  <line x1="20" y1="17" x2="20" y2="26"/>
-                  <g class="foreB"><line x1="20" y1="26" x2="20" y2="34"/></g>
-                </g>
-                <g class="legB">
-                  <line x1="20" y1="36" x2="20" y2="47"/>
-                  <g class="shinB"><line x1="20" y1="47" x2="20" y2="57"/><line class="ft" x1="20" y1="57" x2="25" y2="57"/></g>
-                </g>
-              </g>
-              <!-- бие -->
-              <line class="tor" x1="20" y1="13" x2="20" y2="36"/>
-              <!-- урд хөл, урд гар -->
-              <g class="legA">
-                <line x1="20" y1="36" x2="20" y2="47"/>
-                <g class="shinA"><line x1="20" y1="47" x2="20" y2="57"/><line class="ft" x1="20" y1="57" x2="25" y2="57"/></g>
-              </g>
-              <g class="armA">
-                <line x1="20" y1="17" x2="20" y2="26"/>
-                <g class="foreA"><line x1="20" y1="26" x2="20" y2="34"/></g>
-              </g>
+        <span class="lp-actor" id="lpActor">
+          <svg viewBox="0 0 18 39" fill="none" stroke-linecap="round">
+            <ellipse id="lpShadow" cx="9" cy="37" rx="5" ry="1" fill="#8395a0" opacity=".2" stroke="none"/>
+            <g id="lpCard" stroke-linejoin="round">
+              <rect x="-2.7" y="18" width="7.3" height="9.4" rx=".8" fill="#e8fbff" stroke="#4ab5c4" stroke-width="1.15"/>
+              <circle cx="-.5" cy="21" r=".8" fill="#62bccc" stroke="none"/>
+              <path d="M1 20.8H3M-1 24H2.8" stroke="#74c5d1" stroke-width=".7"/>
+            </g>
+            <path id="lpArmB" stroke="#667984" stroke-width="1.65"/>
+            <path id="lpLegB" stroke="#60717c" stroke-width="1.85"/>
+            <path id="lpTorso" stroke="#506977" stroke-width="2.1"/>
+            <path id="lpLegA" stroke="#4d6472" stroke-width="2"/>
+            <path id="lpArmA" stroke="#526f7d" stroke-width="1.8"/>
+            <g id="lpHead">
+              <circle cx="9" cy="5.4" r="3.9" fill="#23bed0" stroke="#52d3dd" stroke-width=".8"/>
+              <path d="M6.5 3.9Q7.1 2.7 8.5 2.8" stroke="#c0f7f8" stroke-width=".7"/>
+              <g id="lpEyes" fill="#edffff" stroke="none"><circle cx="7.7" cy="5.1" r=".68"/><circle cx="10.4" cy="5.1" r=".68"/></g>
             </g>
           </svg>
         </span>
@@ -1263,7 +1206,20 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     </button>
     <div id="lgBusy">Шалгаж байна…</div>
   </div>
-  <div class="lg-forgot" onclick="doReset()">Нууц үгээ мартсан уу?</div>
+  <span class="fp-person" id="fpPerson" aria-hidden="true">
+    <svg viewBox="0 0 20 38" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <g class="fp-body" id="fpBody">
+        <path id="fpLegs" d="M10 22L7 34M10 22L13 34" stroke="#596d79" stroke-width="2"/>
+        <path d="M10 10L10 22" stroke="#5a7180" stroke-width="2.2"/>
+        <path d="M10 13L7 17L3 18" stroke="#6a828f" stroke-width="1.6"/>
+        <g class="fp-wave"><path d="M10 13L13 17L15 18" stroke="#607c88" stroke-width="1.6"/></g>
+        <rect x=".3" y="16" width="6.4" height="8.5" rx="1" fill="#e8f9fc" stroke="#48adbf" stroke-width="1" transform="rotate(-6 3 20)"/>
+        <path d="M2 19H4.7M2 21H4" stroke="#8bcbd6" stroke-width=".6"/>
+        <circle cx="10" cy="6" r="4" fill="#24bdd0" stroke="#6edce6" stroke-width=".6"/>
+        <circle cx="8.6" cy="5.7" r=".75" fill="white"/><circle cx="11.3" cy="5.7" r=".75" fill="white"/>
+      </g>
+    </svg>
+  </span>
 </div>
 
 <!-- SETUP -->
@@ -1518,7 +1474,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       <button class="sa-send" id="sactSend" onclick="sactSend()">☁️ Админ руу илгээх</button>
       <button onclick="sactOpen()">👁 Хэмжилтийг харах</button>
       <button onclick="sactExcel()">📊 Excel татах</button>
-      <button onclick="sactCSV()">📄 CSV татах</button>
       <button class="sa-del" onclick="sactDelete()">🗑 Устгах</button>
     </div>
     <div class="mod-close" onclick="closeSessActMod()">Болих</div>
@@ -1547,7 +1502,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="sessv-body" id="sessVBody"></div>
     <div class="sessv-actions">
       <button class="sv-xlsx" onclick="exportSessionExcel()">📊 Excel татах</button>
-      <button class="sv-csv" onclick="exportSessionCSV()">📄 CSV татах</button>
     </div>
     <button class="sessv-cloud" id="btnSessCloud" onclick="uploadViewedSession()">☁️ Энэ хэмжилтийг админ руу илгээх</button>
     <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
@@ -1658,8 +1612,6 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="exp-btns">
       <button class="eb-cloud" id="btnCloudSend" style="display:none;background:var(--grad-green);border-color:transparent;color:var(--ink);" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
       <button class="eb-xlsx" onclick="exportExcel();closeExpMod()">📊 Дэлгэрэнгүй Excel татах</button>
-      <button class="eb1" onclick="exportCSV();closeExpMod()">⬇ Дэлгэрэнгүй CSV татах</button>
-      <button onclick="exportSum();closeExpMod()">⬇ Дүн CSV татах</button>
       <button style="background:var(--grad-green);border-color:transparent;color:var(--ink);" onclick="shareData()">📤 Messenger-р явуулах</button>
     </div>
     <div class="mod-close" onclick="closeExpMod()">Хаах</div>
@@ -1989,11 +1941,6 @@ function showLoginError(msg) {
   e.classList.add('on');
 }
 function clearLoginError() { document.getElementById('lgErr').classList.remove('on'); }
-function showLoginNote(msg) {
-  const e = document.getElementById('lgNote');
-  e.textContent = msg;
-  e.classList.add('on');
-}
 
 /* ── Нэвтрэх / гарах ── */
 const AUTH_ERR = {
@@ -2163,26 +2110,287 @@ function resetPwField() {
   if (b) { b.classList.remove('on'); b.textContent = '👁'; b.title = 'Нууц үгийг харах'; }
 }
 
-/* Нэвтрэх товчны хаалганы хөдөлгөөн.
-   Сүлжээний хүсэлттэй ЗЭРЭГ тоглоно — ингэснээр хүлээлт нэмэгдэхгүй. */
-let signInAnim = null;
-const SIGNIN_ANIM_MS = 1550;
+/* ══════════════════════════════════════════════════════════════
+   НЭВТРЭХ ҮЗЭГДЭЛ
+   Бяцхан хүний үе мөчийг кадр тутамд урвуу кинематикаар бодож зурна:
+   газар гишгэсэн хөл нь биетэй харьцангуй хойш явдаг тул алхаа ямар ч
+   хурдад гулсахгүй. Сүлжээний хариу ирэх хүртэл хүн хаалганы өмнө
+   үнэмлэхээ сунгаж зогсоно — ингэснээр хүлээлт нь үзэгдлийн нэг хэсэг
+   болно. Хариу нь: зөвшөөрвөл хаалга нээгдэнэ, татгалзвал улаан
+   гэрэл асч, хүн бухимдан үсрээд буцаж алхана.
+   ══════════════════════════════════════════════════════════════ */
+const LP_TAU = Math.PI * 2;
+const LP_SPEED   = 2.9;      /* эх хэмнэлийг богиносгоно (1 = анхны хурд) */
+/* ── Алхмын хэмжээс ──
+   Гишгэсэн хөл нэг циклд viewBox-ийн 12 нэгж хойш явдаг тул бие ЯГ
+   төдий зайг туулах ёстой — эс тэгвээс хөл газар дээр гулсана. Өөрөөр
+   хэлбэл явах зай нь (алхмын урт × циклийн тоо) гэдгээр тогтоогдоно,
+   дураараа сонгох боломжгүй. Тиймээс хүнийг томсгож (LP_K), явах зайг
+   богиносгосон: 2.6 цикл ≈ 440 мс/цикл буюу хүний алхааны хэмнэл. */
+const LP_K = 46.8 / 39;          /* viewBox нэгж → px */
+const LP_SWING = 5.5;            /* хөл хазайх далайц, нэгж (±) */
+const LP_STANCE = .6;            /* хөл газар дээр байх хугацаа, циклийн хувь */
+/* Гишгэсэн хөл нэг гишгэлтэд 2·LP_SWING нэгжийг хойш явна, харин тэр нь
+   циклийн ердөө 60% юм. Тиймээс БҮТЭН циклд бие 2·LP_SWING/0.6 нэгжийг
+   туулна — энэ тооцоог алдвал хөл газар дээр гулсана. */
+const LP_STRIDE = (2 * LP_SWING / LP_STANCE) * LP_K;   /* нэг циклд туулах зай, px */
+const LP_X0 = 2, LP_XD = 58;     /* эхлэх ба хаалганы өмнөх байрлал */
+const LP_IN = 21.7;              /* хаалга руу орох зай — мөн ижил хурдаар */
+const LP_BACK = 51;              /* татгалзсаны дараа ухарч алхах зай */
+const LP_HOLD_A  = 4540;     /* хариу хүлээх давталтын эхлэл */
+const LP_HOLD_B  = 4940;     /* … төгсгөл (яг 2 найгалт — заадас мэдэгдэхгүй) */
+const LP_END_OK  = 7600;     /* хүн хаалганд шингэмэгц апп руу шилжинэ */
+const LP_END_NO  = 10550;
+const LP_WAIT_MAX = 15000;   /* сүлжээ хэт удвал үзэгдлийг дуусгана */
 
-function playSignInAnim() {
+let LP = null, lpDir = 1, lpVerdict = null, lpTok = 0;
+let signInAnim = null;
+
+function lpInit() {
+  if (LP) return LP;
   const btn = document.getElementById('lgBtn');
-  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!btn || calm) { signInAnim = null; return Promise.resolve(); }
-  btn.classList.remove('playing');
-  void btn.offsetWidth;                       // дахин эхлүүлэхийн тулд
-  btn.classList.add('playing');
-  signInAnim = new Promise(r => setTimeout(r, SIGNIN_ANIM_MS));
+  if (!btn) return null;
+  const ids = ['lpShadow','lpCard','lpArmB','lpLegB','lpTorso','lpLegA','lpArmA','lpHead','lpEyes'];
+  LP = { btn, stage: document.getElementById('lpStage'), door: document.getElementById('lpDoor'),
+         actor: document.getElementById('lpActor'),
+         leaf: [btn.querySelector('.lp-leaf.l'), btn.querySelector('.lp-leaf.r')] };
+  ids.forEach(id => { LP[id] = document.getElementById(id); });
+  if (!LP.stage || !LP.actor || !LP.lpTorso) { LP = null; return null; }
+  const fit = () => {
+    const w = LP.btn.clientWidth || 210;
+    LP.stage.style.transform = `translate(-50%,-50%) scale(${Math.min(1, w / 210)})`;
+  };
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(LP.btn); else window.addEventListener('resize', fit);
+  fit();
+  lpFigure(0, false);
+  return LP;
+}
+
+/* Хоёр холбоосын хооронд тохой/өвдгийг олно (урвуу кинематик) */
+function lpJoint(a, b, l1, l2, bend) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const d = Math.max(.01, Math.min(Math.hypot(dx, dy), l1 + l2 - .01));
+  const along = (l1 * l1 - l2 * l2 + d * d) / (2 * d);
+  const side = Math.sqrt(Math.max(0, l1 * l1 - along * along));
+  const len = Math.hypot(dx, dy) || 1;
+  return { x: a.x + along * dx / len + bend * side * dy / len,
+           y: a.y + along * dy / len - bend * side * dx / len };
+}
+function lpPath(id, a, b, c) { LP[id].setAttribute('d', `M${a.x} ${a.y}L${b.x} ${b.y}L${c.x} ${c.y}`); }
+
+function lpFigure(t, walking, reach) {
+  reach = reach || 0;
+  const bob = walking ? Math.cos(t * 2) * .32 : Math.sin(t) * .16;
+  const hip = { x: 9 + lpDir * .4, y: 23 + bob };
+  const sh  = { x: 9 + lpDir * (walking ? .45 : 0), y: 11.8 + bob };
+  LP.lpTorso.setAttribute('d', `M${sh.x} ${sh.y}Q${9 + lpDir * .8} ${18 + bob} ${hip.x} ${hip.y}`);
+  for (let i = 0; i < 2; i++) {
+    const cycle = ((t / LP_TAU + i * .5) % 1 + 1) % 1;
+    const stance = cycle < LP_STANCE;
+    const u = stance ? cycle / LP_STANCE : (cycle - LP_STANCE) / (1 - LP_STANCE);
+    /* Гишгэсэн хөл жигд хойш, хөвөх хөл зөөлөн урагш */
+    const x = walking ? (stance ? LP_SWING - 2 * LP_SWING * u
+                                : -LP_SWING + 2 * LP_SWING * (u * u * (3 - 2 * u)))
+                      : (i ? 2.8 : -2.8);
+    const lift = walking && !stance ? Math.sin(Math.PI * u) * 2.6 : 0;
+    const foot = { x: 9 + lpDir * x, y: 36 - lift };
+    /* Холбоосууд нь хонго–шалны зайнаас урт тул өвдөг үргэлж бага зэрэг
+       нугалаастай — ингэж байж алхам хүний хэмжээнд хүрнэ */
+    const knee = lpJoint(hip, foot, 7.1, 7.3, lpDir);
+    const leg = i ? 'lpLegA' : 'lpLegB';
+    lpPath(leg, hip, knee, foot);
+    LP[leg].setAttribute('d', LP[leg].getAttribute('d') + `l${lpDir * 1.25} .15`);
+    const swing = walking ? Math.cos(t + i * Math.PI) * 3.2 : (i ? .6 : -.6);
+    const wrist = { x: sh.x - lpDir * swing, y: 22 + bob - Math.abs(swing) * .28 };
+    if (i) { wrist.x += (17 - wrist.x) * reach; wrist.y += (17 - wrist.y) * reach; }
+    else   { wrist.x = 3 + Math.sin(t) * .45; wrist.y = 19.4 + bob; }   /* хойд гар үнэмлэхээ барина */
+    const elbow = lpJoint(sh, wrist, 5.2, 5.1, -lpDir);
+    lpPath(i ? 'lpArmA' : 'lpArmB', sh, elbow, wrist);
+  }
+  LP.lpHead.setAttribute('transform', `translate(${sh.x - 9} ${bob}) rotate(${walking ? lpDir * 3 : 0} 9 9)`);
+  LP.lpEyes.setAttribute('transform', `translate(${lpDir < 0 ? -.5 : .3} 0)`);
+  LP.lpCard.setAttribute('transform', `translate(0 ${bob}) rotate(${walking ? Math.sin(t) * 7 : -6} 3 19)`);
+  LP.lpShadow.setAttribute('rx', String(5 - Math.max(0, -bob) * .7));
+}
+
+const lpClamp = x => Math.max(0, Math.min(1, x));
+const lpProg  = (t, a, b) => lpClamp((t - a) / (b - a));
+const lpSmooth = x => x * x * (3 - 2 * x);
+const lpBetween = (t, a, b) => t >= a && t < b;
+
+/* Нэг цагийн шугам бүх зүйлийг удирдана. Хугацаа нь миллисекунд. */
+function lpScene(t, rejected) {
+  let x, alpha = 1, size = 1, walking = false, phase = 0, reach = 0, opening = 0, glow = 0;
+  let sceneAlpha = lpProg(t, 180, 480) * (1 - lpProg(t, 7800, 8150));
+  /* Зүүн захаас орж ирээд хаалга хүртэл алхана, зогсоод үнэмлэхээ сунгана */
+  const walk = lpProg(t, 650, 3950);
+  x = LP_X0 + (LP_XD - LP_X0) * walk; walking = lpBetween(t, 650, 3950);
+  phase = (x - LP_X0) / LP_STRIDE * LP_TAU;
+  alpha = lpProg(t, 500, 750);
+  reach = lpSmooth(lpProg(t, 4100, 4350)) * (1 - lpSmooth(lpProg(t, 4980, 5200)));
+  if (lpBetween(t, 4350, 4950)) reach *= .72 + .28 * (.5 - .5 * Math.cos((t - 4350) / 200 * LP_TAU));
+  glow = lpSmooth(lpProg(t, 4330, 4520)) * (1 - lpSmooth(lpProg(t, 4940, 5250)));
+  opening = lpSmooth(lpProg(t, 5650, 6080)) * (1 - lpSmooth(lpProg(t, 7240, 7640)));
+  if (t >= 6270) {
+    const enter = lpProg(t, 6270, 7550); x = LP_XD + LP_IN * enter;
+    walking = enter < 1; phase = (LP_XD - LP_X0 + LP_IN * enter) / LP_STRIDE * LP_TAU;
+    size = 1 - .19 * lpSmooth(enter); alpha = 1 - lpSmooth(lpProg(enter, .38, 1));
+  }
+  let jump = 0, squash = 1, shake = 0;
+  lpDir = 1;
+  if (rejected) {
+    /* Хаалга нээгдэхгүй: цэнхэр гэрэл унтарч улаан асна, хүн бухимдана */
+    opening = 0;
+    sceneAlpha = lpProg(t, 180, 480) * (1 - lpProg(t, 10200, 10550));
+    glow = Math.max(1 - lpSmooth(lpProg(t, 4940, 5060)),
+                    lpSmooth(lpProg(t, 5050, 5230)) * (1 - lpSmooth(lpProg(t, 6750, 7100))));
+    if (lpBetween(t, 5050, 5500)) shake = Math.sin((t - 5050) / 60 * Math.PI) * 1.2 * (1 - lpProg(t, 5050, 5500));
+    if (t >= 5200) { x = LP_XD; alpha = 1; size = 1; walking = false; reach = 0; }
+    if (lpBetween(t, 5410, 5610)) squash = 1 - .13 * Math.sin(lpProg(t, 5410, 5610) * Math.PI);
+    for (const start of [5610, 6070]) {
+      const p = lpProg(t, start, start + 340);
+      if (p > 0 && p < 1) { jump = -10 * 4 * p * (1 - p); squash = 1 + .05 * Math.sin(p * Math.PI); }
+      const land = lpProg(t, start + 340, start + 460);
+      if (land > 0 && land < 1) squash = 1 - .15 * Math.sin(land * Math.PI);
+    }
+    if (t >= 6820) {
+      lpDir = -1; const back = lpProg(t, 7000, 10000);
+      x = LP_XD - LP_BACK * back; walking = lpBetween(t, 7000, 10000);
+      phase = LP_BACK * back / LP_STRIDE * LP_TAU;
+      alpha = 1 - lpSmooth(lpProg(t, 9720, 10070));
+    }
+  }
+  lpFigure(phase, walking, reach);
+  LP.stage.style.opacity = sceneAlpha;
+  LP.actor.style.transform = `translate(${x}px,${jump}px) scale(${size * (2 - squash)},${size * squash})`;
+  LP.actor.style.opacity = alpha;
+  LP.door.style.setProperty('--lp-glow', glow);
+  LP.door.style.setProperty('--lp-glow-color', rejected && t >= 5000 ? '#ed4260' : '#21c9d4');
+  LP.door.style.transform = `translateX(${shake}px)`;
+  LP.leaf[0].style.transform = `rotateY(${-opening * 100}deg)`;
+  LP.leaf[1].style.transform = `rotateY(${opening * 100}deg)`;
+  /* Хүн хаалганы гэрэлд шингэнэ — хүрээн дээгүүр хөвөхгүй */
+  LP.actor.style.zIndex = (!rejected && t > 6700) ? '2' : '4';
+}
+
+function lpCalm() {
+  return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+}
+
+/* Нэвтрэх товчны үзэгдлийг эхлүүлнэ. Сүлжээний хүсэлттэй ЗЭРЭГ тоглоно. */
+function playSignInAnim() {
+  const lp = lpInit();
+  if (!lp || lpCalm()) { signInAnim = null; return Promise.resolve(); }
+  const tok = ++lpTok;
+  lpVerdict = null;
+  lp.btn.classList.add('playing');
+  signInAnim = new Promise(resolve => {
+    let t = 0, last = performance.now(), waited = 0;
+    (function frame(now) {
+      if (tok !== lpTok) return resolve();          /* дахин дарсан — хуучныг орхино */
+      const dt = Math.min(now - last, 50); last = now;
+      if (lpVerdict === null && t >= LP_HOLD_B) {
+        /* Хариу хүлээнэ: үнэмлэхээ сунгасан хэвээр гогцоолно */
+        waited += dt;
+        t = LP_HOLD_A + (t - LP_HOLD_A + dt * LP_SPEED) % (LP_HOLD_B - LP_HOLD_A);
+        if (waited > LP_WAIT_MAX) lpVerdict = false;
+      } else {
+        t += dt * LP_SPEED;
+      }
+      const rejected = lpVerdict === false;
+      const end = rejected ? LP_END_NO : LP_END_OK;
+      lpScene(Math.min(t, end), rejected);
+      if (lpVerdict === null || t < end) requestAnimationFrame(frame);
+      else { lpFinish(tok); resolve(); }
+    })(last);
+  });
   return signInAnim;
 }
-function resetSignInAnim() {
-  const btn = document.getElementById('lgBtn');
-  if (btn) btn.classList.remove('playing');
-  signInAnim = null;
+/* Сүлжээний хариуг үзэгдэлд дамжуулна */
+function lpSetVerdict(ok) { if (lpVerdict === null) lpVerdict = !!ok; }
+function lpFinish(tok) {
+  if (LP && tok === lpTok) { LP.btn.classList.remove('playing'); LP.stage.style.opacity = 0; }
 }
+function resetSignInAnim() {
+  lpTok++;
+  if (LP) { LP.btn.classList.remove('playing'); LP.stage.style.opacity = 0; LP.door.style.setProperty('--lp-glow', 0); }
+  lpVerdict = null; signInAnim = null;
+}
+
+/* ── Талбарын бяцхан зөөгч ──
+   Нэвтрэх нэр эсвэл нууц үг рүү дарахад үнэмлэх барьсан хүн гүйж ирнэ.
+   Зөөгч ганцхан — хуучин талбараасаа бүрэн гарч байж нөгөө рүү шилжинэ. */
+let FP = null;
+function fpInit() {
+  if (FP) return FP;
+  const person = document.getElementById('fpPerson');
+  const em = document.getElementById('lgEmail'), pw = document.getElementById('lgPass');
+  if (!person || !em || !pw) return null;
+  person.remove();
+  const inputs = [em, pw];
+  const clips = inputs.map(input => {
+    const c = document.createElement('span');
+    c.className = 'fld-clip'; c.setAttribute('aria-hidden', 'true');
+    input.parentElement.appendChild(c);
+    return c;
+  });
+  /* person нь DOM-оос салсан тул getElementById олохгүй — дотроос нь хайна */
+  FP = { person, inputs, clips, body: person.querySelector('#fpBody'),
+         legs: person.querySelector('#fpLegs'), cur: null, want: null, task: null };
+  inputs.forEach(input => {
+    input.addEventListener('focus', () => { if (!document.getElementById('lgBtn').disabled) fpRequest(input); });
+    input.addEventListener('blur', () => queueMicrotask(() => {
+      const a = document.activeElement;
+      fpRequest(!document.getElementById('lgBtn').disabled && inputs.includes(a) ? a : null);
+    }));
+    input.addEventListener('input', () => {
+      if (FP.cur !== input || lpCalm()) return;
+      person.classList.remove('typing'); void person.offsetWidth; person.classList.add('typing');
+    });
+  });
+  return FP;
+}
+function fpWalk(enter) {
+  const dur = lpCalm() ? 0 : 640;
+  FP.person.classList.add('in-transit');
+  return new Promise(resolve => {
+    let el = 0, last = performance.now();
+    (function frame(now) {
+      el += Math.min(now - last, 50); last = now;
+      const p = dur ? Math.min(1, el / dur) : 1;
+      const x = 38 * (enter ? 1 - p : p), ph = p * Math.PI * 4;
+      FP.person.style.transform = `translateX(${x}px)`;
+      const stride = Math.sin(ph) * 3.5, bob = Math.sin(ph * 2) * .28;
+      FP.body.setAttribute('transform', `translate(0 ${bob})`);
+      FP.legs.setAttribute('d', `M10 22L${10 + stride * .4} 28L${10 + stride} 34M10 22L${10 - stride * .4} 28L${10 - stride} 34`);
+      if (p < 1) requestAnimationFrame(frame);
+      else {
+        FP.body.removeAttribute('transform');
+        FP.legs.setAttribute('d', 'M10 22L7 34M10 22L13 34');
+        FP.person.classList.remove('in-transit'); resolve();
+      }
+    })(last);
+  });
+}
+function fpRequest(target) {
+  if (!fpInit()) return Promise.resolve();
+  FP.want = target;
+  if (FP.task) return FP.task;
+  FP.task = (async () => {
+    while (FP.cur !== FP.want) {
+      if (FP.cur !== null) { await fpWalk(false); FP.person.remove(); FP.cur = null; }
+      if (FP.want !== null) {
+        FP.cur = FP.want;
+        FP.clips[FP.inputs.indexOf(FP.cur)].appendChild(FP.person);
+        FP.person.style.transform = 'translateX(38px)';
+        await fpWalk(true);
+      }
+    }
+  })().finally(() => { FP.task = null; });
+  return FP.task;
+}
+
+lpInit(); fpInit();
 
 async function doLogin() {
   const raw = document.getElementById('lgEmail').value || '';
@@ -2196,12 +2404,14 @@ async function doLogin() {
     return;
   }
   setLoginBusy(true);
+  fpRequest(null);            // зөөгч талбараас холдоно
   playSignInAnim();
   let lastErr = null;
   // Домэйн бүрээр оролдоно — аль нь бүртгэлтэй нь олдоно
   for (const email of acc.emails) {
     try {
       await CLOUD.auth.signInWithEmailAndPassword(email, pass);
+      lpSetVerdict(true);     // хаалга нээгдэнэ
       return;   // Цааш нь onAuthStateChanged үргэлжлүүлнэ
     } catch (e) {
       lastErr = e;
@@ -2211,23 +2421,11 @@ async function doLogin() {
           code !== 'auth/invalid-email') break;
     }
   }
-  resetSignInAnim();          // амжилтгүй бол хөдөлгөөнийг шууд зогсооно
+  // Татгалзсан үзэгдэл үлдсэн хэсгээ өөрөө тоглоно — алдааг нь шууд харуулна
+  lpSetVerdict(false);
   setLoginBusy(false);
   showLoginError(AUTH_ERR[lastErr && lastErr.code] ||
     ('Нэвтэрч чадсангүй: ' + ((lastErr && (lastErr.message || lastErr.code)) || '')));
-}
-async function doReset() {
-  const acc = parseAccount(document.getElementById('lgEmail').value || '');
-  const email = acc && acc.emails[0];
-  if (!email) { showLoginError('Эхлээд «ПД-6 ажилтан» гэх мэтээр бичнэ үү, дараа нь энд дарна уу.'); return; }
-  if (!CLOUD.auth) { showLoginError('Firebase тохируулагдаагүй байна.'); return; }
-  try {
-    await CLOUD.auth.sendPasswordResetEmail(email);
-    clearLoginError();
-    showLoginNote(`«${email}» хаяг руу нууц үг сэргээх холбоос илгээлээ. Шуудангаа шалгана уу.`);
-  } catch (e) {
-    showLoginError(AUTH_ERR[e.code] || ('Илгээж чадсангүй: ' + (e.message || e.code)));
-  }
 }
 /* ── Профайл ба гарах ── */
 function openProfMod() {
@@ -2972,11 +3170,6 @@ async function sactExcel() {
   const id = sactId;
   closeSessActMod();
   await exportSessionExcel(id);
-}
-function sactCSV() {
-  const id = sactId;
-  closeSessActMod();
-  exportSessionCSV(id);
 }
 function sactDelete() {
   const id = sactId;
@@ -4097,54 +4290,6 @@ function openExpMod() {
 }
 function closeExpMod() { document.getElementById('expMod').classList.remove('on'); }
 
-/* ── Export CSV ── */
-function exportCSV() { _exportCSVDetailed(C, data); }
-function exportSum() { _exportCSVSum(C, data); }
-
-function _exportCSVDetailed(c, d) {
-  const maxJ=Math.max(c.bar,c.zun);
-  const cols=Array.from({length:maxJ},(_,i)=>i+1);
-  let rows=[['№','КМ','Чиглэл',...cols,'Нийт','Дундаж'].join(',')];
-  let n=1;
-  for (let km=c.s; km<=c.e; km++) {
-    ['bar','zun'].forEach((dir,di)=>{
-      const count=dir==='bar'?c.bar:c.zun;
-      const vals=Array.from({length:maxJ},(_,i)=>{
-        if(i>=count) return '';
-        const v=d[km]?.[i+1]?.[dir];
-        return v===null||v===undefined?'':v;
-      });
-      const nums=vals.filter(v=>v!=='').map(Number);
-      const total=nums.length?Math.round(nums.reduce((a,x)=>a+x,0)):'';
-      const avg=nums.length?(nums.reduce((a,x)=>a+x,0)/nums.length).toFixed(1):'';
-      rows.push([n++,km,di===0?'баруун':'зүүн',...vals,total,avg].join(','));
-    });
-  }
-  dl(rows.join('\n'),`уулзвар_${kmFileTag({config:c,data:d})}км_${fileSafe(c.date)}.csv`);
-}
-function _exportCSVSum(c, d) {
-  let rows=[['КМ','баруун нийт','баруун дундаж','зүүн нийт','зүүн дундаж','Хэтрүүлсэн'].join(',')];
-  for (let km=c.s; km<=c.e; km++) {
-    const bv=[],zv=[];
-    for(let j=1;j<=c.bar;j++){const v=d[km]?.[j]?.bar;if(v!==null&&v!==undefined)bv.push(v);}
-    for(let j=1;j<=c.zun;j++){const v=d[km]?.[j]?.zun;if(v!==null&&v!==undefined)zv.push(v);}
-    const bT=bv.length?Math.round(bv.reduce((a,x)=>a+x,0)):'';
-    const zT=zv.length?Math.round(zv.reduce((a,x)=>a+x,0)):'';
-    const bA=bv.length?(bv.reduce((a,x)=>a+x,0)/bv.length).toFixed(1):'';
-    const zA=zv.length?(zv.reduce((a,x)=>a+x,0)/zv.length).toFixed(1):'';
-    const over=[...bv,...zv].filter(v=>v>(c.max||37)).length||'';
-    rows.push([km,bT,bA,zT,zA,over].join(','));
-  }
-  dl(rows.join('\n'),`дүн_${kmFileTag({config:c,data:d})}км_${fileSafe(c.date)}.csv`);
-}
-function dl(content,name) {
-  const blob=new Blob(['\uFEFF'+content],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=name;
-  a.click();
-}
-
 /* ── Excel татах (active session) ── */
 async function exportExcel() {
   await _exportExcelCore(C, data, `уулзвар_${kmFileTag({config:C,data:data})}км_${fileSafe(C.date)}.xlsx`);
@@ -4159,14 +4304,6 @@ async function exportSessionExcel(id) {
   const fname = `уулзвар_${fileSafe(c.road)}зам_${kmFileTag(sess)}км_${fileSafe(c.date)}.xlsx`;
   await _exportExcelCore(c, d, fname);
   showStatus('📊 Excel татагдлаа', 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
-}
-
-/* ── CSV татах (saved session — харах цонх эсвэл сонголтын цэснээс) ── */
-function exportSessionCSV(id) {
-  const sess = id ? getSessions().find(s => s.id === id) : currentViewSess;
-  if (!sess) return;
-  _exportCSVDetailed(sess.config, sess.data);
-  showStatus('📄 CSV татагдлаа', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
 }
 
 /* ── Excel core — өнгөтэй, 2 хуудас ── */
