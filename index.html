@@ -969,6 +969,32 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .adm-note b { color: var(--red); font-weight: 800; }
 
 /* ══════════════════════════════════════════════════════════════
+   ХӨДӨЛГӨӨНТ ТОВЧ — устгах (хогийн сав) ба татах (хайрцаг, нүх)
+   Тайзыг JS нь товч дотор үүсгэнэ; энд зөвхөн байрлал, өнгө.
+   ══════════════════════════════════════════════════════════════ */
+.sb { position: relative; overflow: hidden; isolation: isolate; }
+.sb-label { position: relative; z-index: 2; display: block; transition: opacity .2s ease; }
+.sb.sb-on .sb-label { opacity: 0; }
+.sb-stage { position: absolute; inset: 0; z-index: 1; opacity: 0; pointer-events: none; }
+.sb-stage svg { display: block; width: 100%; height: 100%; }
+/* Үзэгдэл тоглох зуур товч бүдгэрэхгүй */
+.sb.sb-on:disabled, .sb.sb-on[disabled] { opacity: 1 !important; }
+/* Тайзтай товчнууд: өнгөт дэвсгэр дээр бяцхан хүн, шал нь уншигдахгүй
+   тул цайвар неоморф гадаргуу болгож, утгыг нь бичгийн өнгөөр өгнө */
+#delMod .rst-btns .rst-yes, .dp-inner .dp-go,
+#expMod .exp-btns .eb-xlsx, .sessv-actions .sv-xlsx {
+  min-height: 84px; font-weight: 700;
+  background: var(--surface) !important; border-color: transparent !important;
+  box-shadow: var(--lift) !important;
+}
+#delMod .rst-btns .rst-yes:active, .dp-inner .dp-go:active,
+#expMod .exp-btns .eb-xlsx:active, .sessv-actions .sv-xlsx:active {
+  box-shadow: var(--sunk) !important;
+}
+#delMod .rst-btns .rst-yes { color: var(--red) !important; }
+.dp-inner .dp-go, #expMod .exp-btns .eb-xlsx, .sessv-actions .sv-xlsx { color: var(--mint) !important; }
+
+/* ══════════════════════════════════════════════════════════════
    НЭВТРЭХ — хаалганы үзэгдэл ба талбарын бяцхан зөөгч
    Хүнийг JS-ээр кадр бүрд зурна (үе мөчийг урвуу кинематикаар бодно),
    тиймээс хөл газар дээр гулсахгүй, ямар ч хурдад зөв алхана.
@@ -1501,7 +1527,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="sessv-sub" id="sessVSub"></div>
     <div class="sessv-body" id="sessVBody"></div>
     <div class="sessv-actions">
-      <button class="sv-xlsx" onclick="exportSessionExcel()">📊 Excel татах</button>
+      <button class="sv-xlsx" onclick="runDownload(this, exportSessionExcel)">📊 Excel татах</button>
     </div>
     <button class="sessv-cloud" id="btnSessCloud" onclick="uploadViewedSession()">☁️ Энэ хэмжилтийг админ руу илгээх</button>
     <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
@@ -1611,8 +1637,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="exp-sub" id="expSub">0 хэмжилт бичигдсэн</div>
     <div class="exp-btns">
       <button class="eb-cloud" id="btnCloudSend" style="display:none;background:var(--grad-green);border-color:transparent;color:var(--ink);" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
-      <button class="eb-xlsx" onclick="exportExcel();closeExpMod()">📊 Дэлгэрэнгүй Excel татах</button>
-      <button style="background:var(--grad-green);border-color:transparent;color:var(--ink);" onclick="shareData()">📤 Messenger-р явуулах</button>
+      <button class="eb-xlsx" onclick="runDownload(this, exportExcel, closeExpMod)">📊 Дэлгэрэнгүй Excel татах</button>
+      <button onclick="shareData()">📤 Messenger-р явуулах</button>
     </div>
     <div class="mod-close" onclick="closeExpMod()">Хаах</div>
   </div>
@@ -2391,6 +2417,274 @@ function fpRequest(target) {
 }
 
 lpInit(); fpInit();
+
+/* ══════════════════════════════════════════════════════════════
+   ХӨДӨЛГӨӨНТ ТОВЧ — устгах ба татах үзэгдэл
+   Товч дотор SVG тайз үүсгээд кадр тутамд зурна. Хүний хөлийг
+   гишгэлт/дүүжлэлтээр бодох тул газар дээр гулсахгүй.
+   ══════════════════════════════════════════════════════════════ */
+const SB_TAU = Math.PI * 2;
+const sbClamp = x => Math.max(0, Math.min(1, x));
+const sbP = (t, a, b) => sbClamp((t - a) / (b - a));
+const sbEase = x => x * x * (3 - 2 * x);
+const sbMix = (a, b, x) => a + (b - a) * x;
+let sbBusy = false;
+let sbGatePromise = null;
+let sbSeq = 0;
+
+/* Татах үед файлыг үзэгдлийн ТӨГСГӨЛД өгнө — эс тэгвээс хүн хайрцгаа
+   зөөж байх зуур файл нь аль хэдийн татагдчихна */
+function sbGate() { return sbGatePromise || Promise.resolve(); }
+
+/* Алхаж буй хоёр хөл.
+   Гишгэсэн хөл циклийн 60%-д газар дээр байх тул бие нэг циклд яг
+   `stride` нэгжийг туулна — ингэж байж хөл гулсахгүй. */
+function sbLegs(phase, stride, hipY, dir, footY, lift) {
+  const STANCE = .6, sw = stride * STANCE / 2;
+  const drop = footY - hipY;                       /* хонго → шал */
+  const total = Math.max(Math.hypot(sw, drop), drop) * 1.07;
+  const l1 = total * .49, l2 = total * .51;
+  const hip = { x: 0, y: hipY };
+  let d = '';
+  for (let i = 0; i < 2; i++) {
+    const c = ((phase / SB_TAU + i * .5) % 1 + 1) % 1;
+    const st = c < STANCE, u = st ? c / STANCE : (c - STANCE) / (1 - STANCE);
+    const fx = st ? sw - 2 * sw * u : -sw + 2 * sw * (u * u * (3 - 2 * u));
+    const fy = footY - (st ? 0 : Math.sin(Math.PI * u) * (lift == null ? 1.5 : lift));
+    const foot = { x: dir * fx, y: fy };
+    const k = lpJoint(hip, foot, l1, l2, dir);
+    d += `M0 ${hipY.toFixed(2)}L${k.x.toFixed(2)} ${k.y.toFixed(2)}L${foot.x.toFixed(2)} ${foot.y.toFixed(2)}`;
+  }
+  return d;
+}
+/* Зогсож буй хоёр хөл */
+function sbStand(hipY, footY, spread) {
+  const s = spread == null ? 1.5 : spread, m = (hipY + footY) / 2;
+  return `M0 ${hipY}L${s * .5} ${m}L${s} ${footY}M0 ${hipY}L${-s * .5} ${m}L${-s} ${footY}`;
+}
+
+/* Товчийг тайзтай болгоно. Тайз болгон өөрийн defs-тэй тул id давхцахгүй. */
+function sbMount(btn, scene) {
+  if (btn.__sb) return btn.__sb;
+  const label = document.createElement('span');
+  label.className = 'sb-label';
+  while (btn.firstChild) label.appendChild(btn.firstChild);
+  btn.appendChild(label);
+  const stage = document.createElement('span');
+  stage.className = 'sb-stage';
+  stage.setAttribute('aria-hidden', 'true');
+  const u = 'sb' + (++sbSeq);
+  stage.innerHTML = `<svg viewBox="${scene.view}" preserveAspectRatio="xMidYMid meet">`
+    + scene.svg.replace(/__U__/g, u) + '</svg>';
+  btn.appendChild(stage);
+  btn.classList.add('sb');
+  btn.__sb = { stage, q: s => stage.querySelector(s) };
+  return btn.__sb;
+}
+
+/* Үзэгдлийг тоглуулна. Хөдөлгөөн багасгах горимд шууд өнгөрнө. */
+function sbPlay(btn, scene) {
+  if (!btn) return Promise.resolve();
+  const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sb = sbMount(btn, scene);
+  if (calm) return Promise.resolve();
+  const grp = btn.closest('.rst-btns, .exp-btns, .sessv-actions, .dp-inner');
+  const locked = grp ? [...grp.querySelectorAll('button')] : [btn];
+  locked.forEach(b => { b.disabled = true; });
+  btn.classList.add('sb-on');
+  return new Promise(resolve => {
+    let t = 0, last = performance.now();
+    (function frame(now) {
+      /* Таб нуугдсан үед rAF зогсдог тул үзэгдлийг алгасахгүйгээр түр саатуулна */
+      if (!document.hidden) t += Math.min(now - last, 80) * scene.speed;
+      last = now;
+      scene.draw(sb, Math.min(t, scene.ms));
+      if (t < scene.ms) requestAnimationFrame(frame);
+      else {
+        btn.classList.remove('sb-on');
+        sb.stage.style.opacity = 0;
+        locked.forEach(b => { b.disabled = false; });
+        resolve();
+      }
+    })(last);
+  });
+}
+
+/* ── Устгах үзэгдэл: цүнхийг өргөж, хогийн сав руу хийгээд явна ──
+   Эх бичлэгийн зохиомжийг хадгалсан боловч хэмжээсийг дахин бодсон:
+   хүн нэг циклд SB_DEL_STRIDE нэгжийг л туулж чадна (хөлний урт нь
+   үүнийг тогтооно), тиймээс явах зайг богиносгож, хүнийг томсгосон —
+   эс тэгвээс хөл газар дээр гулсаж, алхаа нь хэт олон давтагдана. */
+const SB_DEL_STRIDE = 20;
+const SB_DEL = {
+  view: '0 0 230 85', ms: 4260, speed: 1.35,
+  svg: `<defs>
+<linearGradient id="g__U__"><stop stop-color="#b0baca" stop-opacity="0"/><stop offset=".2" stop-color="#b0baca"/><stop offset=".8" stop-color="#b0baca"/><stop offset="1" stop-color="#b0baca" stop-opacity="0"/></linearGradient>
+<linearGradient id="f__U__"><stop stop-color="#f1f5f8"/><stop offset=".5" stop-color="#dce3eb"/><stop offset="1" stop-color="#edf2f6"/></linearGradient>
+<filter id="s__U__" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="1.4" dy="1.5" stdDeviation="1.4" flood-color="#8492a6" flood-opacity=".35"/></filter>
+</defs>
+<path d="M16 70H214" stroke="url(#g__U__)" stroke-width="1.6"/>
+<g class="sb-bin" filter="url(#s__U__)">
+  <g class="sb-lid"><path d="M46.4 37.5H77.6" stroke="#38414f" stroke-width="5.2" stroke-linecap="round"/><path d="M56.8 36.2V32.3H67.2V36.2" fill="#38414f"/></g>
+  <path d="M47.7 42.7L50.3 70H73.7L76.3 42.7Z" fill="url(#f__U__)" stroke="#f6faff" stroke-width="1.8"/>
+  <path d="M55.5 46.6V64.8M62 46.6V64.8M68.5 46.6V64.8" stroke="#a7b3c3" stroke-width="1.8" opacity=".8"/>
+</g>
+<g class="sb-bag" filter="url(#s__U__)"><g transform="scale(1.6)">
+  <path d="M-3-8L0-11L3-8L1-6C9-4 8 7 3 8H-3C-9 6-8-4-1-6Z" fill="#343d4a"/>
+  <path d="M-2-8H2" stroke="#df2856" stroke-width="2"/>
+  <path d="M-3-2Q-5 1-3 4" fill="none" stroke="#58616e" stroke-width="1"/>
+</g></g>
+<g class="sb-person">
+  <path class="sb-legs" fill="none" stroke="#3f4856" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="sb-upper">
+    <path d="M0-32V-14.4" stroke="#3f4856" stroke-width="4.3" stroke-linecap="round"/>
+    <path class="sb-arm" fill="none" stroke="#3f4856" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="0" cy="-40" r="6.6" fill="#e12656"/>
+    <circle cx="-2.9" cy="-40.6" r=".96" fill="#f99ab1"/>
+  </g>
+</g>`,
+  draw(sb, t) {
+    sb.stage.style.opacity = sbP(t, 0, 160) * (1 - sbP(t, 4000, 4260));
+    let x = 170, walk = false, bend = 0, arm = 0, face = -1;
+    /* Баруунаас ирж, бөхийж цүнхийг өргөөд, сав руу хийж, буцаж явна */
+    if (t < 200) x = 180;
+    else if (t < 1000) { x = 180 - 40 * sbP(t, 200, 1000); walk = true; }
+    else if (t < 1500) { x = 140; bend = 62 * Math.sin(sbP(t, 1000, 1500) * Math.PI); }
+    else if (t < 2300) { x = 140 - 40 * sbP(t, 1500, 2300); walk = true; }
+    else if (t < 3060) { x = 100; arm = sbP(t, 2500, 2560) * (1 - sbP(t, 2900, 3000)); }
+    else { face = 1; const w = sbP(t, 3060, 4260); x = 100 + 60 * w; walk = w < 1; }
+    /* Үе шатыг ЯВСАН ЗАЙНААС бодно — хоёр талын алхаа тус бүр бүтэн циклээр
+       дуусдаг тул зогсох, эргэх үед хөл харайхгүй */
+    const phase = (face < 0 ? (180 - x) : (x - 100)) / SB_DEL_STRIDE * SB_TAU;
+    const bob = walk ? Math.cos(phase * 2) * .56 : 0;
+    sb.q('.sb-person').setAttribute('transform', `translate(${x.toFixed(2)} ${(69 + bob).toFixed(2)})`);
+    sb.q('.sb-legs').setAttribute('d', walk
+      ? sbLegs(phase, SB_DEL_STRIDE, -16, face, -bob, 2.4)
+      : sbStand(-16, -bob, 2.2));
+    sb.q('.sb-upper').setAttribute('transform', `rotate(${-bend} 0 -14.4)`);
+    const hx = arm ? -19.2 : (walk ? Math.cos(phase) * 4 - 4.8 : -8), hy = arm ? -40 : -19.2;
+    sb.q('.sb-arm').setAttribute('d',
+      `M0-32L${(hx * .55).toFixed(2)} -27.2L${hx.toFixed(2)} ${hy}M0-30.4L${(face * 4.8).toFixed(1)} -22.4`);
+    let bx = 124, by = 57.2, ang = 0, bagA = sbP(t, 120, 300);
+    if (t >= 1350 && t < 1500) by = sbMix(57.2, 46, sbEase(sbP(t, 1350, 1500)));
+    else if (t >= 1500 && t < 2560) { bx = x - 16; by = 46 + (walk ? Math.sin(phase) * .8 : 0); ang = walk ? Math.sin(phase) * 8 : 0; }
+    else if (t >= 2560 && t < 2960) {
+      const u = sbP(t, 2560, 2860);
+      bx = sbMix(84, 62, u); by = sbMix(46, 44, u) - 30 * 4 * u * (1 - u);
+      ang = -230 * u; bagA = 1 - sbP(t, 2860, 2960);
+    } else if (t >= 2960) bagA = 0;
+    const bag = sb.q('.sb-bag');
+    bag.setAttribute('transform', `translate(${bx.toFixed(2)} ${by.toFixed(2)}) rotate(${ang.toFixed(1)})`);
+    bag.style.opacity = bagA;
+    const binIn = sbEase(sbP(t, 180, 420)), binOut = sbEase(sbP(t, 3060, 3260));
+    const bin = sb.q('.sb-bin');
+    bin.style.opacity = binIn * (1 - binOut);
+    bin.setAttribute('transform', `translate(0 ${(11 * (1 - binIn) + 14 * binOut).toFixed(2)})`);
+    const open = sbEase(sbP(t, 2350, 2520)) * (1 - sbEase(sbP(t, 2900, 3060)));
+    /* Таг товчны дээд захаас гарахгүйн тулд өнцгийг нь хязгаарласан */
+    sb.q('.sb-lid').setAttribute('transform',
+      `translate(${(-2.5 * open).toFixed(2)} ${(-1.5 * open).toFixed(2)}) rotate(${(-55 * open).toFixed(1)} 47.7 37.5)`);
+  }
+};
+
+/* ── Татах үзэгдэл: хайрцгийг нүх рүү түлхээд, өөрөө ч үсрэн орно ── */
+const SB_DL_STRIDE = 22;
+const SB_DL = {
+  view: '0 0 230 90', ms: 3500, speed: 1.15,
+  svg: `<defs>
+<linearGradient id="g__U__"><stop stop-color="#b7b8ba" stop-opacity="0"/><stop offset=".2" stop-color="#b7b8ba" stop-opacity=".65"/><stop offset=".85" stop-color="#a9afb8" stop-opacity=".75"/><stop offset="1" stop-color="#b7b8ba" stop-opacity="0"/></linearGradient>
+<linearGradient id="c__U__" x2="1" y2="1"><stop stop-color="#d9a45d"/><stop offset="1" stop-color="#c58c40"/></linearGradient>
+<radialGradient id="p__U__"><stop stop-color="#36bed3" stop-opacity=".7"/><stop offset=".55" stop-color="#3bbbd2" stop-opacity=".28"/><stop offset="1" stop-color="#45c1d8" stop-opacity="0"/></radialGradient>
+<filter id="h__U__" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="0" stdDeviation="1.6" flood-color="#26cbdf" flood-opacity=".6"/></filter>
+<filter id="b__U__" x="-50%" y="-50%" width="200%" height="220%"><feDropShadow dx="1" dy="1.5" stdDeviation="1.4" flood-color="#9b8291" flood-opacity=".35"/></filter>
+<clipPath id="a__U__"><rect x="-30" y="-60" width="300" height="135"/></clipPath>
+</defs>
+<path d="M16 75H214" stroke="url(#g__U__)" stroke-width="1.6"/>
+<g class="sb-portal"><ellipse cx="182" cy="73" rx="30" ry="15" fill="url(#p__U__)"/><ellipse cx="182" cy="76" rx="22" ry="4.2" fill="#071c34"/><ellipse cx="182" cy="75.3" rx="20" ry="2.6" fill="#051327"/></g>
+<g clip-path="url(#a__U__)">
+<g class="sb-box" filter="url(#b__U__)"><g transform="scale(1.35)">
+  <rect x="-12" y="-24" width="24" height="24" rx=".6" fill="url(#c__U__)" stroke="#bd8d55" stroke-width=".55"/>
+  <path d="M-12-24H12V-18H-12Z" fill="#dfb376"/><path d="M-2.2-24H2.2V0H-2.2Z" fill="#e9cc94"/>
+  <path d="M-12-13H12V-10H-12Z" fill="#e6c18a"/>
+  <path d="M-12-18H12M-12-1H12" stroke="#b1824d" stroke-width=".7" opacity=".6"/>
+  <path d="M-10-22H-4" stroke="#ecd2aa" stroke-width="1" opacity=".8"/>
+</g></g>
+<g class="sb-human">
+  <path class="sb-legs" fill="none" stroke="#394a58" stroke-width="3.15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path class="sb-body" fill="none" stroke="#394a58" stroke-width="3.6" stroke-linecap="round"/>
+  <path class="sb-arms" fill="none" stroke="#394a58" stroke-width="2.85" stroke-linecap="round" stroke-linejoin="round"/>
+  <g class="sb-head"><circle r="6.3" fill="#24c7d8" filter="url(#h__U__)"/><circle cx="2.4" cy="-.9" r=".98" fill="#c2fbff"/></g>
+</g>
+</g>`,
+  draw(sb, t) {
+    sb.stage.style.opacity = sbP(t, 0, 180) * (1 - sbP(t, 3350, 3500));
+    let x = 60, y = 74, walk = false, push = 0, crouch = 0, jump = 0, look = 0;
+    let hScale = 1, personA = sbP(t, 150, 320);
+    let bx = 138, by = 75, boxScale = 1, boxA = sbP(t, 120, 300), portal = sbEase(sbP(t, 200, 480));
+    if (t < 1000) { x = 60 + 44 * sbP(t, 200, 1000); walk = t >= 200; }
+    else if (t < 1950) {
+      const u = sbP(t, 1150, 1950);
+      x = 104 + 44 * u; bx = 138 + 44 * u;
+      push = sbEase(sbP(t, 1000, 1150)); walk = t >= 1150;
+    } else { x = 148; bx = 182; push = 1 - sbEase(sbP(t, 1950, 2120)); }
+    /* Алхмын үе шат нь явсан зайнаас — орж ирэх ба түлхэх хоёулаа
+       яг бүтэн циклээр дуусна */
+    const phase = (x - 60) / SB_DL_STRIDE * SB_TAU;
+    if (t >= 1930) { const f = sbEase(sbP(t, 1930, 2350)); by = 75 + 24 * f; boxScale = 1 - .25 * f; boxA = 1 - sbP(t, 2300, 2360); }
+    if (t >= 2400 && t < 2900) look = sbEase(sbP(t, 2400, 2560));
+    if (t >= 2700 && t < 2900) { look = 1; crouch = .3 * Math.sin(sbP(t, 2700, 2900) * Math.PI); }
+    if (t >= 2900) {
+      const leap = sbP(t, 2900, 3300);
+      x = sbMix(148, 182, sbEase(sbP(t, 2900, 3120)));
+      const rise = sbP(t, 2900, 3080), fall = sbP(t, 3080, 3300);
+      /* Нүхний дээгүүр нуман хэлбэрээр нисээд, хөлөөрөө гүн рүү шингэнэ */
+      y = t < 3080 ? 74 - 30 * Math.sin(rise * Math.PI / 2) : 44 + 31 * fall * fall;
+      hScale = 1 - .96 * sbEase(fall);
+      jump = Math.sin(leap * Math.PI); personA = 1 - sbP(t, 3250, 3310);
+    }
+    portal *= 1 - sbEase(sbP(t, 3300, 3450));
+    sb.q('.sb-portal').setAttribute('transform', `translate(182 76) scale(${portal.toFixed(3)}) translate(-182 -76)`);
+    const box = sb.q('.sb-box');
+    box.setAttribute('transform', `translate(${bx.toFixed(2)} ${by.toFixed(2)}) scale(${boxScale.toFixed(3)})`);
+    box.style.opacity = boxA;
+    const human = sb.q('.sb-human');
+    human.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${hScale.toFixed(3)})`);
+    human.style.opacity = personA;
+    const bob = walk ? Math.cos(phase * 2) * .52 : 0;
+    const hipY = -16.5 + crouch * 6;
+    const shX = push * 9 + look * 3.3, shY = -34.5 + push * 7.5 + look * 1.8 + crouch * 6 + bob;
+    let legPath = walk ? sbLegs(phase, SB_DL_STRIDE, hipY, 1, -bob, 2.4) : sbStand(hipY, -bob, 1.8);
+    if (crouch) legPath = `M0 ${hipY.toFixed(2)}L-6 -4.5L-3 0M0 ${hipY.toFixed(2)}L6 -4.5L3 0`;
+    if (jump > .1) legPath = `M0 ${hipY.toFixed(2)}L-7.5 -7.5L-12 -12M0 ${hipY.toFixed(2)}L6 -7.5L9 0`;
+    sb.q('.sb-legs').setAttribute('d', legPath);
+    sb.q('.sb-body').setAttribute('d', `M0 ${hipY.toFixed(2)}L${shX.toFixed(2)} ${shY.toFixed(2)}`);
+    sb.q('.sb-head').setAttribute('transform', `translate(${(shX + push * 1.5 + look * 1.8).toFixed(2)} ${(shY - 7.5 + look * 1.2).toFixed(2)})`);
+    let arms;
+    if (push > .01) {
+      /* Урд гар хайрцаг руу сунаж, хойд гар бөхийсөн биеийг дагана */
+      arms = `M${shX.toFixed(2)} ${(shY + 1.5).toFixed(2)}L18 -27L24 -25.5M${(shX - 1.5).toFixed(2)} ${(shY + 3).toFixed(2)}L1.5 -19.5L-3 -13.5`;
+    } else if (jump > .05) arms = `M0 ${(shY + 3).toFixed(2)}L9 -37.5L16.5 -45M0 ${(shY + 3).toFixed(2)}L-6 -25.5L-12 -21`;
+    else if (look) arms = `M${shX.toFixed(2)} ${(shY + 3).toFixed(2)}L3 -22.5L4.5 -18M${(shX - 1.5).toFixed(2)} ${(shY + 4.5).toFixed(2)}L0 -22.5L0 -18`;
+    else {
+      const sw = walk ? Math.cos(phase) * 4.5 : 0;
+      arms = `M0 ${(shY + 3).toFixed(2)}L${(-3 + sw).toFixed(2)} -24L${(-4.5 + sw).toFixed(2)} -18M0 ${(shY + 3).toFixed(2)}L${(3 - sw).toFixed(2)} -24L${(4.5 - sw).toFixed(2)} -18`;
+    }
+    sb.q('.sb-arms').setAttribute('d', arms);
+  }
+};
+
+/* Татах товч: үзэгдлийг тоглуулах зуур Excel-ээ бэлдэж, төгсгөлд нь өгнө */
+async function runDownload(btn, fn, closeAfter) {
+  if (sbBusy) return;
+  sbBusy = true;
+  const anim = sbPlay(btn, SB_DL);
+  sbGatePromise = anim;
+  try { await Promise.allSettled([Promise.resolve().then(fn), anim]); }
+  finally {
+    sbGatePromise = null; sbBusy = false;
+    if (closeAfter) closeAfter();
+  }
+}
 
 async function doLogin() {
   const raw = document.getElementById('lgEmail').value || '';
@@ -3207,8 +3501,13 @@ function closeDelMod() {
   delId = null; delAction = null;
   document.getElementById('delMod').classList.remove('on');
 }
-function doDeleteSession() {
+async function doDeleteSession() {
+  if (sbBusy) return;
   const id = delId, act = delAction;
+  /* Эхлээд хогийн савны үзэгдэл — цонх нь товчоо харуулсаар байна */
+  sbBusy = true;
+  try { await sbPlay(document.querySelector('#delMod .rst-yes'), SB_DEL); }
+  finally { sbBusy = false; }
   closeDelMod();
   if (act) { act(); return; }         // ерөнхий баталгаажуулалт
   if (!id) return;
@@ -4606,6 +4905,7 @@ async function _exportExcelCore(c, d, filename) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
+  await sbGate();            // хөдөлгөөнт товч тоглож байвал төгсгөлийг нь хүлээнэ
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
@@ -4911,8 +5211,9 @@ async function dpDownload() {
   if (!ids.length) return;
   const set = new Set(ids);
   const picked = combinedSource().filter(s => set.has(s.id));
-  closeDatePickMod();
-  await exportCombinedExcel(null, picked);
+  /* Цонхыг үзэгдэл дуустал нээлттэй үлдээнэ — товч дээр нь тоглох учир */
+  await runDownload(document.getElementById('dpGo'),
+                    () => exportCombinedExcel(null, picked), closeDatePickMod);
 }
 
 /* Сонгосон огноонуудад тохирох хэмжилтүүд */
@@ -5276,6 +5577,7 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   let kmTag2 = kmRangeLabel(kmNums2).replace(/,\s*/g, '_').replace(/\s+/g, '');
   if (kmTag2.length > 32) kmTag2 = `${kmNums2[0]}-${kmNums2[kmNums2.length - 1]}`;
   a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${kmTag2 ? kmTag2 + 'км_' : ''}${dTag}.xlsx`;
+  await sbGate();            // хөдөлгөөнт товч тоглож байвал төгсгөлийг нь хүлээнэ
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   showStatus(`📊 ${dl.length || 1} өдөр · ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
