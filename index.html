@@ -998,7 +998,25 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 #btnCloudSend, #btnSessCloud, #btnSendAll { color: var(--accent) !important; }
 /* Илгээчихсэн хэмжилтийг дахин илгээх товч — бүдэгхэн */
 #btnSessCloud.sent { color: var(--text-2) !important; }
+/* Жагсаалтын мөрөн дэх ☁️ товч тайз багтаахааргүй жижиг тул үзэгдлийг
+   дэлгэцийн доор хөвөгч самбар дээр тоглуулна */
+#sendFly {
+  display: none; position: fixed; left: 50%; z-index: 400; pointer-events: none;
+  bottom: calc(1.1rem + var(--safe-b));
+  width: min(360px, calc(100vw - 2rem)); height: 92px;
+  transform: translateX(-50%); border-radius: var(--r-md);
+  background: var(--surface); box-shadow: var(--lift);
+}
+#sendFly.on { display: block; }
 #btnSendAll:disabled, #btnSessCloud:disabled, #btnCloudSend:disabled { opacity: 1; }
+/* Удаан дарах цэсний илгээх товч ч тайзтай */
+#sactSend {
+  min-height: 84px; font-weight: 700;
+  background: var(--surface) !important; border-color: transparent !important;
+  color: var(--accent) !important; box-shadow: var(--lift) !important;
+}
+#sactSend:active { box-shadow: var(--sunk) !important; }
+#sactSend:disabled { opacity: 1; }
 /* Түүж татах товч — илгээх товчоо дарж харагдахгүйн тулд саармаг өнгөтэй */
 .sess-comb { background: #eaeef4; color: var(--mint); box-shadow: var(--lift-lo); }
 .sess-comb:active { box-shadow: var(--sunk); }
@@ -1498,6 +1516,9 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="mod-close" onclick="closeDatePickMod()">Болих</div>
   </div>
 </div>
+
+<!-- Товчгүй газраас илгээхэд үзэгдэл тоглох хөвөгч самбар -->
+<div id="sendFly" aria-hidden="true"></div>
 
 <!-- Session action sheet (удаан дарахад) -->
 <div id="sessActMod">
@@ -2511,7 +2532,7 @@ function sbPlay(btn, scene) {
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sb = sbMount(btn, scene);
   if (calm) return Promise.resolve();
-  const grp = btn.closest('.rst-btns, .exp-btns, .sessv-actions, .dp-inner');
+  const grp = btn.closest('.rst-btns, .exp-btns, .sessv-actions, .sact-btns, .dp-inner');
   const locked = grp ? [...grp.querySelectorAll('button')] : [btn];
   locked.forEach(b => { b.disabled = true; });
   btn.classList.add('sb-on');
@@ -2846,6 +2867,14 @@ const SB_SEND = {
     });
   }
 };
+
+/* Тохирох товчгүй үед үзэгдлийг хөвөгч самбар дээр тоглуулна */
+async function runSendFly(fn) {
+  const fly = document.getElementById('sendFly');
+  if (!fly || sbBusy) { await fn(); return; }
+  fly.classList.add('on');
+  try { await runSend(fly, fn); } finally { fly.classList.remove('on'); }
+}
 
 /* Илгээх товч: үзэгдэл тоглох зуур үүл рүү бичиж, хариуг нь дамжуулна */
 async function runSend(btn, fn, closeAfter) {
@@ -3498,14 +3527,22 @@ function notifyPendingSessions() {
 /* ── Хадгалсан жагсаалтаас шууд илгээх ── */
 async function uploadSessionById(id, e) {
   if (e) e.stopPropagation();
-  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)'); return; }
+  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)'); return false; }
   const sess = getSessions().find(s => s.id === id);
-  if (!sess) return;
-  showStatus('☁️ Илгээж байна…', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
+  if (!sess) return false;
+  // Үзэгдэл тоглож байвал «илгээж байна» тостыг давхардуулахгүй
+  if (!sbBusy) showStatus('☁️ Илгээж байна…', 'linear-gradient(180deg,#9ba8ff,#5b6bff)');
   const r = await uploadSession(sess.id, sess.config, sess.data);
   if (r.ok) showStatus(`☁️ ${r.count} хэмжилт илгээгдлээ`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
   else showStatus(uploadErrMsg(r), uploadErrColor(r));
   renderSessList();
+  return !!r.ok;
+}
+
+/* Жагсаалтын мөрөн дэх ☁️ — хөвөгч самбар дээр үзэгдлээ тоглуулна */
+async function sendSessionRow(id, e) {
+  if (e) e.stopPropagation();
+  await runSendFly(() => uploadSessionById(id));
 }
 
 /* ── Нээлттэй байгаа хадгалсан хэмжилтийг илгээх ── */
@@ -3616,7 +3653,7 @@ function openSessActMod(id) {
   const sendBtn = document.getElementById('sactSend');
   if (canUpload() && countMeasurements(s) > 0) {
     sendBtn.style.display = 'block';
-    sendBtn.textContent = isSessionSent(s) ? '✅ Илгээсэн — дахин илгээх' : '☁️ Админ руу илгээх';
+    sbLabel(sendBtn, isSessionSent(s) ? '✅ Илгээсэн — дахин илгээх' : '☁️ Админ руу илгээх');
   } else {
     sendBtn.style.display = 'none';
   }
@@ -3639,8 +3676,8 @@ function closeSessActMod() {
 
 async function sactSend() {
   const id = sactId;
-  closeSessActMod();
-  await uploadSessionById(id);
+  /* Цэсийг үзэгдэл дуустал нээлттэй үлдээнэ — товч нь тэнд байгаа */
+  await runSend(document.getElementById('sactSend'), () => uploadSessionById(id), closeSessActMod);
 }
 function sactOpen() {
   const id = sactId;
@@ -3854,7 +3891,7 @@ function renderSessList() {
       : sent ? '<span class="sess-badge sent">☁️ илгээсэн</span>'
              : '<span class="sess-badge pend">илгээгээгүй</span>';
     const upBtn = up && cnt
-      ? `<div class="sess-up${sent?' done':''}" title="Админ руу илгээх" onclick="uploadSessionById('${s.id}',event)">${sent?'✅':'☁️'}</div>`
+      ? `<div class="sess-up${sent?' done':''}" title="Админ руу илгээх" onclick="sendSessionRow('${s.id}',event)">${sent?'✅':'☁️'}</div>`
       : '';
     /* Товших → нээх, удаан дарах → сонголтын цэс */
     return `<div class="sess-item" onclick="sessTap('${s.id}')"
