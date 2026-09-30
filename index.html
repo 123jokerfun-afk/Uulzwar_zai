@@ -982,17 +982,26 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 /* Тайзтай товчнууд: өнгөт дэвсгэр дээр бяцхан хүн, шал нь уншигдахгүй
    тул цайвар неоморф гадаргуу болгож, утгыг нь бичгийн өнгөөр өгнө */
 #delMod .rst-btns .rst-yes, .dp-inner .dp-go,
-#expMod .exp-btns .eb-xlsx, .sessv-actions .sv-xlsx {
+#expMod .exp-btns .eb-xlsx, .sessv-actions .sv-xlsx,
+#btnCloudSend, #btnSessCloud, #btnSendAll {
   min-height: 84px; font-weight: 700;
   background: var(--surface) !important; border-color: transparent !important;
   box-shadow: var(--lift) !important;
 }
 #delMod .rst-btns .rst-yes:active, .dp-inner .dp-go:active,
-#expMod .exp-btns .eb-xlsx:active, .sessv-actions .sv-xlsx:active {
+#expMod .exp-btns .eb-xlsx:active, .sessv-actions .sv-xlsx:active,
+#btnCloudSend:active, #btnSessCloud:active, #btnSendAll:active {
   box-shadow: var(--sunk) !important;
 }
 #delMod .rst-btns .rst-yes { color: var(--red) !important; }
 .dp-inner .dp-go, #expMod .exp-btns .eb-xlsx, .sessv-actions .sv-xlsx { color: var(--mint) !important; }
+#btnCloudSend, #btnSessCloud, #btnSendAll { color: var(--accent) !important; }
+/* Илгээчихсэн хэмжилтийг дахин илгээх товч — бүдэгхэн */
+#btnSessCloud.sent { color: var(--text-2) !important; }
+#btnSendAll:disabled, #btnSessCloud:disabled, #btnCloudSend:disabled { opacity: 1; }
+/* Түүж татах товч — илгээх товчоо дарж харагдахгүйн тулд саармаг өнгөтэй */
+.sess-comb { background: #eaeef4; color: var(--mint); box-shadow: var(--lift-lo); }
+.sess-comb:active { box-shadow: var(--sunk); }
 
 /* ══════════════════════════════════════════════════════════════
    НЭВТРЭХ — хаалганы үзэгдэл ба талбарын бяцхан зөөгч
@@ -1411,7 +1420,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <div class="sess-inner">
     <div class="sh-grip" aria-hidden="true"></div>
     <div class="sess-title">📂 Өмнөх хэмжилтүүд</div>
-    <button class="sess-sendall" id="btnSendAll" style="display:none" onclick="uploadAllSessions()">☁️ Илгээгээгүй хэмжилтүүдийг илгээх</button>
+    <button class="sess-sendall" id="btnSendAll" style="display:none" onclick="runSend(this, uploadAllSessions)">☁️ Илгээгээгүй хэмжилтүүдийг илгээх</button>
     <button class="sess-comb" onclick="openDatePickMod()">📦 Нийт хэмжилтээс түүж татах</button>
     <div class="sess-list" id="sessList"></div>
     <div class="sess-hint">Мөрөн дээр удаан дарж сонголтын цэс нээнэ</div>
@@ -1529,7 +1538,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="sessv-actions">
       <button class="sv-xlsx" onclick="runDownload(this, exportSessionExcel)">📊 Excel татах</button>
     </div>
-    <button class="sessv-cloud" id="btnSessCloud" onclick="uploadViewedSession()">☁️ Энэ хэмжилтийг админ руу илгээх</button>
+    <button class="sessv-cloud" id="btnSessCloud" onclick="runSend(this, uploadViewedSession)">☁️ Энэ хэмжилтийг админ руу илгээх</button>
     <div class="mod-close" onclick="closeSessViewMod()">← Буцах</div>
   </div>
 </div>
@@ -1636,7 +1645,7 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     <div class="exp-title">Өгөгдөл татах</div>
     <div class="exp-sub" id="expSub">0 хэмжилт бичигдсэн</div>
     <div class="exp-btns">
-      <button class="eb-cloud" id="btnCloudSend" style="display:none;background:var(--grad-green);border-color:transparent;color:var(--ink);" onclick="uploadCurrent()">☁️ Илгээх (үүлэн рүү)</button>
+      <button class="eb-cloud" id="btnCloudSend" style="display:none" onclick="runSend(this, uploadCurrent, closeExpMod)">☁️ Илгээх (үүлэн рүү)</button>
       <button class="eb-xlsx" onclick="runDownload(this, exportExcel, closeExpMod)">📊 Дэлгэрэнгүй Excel татах</button>
       <button onclick="shareData()">📤 Messenger-р явуулах</button>
     </div>
@@ -2482,7 +2491,21 @@ function sbMount(btn, scene) {
   return btn.__sb;
 }
 
-/* Үзэгдлийг тоглуулна. Хөдөлгөөн багасгах горимд шууд өнгөрнө. */
+/* Тайзтай товчны бичгийг ЗӨВХӨН шошгон дотор нь солино.
+   btn.textContent = … гэвэл тайз, шошго хоёул устана. */
+function sbLabel(btn, text) {
+  if (!btn) return;
+  const l = btn.querySelector('.sb-label');
+  (l || btn).textContent = text;
+}
+
+/* Серверийн хариуг үзэгдэлд дамжуулна (hold-той үзэгдэлд л хамаатай) */
+let sbVerdict = null;
+const SB_WAIT_MAX = 15000;
+function sbSetVerdict(ok) { if (sbVerdict === null) sbVerdict = !!ok; }
+
+/* Үзэгдлийг тоглуулна. Хөдөлгөөн багасгах горимд шууд өнгөрнө.
+   scene.hold = [a, b] бол тэр хооронд хариу ирэх хүртэл гогцоолно. */
 function sbPlay(btn, scene) {
   if (!btn) return Promise.resolve();
   const calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2493,13 +2516,30 @@ function sbPlay(btn, scene) {
   locked.forEach(b => { b.disabled = true; });
   btn.classList.add('sb-on');
   return new Promise(resolve => {
-    let t = 0, last = performance.now();
+    let t = 0, last = performance.now(), waited = 0, stopAt = null;
+    const FADE = 320;
     (function frame(now) {
-      /* Таб нуугдсан үед rAF зогсдог тул үзэгдлийг алгасахгүйгээр түр саатуулна */
-      if (!document.hidden) t += Math.min(now - last, 80) * scene.speed;
+      const dt = Math.min(now - last, 80) * scene.speed;
       last = now;
+      /* Таб нуугдсан үед rAF зогсдог тул үзэгдлийг алгасахгүйгээр түр саатуулна */
+      if (!document.hidden) {
+        if (scene.hold && sbVerdict === null && t >= scene.hold[1]) {
+          /* Хариу хүлээнэ: зөвхөн даллах гар хөдөлдөг хэсгийг гогцоолно */
+          const span = scene.hold[1] - scene.hold[0];
+          t = scene.hold[0] + ((t - scene.hold[0] + dt) % span);
+          waited += dt;
+          if (waited > SB_WAIT_MAX) sbVerdict = false;
+        } else t += dt;
+      }
+      /* Амжилтгүй бол үзэгдлийг тэнд нь зөөлөн унтраана */
+      if (scene.hold && sbVerdict === false && stopAt === null) stopAt = t + FADE;
       scene.draw(sb, Math.min(t, scene.ms));
-      if (t < scene.ms) requestAnimationFrame(frame);
+      if (stopAt !== null) {
+        const f = 1 - sbClamp((t - (stopAt - FADE)) / FADE);
+        sb.stage.style.opacity = String(parseFloat(sb.stage.style.opacity || '1') * f);
+      }
+      const done = stopAt !== null ? t >= stopAt : t >= scene.ms;
+      if (!done) requestAnimationFrame(frame);
       else {
         btn.classList.remove('sb-on');
         sb.stage.style.opacity = 0;
@@ -2672,6 +2712,155 @@ const SB_DL = {
     sb.q('.sb-arms').setAttribute('d', arms);
   }
 };
+
+/* ── Илгээх үзэгдэл: ачаагаа мотоцикльд ачаад, жолооч замдаа гарна ──
+   Эх бичлэгийн зохиомжийг хадгалсан; алхааг нь гишгэлт/дүүжлэлтээр
+   бодож, ачигчийг томсгож, явах зайг алхмын уртад тааруулсан.
+   hold нь серверийн хариу ирэх хүртэл ачигчийг даллуулж хүлээлгэнэ —
+   зөвшөөрөгдвөл мотоцикль хөдөлж, батлагдаагүй бол үзэгдэл зогсоно. */
+const SB_SEND_STRIDE = 22;
+const SB_SEND_X0 = 61, SB_SEND_X1 = 105;   /* ачигчийн эхлэх ба ачих байрлал */
+const SB_SEND_BOX = 133.5;                 /* тэвшний төв — ачаа энд очно */
+const SB_SEND = {
+  view: '0 20 230 70', ms: 3650, speed: 1.25, hold: [1700, 2100],
+  svg: `<defs>
+<linearGradient id="g__U__"><stop stop-color="#b0bbc8" stop-opacity="0"/><stop offset=".18" stop-color="#a9b5c4"/><stop offset=".82" stop-color="#a9b5c4"/><stop offset="1" stop-color="#b0bbc8" stop-opacity="0"/></linearGradient>
+<linearGradient id="c__U__" x2="0" y2="1"><stop stop-color="#536c80"/><stop offset="1" stop-color="#344d62"/></linearGradient>
+<linearGradient id="p__U__" x2="1" y2="1"><stop stop-color="#d4a553"/><stop offset="1" stop-color="#bd883c"/></linearGradient>
+<filter id="h__U__" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="0" stdDeviation="1.4" flood-color="#22c7d2" flood-opacity=".55"/></filter>
+<filter id="s__U__" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="#8293a8" flood-opacity=".25"/></filter>
+</defs>
+<path d="M16 78H214" stroke="url(#g__U__)" stroke-width="1.5"/>
+<g class="sb-veh"><g transform="translate(-67 0)">
+  <g class="sb-exh" opacity="0" stroke="#a2afbe" stroke-width="1.4" stroke-linecap="round">
+    <path class="e1" d="M172 65h12"/><path class="e2" d="M162 70h16"/><path class="e3" d="M175 74h8"/></g>
+  <g class="sb-bike" filter="url(#s__U__)">
+    <path d="M192 75H291" stroke="#f5f8fa" stroke-width="8" stroke-linecap="round"/><path d="M198 75H281" stroke="#3d5060" stroke-width="2.8"/><path d="M185 74h8" stroke="#3d5060" stroke-width="3" stroke-linecap="round"/>
+    <path d="M254 74Q259 66 263 52L276 53L282 74Z" fill="#e9eef2" stroke="#f9fcfe" stroke-width="1.2"/>
+    <path d="M265 63L269 49M265 48L273 50" fill="none" stroke="#3e4a55" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M198 73Q205 56 214 72M273 72Q283 58 293 72" fill="none" stroke="#edf3f7" stroke-width="5"/><path d="M274 69Q283 59 292 69" fill="none" stroke="#546575" stroke-width="1.6"/>
+    <rect x="216" y="56" width="31" height="5" rx="2" fill="#3e5263"/><rect x="239" y="52" width="21" height="12" rx="6" fill="#3d5669"/><path d="M240 58H259" stroke="#19bbcb" stroke-width="2.3"/>
+    <rect x="187" y="47" width="27" height="19" rx="2.5" fill="url(#c__U__)"/><path d="M189 51H212" stroke="#718497" stroke-width=".9" opacity=".65"/><circle cx="209" cy="62" r="1.5" fill="#17bdb8"/>
+    <g><path d="M232 44L230 54L238 57" fill="none" stroke="#425765" stroke-width="2.2" stroke-linecap="round"/><path d="M232 46L238 51L245 51" fill="none" stroke="#516775" stroke-width="1.6" stroke-linecap="round"/><circle cx="234" cy="40" r="3.6" fill="#24c1cb" filter="url(#h__U__)"/></g>
+  </g>
+  <g class="sb-wr"><circle cx="205" cy="75" r="8.6" fill="#edf4f8"/><circle cx="205" cy="75" r="6.5" fill="#293645"/><path d="M205 70V80M200 75H210" stroke="#627182" stroke-width="1"/><circle cx="205" cy="75" r="2.5" fill="#aab6c4"/></g>
+  <g class="sb-wf"><circle cx="284" cy="75" r="8.5" fill="#edf4f8"/><circle cx="284" cy="75" r="6.4" fill="#293645"/><path d="M284 70V80M279 75H289" stroke="#627182" stroke-width="1"/><circle cx="284" cy="75" r="2.5" fill="#aab6c4"/></g>
+</g></g>
+<g class="sb-worker">
+  <path class="sb-legs" fill="none" stroke="#536371" stroke-width="2.85" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M0-34.5V-15" stroke="#536371" stroke-width="3.15" stroke-linecap="round"/>
+  <path class="sb-arms" fill="none" stroke="#596e7a" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="0" cy="-40.5" r="5.55" fill="#22c3ce" filter="url(#h__U__)"/>
+</g>
+<g class="sb-parcel" filter="url(#s__U__)"><g transform="scale(1.25)">
+  <rect x="-7" y="-7" width="14" height="14" rx=".7" fill="url(#p__U__)" stroke="#ba8f49" stroke-width=".6"/>
+  <path d="M-7-7H7V-4H-7Z" fill="#dcb779"/><path d="M-1.2-7H1.2V7H-1.2Z" fill="#e5c18a"/>
+  <path d="M-7 0H7" stroke="#a17a3d" stroke-width=".8"/><path d="M-6-5H-2" stroke="#e9cba0" stroke-width=".7"/>
+</g></g>
+<path class="sb-hands" fill="none" stroke="#596e7a" stroke-width="2.85" stroke-linecap="round"/>
+<g class="sb-conf" opacity="0">` +
+  Array.from({ length: 18 }, (_, i) =>
+    `<rect class="cf" width="${i % 3 === 0 ? 3 : 2}" height="${i % 2 ? 3 : 2}" rx=".4" fill="${['#22c988', '#32bdcf', '#efbe54', '#d581bc'][i % 4]}"/>`
+  ).join('') + `</g>`,
+  draw(sb, t) {
+    sb.stage.style.opacity = sbP(t, 0, 180) * (1 - sbP(t, 3400, 3650));
+    /* ── Мотоцикль ── */
+    const vehIn = sbP(t, 150, 450), depart = sbP(t, 2300, 3100);
+    const vehX = depart * depart * 150;
+    const veh = sb.q('.sb-veh');
+    veh.setAttribute('transform', `translate(${vehX.toFixed(2)} ${(1 - vehIn).toFixed(2)})`);
+    veh.style.opacity = vehIn;
+    const engine = sbP(t, 2100, 2300) * (1 - sbP(t, 3000, 3200));
+    const vib = Math.sin(t / 38) * .23 * engine + Math.sin(depart * Math.PI * 3) * .3 * depart;
+    sb.q('.sb-bike').setAttribute('transform', `translate(0 ${vib.toFixed(2)})`);
+    const spin = (vehX / 8.5 * 180 / Math.PI).toFixed(1);
+    sb.q('.sb-wr').setAttribute('transform', `rotate(${spin} 205 75)`);
+    sb.q('.sb-wf').setAttribute('transform', `rotate(${spin} 284 75)`);
+    const exh = sb.q('.sb-exh');
+    exh.style.opacity = sbP(t, 2120, 2300) * (1 - sbP(t, 3050, 3200)) * .5;
+    exh.setAttribute('transform', `translate(${-((t / 35) % 9)} 0)`);
+    ['.e1', '.e2', '.e3'].forEach((c, i) =>
+      sb.q(c).style.opacity = .45 + .55 * (.5 + .5 * Math.sin(t / 95 - i * 1.7)));
+
+    /* ── Ачигч ── */
+    let wx = SB_SEND_X0, walk = false, dir = 1, carry = true, load = 0, wave = 0;
+    if (t < 900) { wx = sbMix(SB_SEND_X0, SB_SEND_X1, sbP(t, 200, 900)); walk = t >= 200; }
+    else if (t < 1500) { wx = SB_SEND_X1; load = sbP(t, 900, 1500); carry = false; }
+    else if (t < 2500) { wx = SB_SEND_X1; carry = false; }
+    else { dir = -1; carry = false; wx = sbMix(SB_SEND_X1, SB_SEND_X0, sbP(t, 2500, 3200)); walk = t < 3200; }
+    wave = sbEase(sbP(t, 1500, 1700)) * (1 - sbEase(sbP(t, 2400, 2600)));
+    /* Алхмын үе шат ЯВСАН ЗАЙНААС — гишгэсэн хөл газартаа үлдэнэ */
+    const phase = (dir > 0 ? (wx - SB_SEND_X0) : (SB_SEND_X1 - wx)) / SB_SEND_STRIDE * SB_TAU;
+    const bob = walk ? Math.cos(phase * 2) * .5 : 0;
+    const worker = sb.q('.sb-worker');
+    worker.style.opacity = sbP(t, 180, 330) * (1 - sbP(t, 3050, 3200));
+    worker.setAttribute('transform', `translate(${wx.toFixed(2)} ${(77 + bob).toFixed(2)})`);
+    sb.q('.sb-legs').setAttribute('d', walk
+      ? sbLegs(phase, SB_SEND_STRIDE, -15, dir, -bob, 2.2)
+      : sbStand(-15, -bob, 2));
+
+    /* ── Ачаа ── */
+    let px = wx, py = 52 + bob, tilt = 0;
+    if (t >= 900 && t < 1500) {
+      const u = sbP(t, 900, 1500);
+      px = sbMix(SB_SEND_X1, SB_SEND_BOX, sbEase(u));
+      py = u < .28 ? sbMix(52, 56, sbEase(u / .28)) : sbMix(56, 38.2, sbEase((u - .28) / .72));
+      tilt = -5 * Math.sin(u * Math.PI);
+    } else if (t >= 1500) {
+      px = SB_SEND_BOX + vehX;
+      py = 38.2 + vib + Math.sin(sbP(t, 1500, 1680) * Math.PI) * .6;
+    }
+    const parcel = sb.q('.sb-parcel');
+    parcel.setAttribute('transform', `translate(${px.toFixed(2)} ${py.toFixed(2)}) rotate(${tilt.toFixed(1)})`);
+    parcel.style.opacity = sbP(t, 180, 330);
+    const hands = sb.q('.sb-hands');
+    hands.style.opacity = t < 1500 ? sbP(t, 180, 330) : 0;
+    hands.setAttribute('transform', `translate(${px.toFixed(2)} ${py.toFixed(2)}) rotate(${tilt.toFixed(1)})`);
+    hands.setAttribute('d', 'M-8.8 1.2v3.8M8.8 1.2v3.8');
+
+    /* ── Гар ── */
+    let arms;
+    if (carry) arms = 'M0-33L-12-27L-9-22.5M0-33L12-27L9-22.5';
+    else if (load > 0 && load < 1) {
+      const hx = px - wx, hy = py - 77 - bob;
+      arms = `M0-33Q${(hx * .5 - 7).toFixed(1)} ${(hy + 7).toFixed(1)} ${(hx - 9).toFixed(1)} ${(hy + 3).toFixed(1)}`
+           + `M0-33Q${(hx * .6 + 9).toFixed(1)} ${(hy + 10).toFixed(1)} ${(hx + 9).toFixed(1)} ${(hy + 3).toFixed(1)}`;
+    } else if (wave > .01) {
+      /* Даллах — hold-ын гогцоо яг нэг долгион (400мс) тул заадас мэдэгдэхгүй */
+      const a = (t - 1700) / 400 * SB_TAU, hx = 9 + Math.sin(a) * 5.7;
+      arms = `M0-33L7.5 ${sbMix(-25.5, -43.5, wave).toFixed(1)}L${sbMix(10.5, hx, wave).toFixed(1)} ${sbMix(-19.5, -54, wave).toFixed(1)}M0-33L-4.5-25.5L-6-19.5`;
+    } else {
+      const sw = walk ? Math.cos(phase) * 3.8 : 0;
+      arms = `M0-33L${(dir * 3 + sw).toFixed(1)}-25.5L${(dir * 4.5 + sw).toFixed(1)}-19.5`
+           + `M0-33L${(-dir * 3 - sw).toFixed(1)}-25.5L${(-dir * 4.5 - sw).toFixed(1)}-19.5`;
+    }
+    sb.q('.sb-arms').setAttribute('d', arms);
+
+    /* ── Баяр хүргэх цацалт ── */
+    const burst = sbP(t, 3100, 3600);
+    sb.q('.sb-conf').style.opacity = (t >= 3100 ? 1 : 0) * (1 - burst);
+    sb.stage.querySelectorAll('.cf').forEach((n, i) => {
+      const ang = i * 2.39996, r = 22 + (i % 5) * 7;
+      n.setAttribute('transform',
+        `translate(${(115 + Math.cos(ang) * r * burst).toFixed(1)} ${(55 + Math.sin(ang) * r * burst + 26 * burst * burst).toFixed(1)}) rotate(${(i * 31 + burst * 180).toFixed(0)})`);
+    });
+  }
+};
+
+/* Илгээх товч: үзэгдэл тоглох зуур үүл рүү бичиж, хариуг нь дамжуулна */
+async function runSend(btn, fn, closeAfter) {
+  if (sbBusy) return;
+  sbBusy = true;
+  sbVerdict = null;
+  const anim = sbPlay(btn, SB_SEND);
+  let good = false;
+  try { good = await fn(); } catch (e) { good = false; }
+  sbSetVerdict(good);
+  try { await anim; } catch (e) {}
+  sbBusy = false;
+  if (good && closeAfter) closeAfter();
+  renderSessList();          // ☁️ тэмдэг, «бүгдийг илгээх» товчийг шинэчилнэ
+}
 
 /* Татах товч: үзэгдлийг тоглуулах зуур Excel-ээ бэлдэж, төгсгөлд нь өгнө */
 async function runDownload(btn, fn, closeAfter) {
@@ -2933,7 +3122,7 @@ async function uploadCurrent(silent) {
   }
   const r = await uploadSession(currentSessionId, C, data);
   if (r.ok) {
-    if (!silent) { showStatus(`☁️ ${r.count} хэмжилт илгээгдлээ`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)'); closeExpMod(); }
+    if (!silent) { showStatus(`☁️ ${r.count} хэмжилт илгээгдлээ`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)'); if (!sbBusy) closeExpMod(); }
     return true;
   }
   if (!silent) showStatus(uploadErrMsg(r), uploadErrColor(r));
@@ -3321,20 +3510,20 @@ async function uploadSessionById(id, e) {
 
 /* ── Нээлттэй байгаа хадгалсан хэмжилтийг илгээх ── */
 async function uploadViewedSession() {
-  if (!currentViewSessId) return;
-  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)'); return; }
+  if (!currentViewSessId) return false;
+  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)'); return false; }
   const id = currentViewSessId;
   const sess = getSessions().find(s => s.id === id);
-  if (!sess) return;
+  if (!sess) return false;
   const btn = document.getElementById('btnSessCloud');
-  btn.disabled = true; btn.textContent = '☁️ Илгээж байна…';
+  sbLabel(btn, '☁️ Илгээж байна…');
   const r = await uploadSession(id, sess.config, sess.data);
-  btn.disabled = false;
   if (r.ok) showStatus(`☁️ ${r.count} хэмжилт админ руу илгээгдлээ`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
   else showStatus(uploadErrMsg(r), uploadErrColor(r));
   // Модал хаагдчихсан байж болзошгүй тул одоогийн байдлаар нь шинэчилнэ
   if (currentViewSessId === id) syncSessCloudBtn(getSessions().find(s => s.id === id));
   renderSessList();
+  return !!r.ok;
 }
 
 function syncSessCloudBtn(sess) {
@@ -3342,33 +3531,31 @@ function syncSessCloudBtn(sess) {
   if (!canUpload() || !sess) { btn.style.display = 'none'; return; }
   btn.style.display = 'block';
   const sent = isSessionSent(sess);
-  btn.textContent = sent ? '✅ Илгээсэн — дахин илгээх' : '☁️ Энэ хэмжилтийг админ руу илгээх';
-  btn.style.background = sent ? 'var(--s2)' : 'var(--green)';
-  btn.style.color = sent ? 'var(--text)' : '#fff';
+  sbLabel(btn, sent ? '✅ Илгээсэн — дахин илгээх' : '☁️ Энэ хэмжилтийг админ руу илгээх');
+  btn.classList.toggle('sent', sent);
 }
 
 /* ── Илгээгээгүй бүх хэмжилтийг нэг дор илгээх ── */
 async function uploadAllSessions() {
-  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)'); return; }
+  if (!canUpload()) { showStatus('⚠️ Нэвтэрсэн үед л илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)'); return false; }
   const pending = getSessions().filter(s =>
     countFilled(s.config, s.data) > 0 && !isSessionSent(s));
   const btn = document.getElementById('btnSendAll');
-  if (!pending.length) { showStatus('✅ Бүх хэмжилт илгээгдсэн байна', 'linear-gradient(180deg,#8bf7cf,#5af0b4)'); return; }
-  btn.disabled = true;
+  if (!pending.length) { showStatus('✅ Бүх хэмжилт илгээгдсэн байна', 'linear-gradient(180deg,#8bf7cf,#5af0b4)'); return false; }
   let ok = 0, sentCnt = 0, offline = 0, fail = '';
   for (let i = 0; i < pending.length; i++) {
-    btn.textContent = `☁️ Илгээж байна… ${i + 1}/${pending.length}`;
+    sbLabel(btn, `☁️ Илгээж байна… ${i + 1}/${pending.length}`);
     const r = await uploadSession(pending[i].id, pending[i].config, pending[i].data);
     if (r.ok) { ok++; sentCnt += r.count; }
     else if (r.err === 'offline') offline++;
     else if (!fail) fail = r.err;
   }
-  btn.disabled = false;
-  btn.textContent = '☁️ Илгээгээгүй хэмжилтүүдийг илгээх';
+  sbLabel(btn, '☁️ Илгээгээгүй хэмжилтүүдийг илгээх');
   renderSessList();
   if (ok && !offline && !fail) showStatus(`☁️ ${ok} илгээлт · ${sentCnt} хэмжилт илгээгдлээ`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
   else if (offline) showStatus(`📶 Сүлжээ алга — ${offline} илгээлт дараалалд орлоо`, 'linear-gradient(180deg,#ffd98a,#ffc24d)');
   else if (fail) showStatus('❌ Илгээж чадсангүй: ' + fail, 'linear-gradient(180deg,#ff5a6e,#d92d45)');
+  return ok > 0 && !offline && !fail;
 }
 
 /* ══ Удаан дарж гарах сонголтын цэс (илгээх / харах / татах / устгах) ══ */
@@ -3650,8 +3837,10 @@ function renderSessList() {
   // «Илгээгээгүйг илгээх» товч зөвхөн нэвтэрсэн үед, илгээх юм байвал гарна
   const pending = up ? sessions.filter(s => countMeasurements(s) > 0 && !isSessionSent(s)).length : 0;
   const allBtn = document.getElementById('btnSendAll');
-  allBtn.style.display = pending ? 'block' : 'none';
-  allBtn.textContent = `☁️ Илгээгээгүй ${pending} хэмжилтийг илгээх`;
+  /* Бүгдийг илгээж дуусахад товч алга болдог — үзэгдэл нь тэр товчин
+     дээр тоглож байвал дуустал нь үлдээнэ */
+  allBtn.style.display = (pending || allBtn.classList.contains('sb-on')) ? 'block' : 'none';
+  sbLabel(allBtn, `☁️ Илгээгээгүй ${pending} хэмжилтийг илгээх`);
   if (!sessions.length) {
     list.innerHTML = '<div class="sess-empty">Хадгалсан хэмжилт байхгүй байна</div>';
     return;
