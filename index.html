@@ -5449,16 +5449,34 @@ function sessionsForDates(dates) {
   return combinedSource().filter(s => set.has(((s.config || {}).date || '').trim() || DP_NODATE));
 }
 
+/* Хэмжилт ХЭЗЭЭ хийгдсэнийг тодорхойлно: [хэмжсэн өдөр, эхэлсэн цаг].
+
+   savedAt-аар эрэмбэлж болохгүй: үүлнээс ирсэн хэмжилтийн savedAt нь
+   ИЛГЭЭСЭН цаг, утасных нь хамгийн сүүлд ХАДГАЛСАН цаг (хуучин
+   хэмжилтийг дахин нээж засахад шинэчлэгдэнэ). Тэгвэл 10-01-д хэмжиж
+   10-05-д илгээсэн хэмжилт 10-03-д хэмжсэнийхээс хойш орж, Excel-ийн
+   «Огноо» баганатай зөрнө. Өдрийг нь (config.date) эхэнд тавьж,
+   хэмжсэн өдөр нь ижил бол эхэлсэн цагаар ялгана. */
+function measuredStamp(sess) {
+  const c = (sess && sess.config) || {};
+  const started = new Date((sess && (sess.startedAt || sess.savedAt)) || 0).getTime() || 0;
+  const day = Date.parse(String(c.date || '').trim() + 'T00:00:00Z');
+  return { day: Number.isFinite(day) ? day : started, started };
+}
+function byMeasured(a, b) {
+  return (a.day - b.day) || (a.started - b.started);
+}
+
 function buildCombined(src) {
-  // Хуучнаас нь шинэ рүү эрэмбэлнэ — давхардсан нүдэнд хамгийн сүүлийн утга үлдэнэ.
+  // Хэмжсэн цагийн дарааллаар — хуучнаас нь шинэ рүү.
   const sessions = (src || combinedSource()).slice().sort((a, b) =>
-    new Date(a.savedAt || a.startedAt || 0) - new Date(b.savedAt || b.startedAt || 0)
+    byMeasured(measuredStamp(a), measuredStamp(b))
   );
 
   /* Түлхүүрт хэмжилтийн id-г ОРУУЛНА. Ингэснээр нэг км-ийг хоёр өөр
-     өдөр (эсвэл хоёр ажилтан) хэмжсэн бол тусдаа мөр болж, ямар ч
-     утга дарагдахгүй. Өмнө нь "зам|км" гэж нийлүүлдэг байсан тул
-     сүүлийн утга үлдэж, өмнөх нь зөвхөн нүдний тайлбар болдог байв. */
+     өдөр (эсвэл хоёр ажилтан) хэмжсэн бол ТУСДАА мөр болж, ямар ч
+     утга дарагдахгүй — аль нь хожуу хэмжсэнийг нь ч мөр бүр дээр нь
+     «Огноо» баганаас харна. */
   const map = new Map();          // "зам|км|хэмжилт" → мөрийн өгөгдөл
   const workers = new Set(), dates = new Set();
   let maxJ = 0, conflicts = 0, values = 0;
@@ -5490,7 +5508,7 @@ function buildCombined(src) {
           let row = map.get(key);
           if (!row) { row = { road, km, bar: {}, zun: {}, workers: new Set(), dates: new Set(),
                               tAir: new Set(), tRail: new Set(), station: !!c.station,
-                              when: new Date(sess.savedAt || sess.startedAt || 0).getTime() || 0
+                              stamp: measuredStamp(sess)
                             }; map.set(key, row); }
           if (c.tAir != null && c.tAir !== '') row.tAir.add(Number(c.tAir));
           if (c.tRail != null && c.tRail !== '') row.tRail.add(Number(c.tRail));
@@ -5518,10 +5536,10 @@ function buildCombined(src) {
     if (aNum && bNum) { if (na !== nb) return na - nb; }
     else if (aNum !== bNum) return aNum ? -1 : 1;
     else if (a.road !== b.road) return a.road < b.road ? -1 : 1;
-    /* Км-ээр эрэмбэлнэ. Нэг км дээр хэд хэдэн хэмжилт байвал (давхцвал)
-       тэдгээрийг он сар цагийн дарааллаар жагсаана. */
+    /* Км-ийн ӨСӨХ эрэмбээр. Нэг км дээр хэд хэдэн хэмжилт байвал (давхцвал)
+       тусдаа мөр болгож, ХЭМЖСЭН хугацаагаар нь — хуучин нь эхэнд — жагсаана. */
     if (a.km !== b.km) return a.km - b.km;
-    return (a.when || 0) - (b.when || 0);
+    return byMeasured(a.stamp, b.stamp);
   });
 
   return { rows, maxJ: Math.max(maxJ, 1), conflicts, values, workers, dates, sessionCount: sessions.length };
