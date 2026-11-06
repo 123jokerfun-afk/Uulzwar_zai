@@ -80,7 +80,28 @@ service cloud.firestore {
             && request.resource.data.email == myEmail()
             && request.resource.data.uid == request.auth.uid
             && request.resource.data.pd is int
-            && request.resource.data.count is int;
+            && request.resource.data.count is int
+            && validId()
+            && validSpan();
+      }
+      /* Баримтын ID нь ЗААВАЛ «{uid}__{sessionId}» бөгөөд зөвхөн үсэг, тоо,
+         «_», «-» агуулна.
+         Яагаад: ID нь админы хуудсанд HTML-ийн inline handler дотор орж ирдэг.
+         «'» зэрэг тэмдэгт агуулсан ID-тай баримтыг ажилтан бичиж чадвал админ
+         тэр баримтыг нээхэд JavaScript ажиллах (хадгалагдсан XSS) боломж үүснэ.
+         Аппын өөрийн үүсгэдэг ID (sess_<цаг>_<санамсаргүй>) энэ хэлбэрт таарна. */
+      function validId() {
+        return request.resource.data.sessionId is string
+            && docId == request.auth.uid + '__' + request.resource.data.sessionId
+            && docId.matches('[A-Za-z0-9_-]{1,200}');
+      }
+      /* Км-ийн муж: тоо, e ≥ s, нийт ≤ 1000. Хязгааргүй бол «for km=s..e»
+         давталттай клиент (админ) царцдаг. Өртөөний зам s=e=0. */
+      function validSpan() {
+        return request.resource.data.s is number
+            && request.resource.data.e is number
+            && request.resource.data.e >= request.resource.data.s
+            && request.resource.data.e - request.resource.data.s <= 1000;
       }
 
       allow read:   if activeUser() && (mine() || (isAdmin() && asPd(resource.data.pd) == myPd()));

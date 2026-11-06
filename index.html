@@ -1336,14 +1336,14 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
       <div class="field">
         <label>Агаарын хэм °C ⇅</label>
         <div class="tmp-wrap">
-          <input type="number" id="sTAir" step="1" placeholder="21" class="spin" data-min="-60" data-max="60"/>
+          <input type="text" inputmode="numeric" autocomplete="off" id="sTAir" placeholder="21" class="spin" data-min="-60" data-max="60" oninput="cleanTemp(this)"/>
           <button type="button" class="tmp-sign" onclick="flipTemp('sTAir')" title="Хасах/нэмэх">±</button>
         </div>
       </div>
       <div class="field">
         <label>Зам төмрийн хэм °C ⇅</label>
         <div class="tmp-wrap">
-          <input type="number" id="sTRail" step="1" placeholder="29" oninput="showNormHint()" class="spin" data-min="-60" data-max="60"/>
+          <input type="text" inputmode="numeric" autocomplete="off" id="sTRail" placeholder="29" oninput="cleanTemp(this);showNormHint()" class="spin" data-min="-60" data-max="60"/>
           <button type="button" class="tmp-sign" onclick="flipTemp('sTRail')" title="Хасах/нэмэх">±</button>
         </div>
       </div>
@@ -1353,8 +1353,8 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
   <div class="card">
     <div class="ct">Үений тоо</div>
     <div class="fg fg2">
-      <div class="field"><label>Баруун ⇅</label><input type="number" id="sBar" value="43" min="1" max="100" class="spin" data-min="1" data-max="200"/></div>
-      <div class="field"><label>Зүүн ⇅</label><input type="number" id="sZun" value="43" min="1" max="100" class="spin" data-min="1" data-max="200"/></div>
+      <div class="field"><label>Баруун ⇅</label><input type="number" id="sBar" value="43" min="1" max="100" class="spin" data-min="1" data-max="100"/></div>
+      <div class="field"><label>Зүүн ⇅</label><input type="number" id="sZun" value="43" min="1" max="100" class="spin" data-min="1" data-max="100"/></div>
     </div>
   </div>
   <button class="btn-go" onclick="startApp()">Хэмжилт эхлэх →</button>
@@ -1719,6 +1719,9 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || swReloaded) return;   // анхны суулгалт дээр дахин ачаалах шаардлагагүй
       swReloaded = true;
+      /* doUpdateReload() нь pendingVersion-гүй бол юу ч хийдэггүй тул энэ зам
+         өмнө нь «чимээгүй шинэчилнэ» гэж амлаад хэзээ ч дахин ачаалдаггүй байв */
+      if (!pendingVersion) pendingVersion = 'sw-update';
       /* Хэрэглэгч харж байхад ГЭНЭТ дахин ачаалахгүй — анивчихаас сэргийлж,
          апп далд болмогц (эсвэл дараагийн нээлтэд) чимээгүй шинэчилнэ. */
       reloadWhenHidden();
@@ -1759,8 +1762,23 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
     } catch (e) {}
     return 'ok';
   }
+  /* Дахин ачаалахын өмнө сервер ҮНЭХЭЭР хариулж байгааг шалгана.
+     navigator.onLine нь «сүлжээнд холбогдсон» гэдгийг л хэлдэг — дохио сул,
+     дата дууссан үед ч true. Тэр үед кэшээ устгаад дахин ачаалбал апп
+     нээгдэхгүй (кэш хоосон, сүлжээ ажиллахгүй) болж ажил зогсоно. */
+  async function serverHealthy() {
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 4000);
+      const r = await fetch('./index.html?p=' + Date.now(), { cache: 'no-store', signal: ctl.signal });
+      clearTimeout(t);
+      return r.ok;
+    } catch (e) { return false; }
+  }
   async function doUpdateReload() {
     if (reloadBlocked() !== 'ok') return;
+    if (!(await serverHealthy())) return;       // дараагийн далд болоход дахин оролдоно
+    if (reloadBlocked() !== 'ok') return;       // хүлээх зуур хэмжилт эхэлсэн байж болно
     try {
       sessionStorage.setItem('uz_upd', JSON.stringify({ v: pendingVersion, t: Date.now() }));
       sessionStorage.setItem('uz_skipIntro', '1');   // reload дараа интрог алгасна
@@ -1860,6 +1878,14 @@ function myPd() { return CLOUD.profile ? CLOUD.profile.pd : null; }
 
 function initCloud() {
   if (typeof firebase === 'undefined') {
+    /* Сүлжээ муу үед CDN-ээс Firebase ачаалагдахгүй байж болно. Өмнө нэвтэрсэн
+       (профайл нь утсанд хадгалагдсан) ажилтныг нэвтрэх дэлгэц рүү шидвэл
+       нууц үгээ мэдэхгүй бол ажиллах боломжгүй болно — хэмжилтээ утсандаа
+       хадгалж, холболт орсон үед илгээнэ. */
+    if (CLOUD.profile) {
+      showStatus('📶 Үүлэн холболт алга — хэмжилт утсанд хадгалагдана, дараа илгээнэ', 'linear-gradient(180deg,#ffd98a,#ffc24d)');
+      return;
+    }
     showLoginError('Firebase сан ачаалагдсангүй. Интернэт холболтоо шалгаад дахин нээнэ үү.');
     showLogin();
     return;
@@ -1888,13 +1914,16 @@ function initCloud() {
       if (!prof) return; // loadProfile өөрөө алдаагаа харуулна
       CLOUD.profile = prof;
       applyProfile();
-      showSetup();
+      /* Хэмжилтийн дунд бол дэлгэцийг солихгүй. Профайл удаан (8 сек хүртэл)
+         баталгаажихад хэрэглэгч аль хэдийн хэмжиж эхэлсэн байж болно — тэр үед
+         «тохиргоо» руу буцаавал ажил нь тасална. */
+      if (!measuring()) showSetup();
       if (isAdmin()) loadSectionData();
     } catch (e) {
       // Санаандгүй алдаа — бүртгэлээс гаргахгүй, хадгалсан эрхээрээ үргэлжилнэ
       const cached = getCachedProfile();
       if (cached && cached.email === (user.email || '').toLowerCase()) {
-        CLOUD.profile = cached; applyProfile(); showSetup();
+        CLOUD.profile = cached; applyProfile(); if (!measuring()) showSetup();
       } else {
         showLoginError('Бүртгэл уншихад алдаа гарлаа: ' + (e && e.message ? e.message : e));
         showLogin();
@@ -2063,7 +2092,19 @@ function showAccountHint() {
   else { el.className = 'lg-hint bad'; el.textContent = 'ПД дугаар (1–13) ба «ажилтан» эсвэл «админ» гэж бичнэ үү'; }
 }
 
-/* Утасны тоон гар дээр хасах тэмдэг байдаггүй тул ± товчоор солино */
+/* Утасны тоон гар дээр хасах тэмдэг байдаггүй тул ± товчоор солино.
+
+   Талбар нь type="number" биш, текст: number талбар ганц «-» тэмдгийг
+   хадгалж чаддаггүй (value нь '' болдог) тул «±» эхэлж дараад тоо
+   бичихэд хасах тэмдэг ГЭНЭТ алга болж, −21° нь +21° болж хадгалагддаг
+   байв. Өвлийн хэмжилтэд норм буруу бодогдох үндсэн шалтгаан. */
+function cleanTemp(el) {
+  let v = String(el.value || '').replace(/[^0-9.\-]/g, '');
+  v = (v.startsWith('-') ? '-' : '') + v.replace(/-/g, '');
+  const i = v.indexOf('.');
+  if (i >= 0) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '');
+  if (v !== el.value) el.value = v;
+}
 function flipTemp(id) {
   const el = document.getElementById(id);
   const v = (el.value || '').trim();
@@ -2917,6 +2958,10 @@ async function doLogin() {
       : 'Хэн болохоо «ПД-6 ажилтан» эсвэл «ПД-6 админ» гэж бичнэ үү.');
     return;
   }
+  if (!CLOUD.auth) {
+    showLoginError('Нэвтрэх үйлчилгээ ачаалагдаагүй байна. Интернэт холболтоо шалгаад аппыг дахин нээнэ үү.');
+    return;
+  }
   setLoginBusy(true);
   fpRequest(null);            // зөөгч талбараас холдоно
   playSignInAnim();
@@ -3052,6 +3097,8 @@ function applyProfile() {
   // Үүлэн горимд файл дамжуулах шаардлагагүй — эдгээр нь зөвхөн админд хэрэгтэй
   document.getElementById('btnImport').style.display = isAdmin() ? 'block' : 'none';
   document.getElementById('btnCombinedLocal').style.display = 'none';
+  // Профайл тогтсон (акаунтын түлхүүр мэдэгдэж байгаа) үед хуучин хэмжилтийг цэвэрлэнэ
+  try { purgeOldSessions(); } catch (e) {}
 }
 
 /* ── Ажилчны өгөгдлийг үүлэн рүү илгээх ── */
@@ -3067,25 +3114,30 @@ function kmToCloud(c, d) {
   }
   return out;
 }
+/* Буруу/хортой баримт бол null буцаана — дуудагч нь алгасна. Ажилтан бичсэн
+   баримтын төрлийг дүрэм шалгадаггүй тул цэвэрлэхгүй бол админы хуудас
+   царцах, код ажиллуулах боломжтой байв. */
 function cloudToSession(id, d) {
-  const data = {};
-  Object.keys(d.km || {}).forEach(key => {
-    const km = parseInt(key.slice(1), 10);
-    if (!Number.isFinite(km)) return;
-    const bar = d.km[key].bar || [], zun = d.km[key].zun || [];
-    data[km] = {};
-    for (let j = 1; j <= Math.max(bar.length, zun.length); j++) {
-      data[km][j] = { bar: bar[j-1] == null ? null : bar[j-1], zun: zun[j-1] == null ? null : zun[j-1] };
-    }
-  });
-  const upd = d.updatedAt && d.updatedAt.toDate ? d.updatedAt.toDate().toISOString() : new Date().toISOString();
-  return {
-    id, savedAt: upd, startedAt: upd,
-    config: { date: d.date, road: d.road, worker: d.worker, s: d.s, e: d.e,
-              bar: d.bar, zun: d.zun, max: d.max || 37, pd: d.pd,
-              tAir: d.tAir ?? null, tRail: d.tRail ?? null, station: !!d.station },
-    data
-  };
+  try {
+    d = d || {};
+    const config = cleanConfig({ date: d.date, road: d.road, worker: d.worker, s: d.s, e: d.e,
+      bar: d.bar, zun: d.zun, pd: d.pd, tAir: d.tAir, tRail: d.tRail, station: d.station });
+    const raw = {};
+    const kmMap = (d.km && typeof d.km === 'object') ? d.km : {};
+    Object.keys(kmMap).forEach(key => {
+      const km = parseInt(String(key).slice(1), 10);
+      if (!Number.isFinite(km) || !kmMap[key] || typeof kmMap[key] !== 'object') return;
+      const bar = Array.isArray(kmMap[key].bar) ? kmMap[key].bar : [];
+      const zun = Array.isArray(kmMap[key].zun) ? kmMap[key].zun : [];
+      raw[km] = {};
+      for (let j = 1; j <= Math.min(Math.max(bar.length, zun.length), MAX_JOINTS); j++) {
+        raw[km][j] = { bar: bar[j-1], zun: zun[j-1] };
+      }
+    });
+    const data = cleanData(raw, config);
+    const upd = d.updatedAt && d.updatedAt.toDate ? d.updatedAt.toDate().toISOString() : new Date().toISOString();
+    return { id: String(id), savedAt: upd, startedAt: upd, config, data };
+  } catch (e) { return null; }
 }
 
 function countFilled(c, d) {
@@ -3183,13 +3235,16 @@ async function loadSectionData() {
   dot.className = 'cloud-dot'; st.textContent = 'Татаж байна…';
   try {
     const snap = await CLOUD.db.collection('measurements').where('pd', '==', myPd()).get();
-    CLOUD.sectionSessions = snap.docs.map(doc => cloudToSession(doc.id, doc.data()))
+    const parsed = snap.docs.map(doc => cloudToSession(doc.id, doc.data()));
+    const skipped = parsed.filter(x => !x).length;
+    CLOUD.sectionSessions = parsed.filter(Boolean)
       .sort((a, b) => new Date(a.savedAt) - new Date(b.savedAt));
     dot.className = 'cloud-dot ok';
     const people = new Set(CLOUD.sectionSessions.map(s => s.config.worker));
     const total = CLOUD.sectionSessions.reduce((n, s) => n + countMeasurements(s), 0);
     st.textContent = `ПД-${myPd()} · ${people.size} хүн · ${CLOUD.sectionSessions.length} илгээлт · ${total} хэмжилт`
-      + (snap.metadata.fromCache ? ' (офлайн кэш)' : '');
+      + (snap.metadata.fromCache ? ' (офлайн кэш)' : '')
+      + (skipped ? ` · ⚠️ ${skipped} буруу баримт алгасав` : '');
     renderAdmList();
   } catch (e) {
     dot.className = 'cloud-dot off';
@@ -3245,12 +3300,12 @@ function renderAdmList() {
       <span class="adm-fold-n">${allVals}</span>
     </div>`;
   box.innerHTML = allFolder + folders.map(f => `
-    <div class="adm-fold" onclick="admFoldTap('${f.date}')"
-      ontouchstart="admPressStart('fold','${f.date}',event,this)" ontouchmove="sessPressMove(event)"
+    <div class="adm-fold" onclick="admFoldTap(${jsArg(f.date)})"
+      ontouchstart="admPressStart('fold',${jsArg(f.date)},event,this)" ontouchmove="sessPressMove(event)"
       ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
-      onmousedown="admPressStart('fold','${f.date}',event,this)" onmousemove="sessPressMove(event)"
+      onmousedown="admPressStart('fold',${jsArg(f.date)},event,this)" onmousemove="sessPressMove(event)"
       onmouseup="sessPressEnd()" onmouseleave="sessPressEnd()"
-      oncontextmenu="return admCtxMenu('fold','${f.date}',event)">
+      oncontextmenu="return admCtxMenu('fold',${jsArg(f.date)},event)">
       <span class="adm-fold-ic">📁</span>
       <div style="flex:1">
         <div class="adm-fold-d">${f.date === '—' ? 'Огноогүй' : esc(f.date)}</div>
@@ -3278,12 +3333,12 @@ function openAdmDayMod(date) {
     + (f.workers.size ? ` · ${Array.from(f.workers).join(', ')}` : '');
   document.getElementById('admDayList').innerHTML = f.list.map(s => {
     const c = s.config;
-    return `<div class="adm-item" style="margin-bottom:6px" onclick="admItemTap('${esc(s.id)}')"
-      ontouchstart="admPressStart('item','${esc(s.id)}',event,this)" ontouchmove="sessPressMove(event)"
+    return `<div class="adm-item" style="margin-bottom:6px" onclick="admItemTap(${jsArg(s.id)})"
+      ontouchstart="admPressStart('item',${jsArg(s.id)},event,this)" ontouchmove="sessPressMove(event)"
       ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
-      onmousedown="admPressStart('item','${esc(s.id)}',event,this)" onmousemove="sessPressMove(event)"
+      onmousedown="admPressStart('item',${jsArg(s.id)},event,this)" onmousemove="sessPressMove(event)"
       onmouseup="sessPressEnd()" onmouseleave="sessPressEnd()"
-      oncontextmenu="return admCtxMenu('item','${esc(s.id)}',event)">
+      oncontextmenu="return admCtxMenu('item',${jsArg(s.id)},event)">
       <div class="adm-meta" style="flex:1">
         <div class="adm-who">${esc(c.worker || '—')}</div>
         <div class="adm-det">Зам №${esc(String(c.road ?? '—'))} · ${esc(kmLabel(s))} · хэмжсэн ${esc(String(c.date || '—'))} · ${fmtDate(s.savedAt)}</div>
@@ -3334,7 +3389,7 @@ function openAdmActMod(kind, key) {
     const s = (CLOUD.sectionSessions || []).find(x => x.id === key);
     if (!s) return;
     const c = s.config;
-    title = `${esc(c.worker || '—')} · Зам №${esc(String(c.road ?? '—'))}`;
+    title = `${c.worker || '—'} · Зам №${String(c.road ?? '—')}`;
     sub = `${kmLabel(s)} · ${countMeasurements(s)} хэмжилт · ${fmtDate(s.savedAt)}`;
     list = [s];
   }
@@ -3433,12 +3488,40 @@ function setDeviceName(n) {
    Нэг утсыг олон ажилтан хэрэглэвэл нэг хүний хэмжилт нөгөөд
    харагдахгүй. Нэвтэрсэн бол email-ээр, үүл тохируулаагүй офлайн
    горимд ганц «local» эзнээр, нэвтрэх дэлгэц дээр (түр) «guest»-ээр. */
+const GUEST_KEY = 'uulzvar_sess__guest';
 function sessOwnerKey() {
-  const email = (window.CLOUD && CLOUD.profile && CLOUD.profile.email || '').trim().toLowerCase();
+  /* ⚠️ `window.CLOUD` БИШ: дээд түвшний `const CLOUD` нь window-ийн шинж чанар
+     болдоггүй тул өмнөх `window.CLOUD && …` нь үргэлж undefined байж, нэвтэрсэн
+     ч түлхүүр нь байнга «guest» гарч байв. Үр дүнд нэг утсан дээрх БҮХ акаунт
+     нэг жагсаалтыг хуваалцаж, ПД-6 ажилтны хэмжилт ПД-7-ийн акаунтад харагдан
+     «Бүгдийг илгээх» дарахад буруу хэсэгт илгээгддэг байв. */
+  const email = ((typeof CLOUD !== 'undefined' && CLOUD.profile && CLOUD.profile.email) || '').trim().toLowerCase();
   if (email) return 'uulzvar_sess__' + email;
   // Акаунтгүй үе: үүл тохируулсан бол нэвтрэлт хүлээж буй ТҮР зочин,
   // тохируулаагүй бол энэ утасны байнгын офлайн эзэн.
-  return cloudConfigured() ? 'uulzvar_sess__guest' : 'uulzvar_sess__local';
+  return cloudConfigured() ? GUEST_KEY : 'uulzvar_sess__local';
+}
+/* Түлхүүр засагдахаас ӨМНӨ бүх хэмжилт «guest»-д хуримтлагдсан. Акаунт анх
+   удаа хандахад өөрийнхөө хэмжилтийг тэндээс авна — эс тэгвээс шинэчлэлтийн
+   дараа хуучин хэмжилтүүд алга болсон мэт харагдана. Өөр ПД-ийнх (config.pd)
+   гарч ирвэл тэр ПД-ийн акаунтыг хүлээн «guest»-д үлдэнэ. */
+function adoptGuestSessions() {
+  const pd = (typeof CLOUD !== 'undefined' && CLOUD.profile) ? CLOUD.profile.pd : null;
+  let guest = [];
+  try { guest = JSON.parse(localStorage.getItem(GUEST_KEY) || '[]'); } catch { guest = []; }
+  if (!Array.isArray(guest) || !guest.length) return [];
+  const mine = [], rest = [];
+  guest.forEach(x => {
+    const spd = x && x.config ? asInt(x.config.pd) : null;
+    (spd === null || pd === null || spd === pd ? mine : rest).push(x);
+  });
+  if (mine.length) {
+    try {
+      if (rest.length) localStorage.setItem(GUEST_KEY, JSON.stringify(rest));
+      else localStorage.removeItem(GUEST_KEY);
+    } catch (e) { return []; }       // «guest»-ийг шинэчилж чадаагүй бол хоёр газар үлдэхгүйн тулд аваагүй
+  }
+  return mine;
 }
 function getSessions() {
   const key = sessOwnerKey();
@@ -3450,26 +3533,126 @@ function getSessions() {
        жинхэнэ эзэн (нэвтэрсэн акаунт эсвэл офлайн local) нэг удаа
        өөртөө шингээнэ — түр зочин (guest) хөндөхгүй, ингэснээр
        нэвтэрсний дараа акаунт нь өөрийн хуучин өгөгдлөө авна. */
-    if (key !== 'uulzvar_sess__guest') {
+    if (key !== GUEST_KEY) {
       let legacy = null;
       try { legacy = JSON.parse(localStorage.getItem(LEGACY_SESS_KEY) || 'null'); } catch {}
       if (Array.isArray(legacy) && legacy.length) arr = legacy;
+      if (key !== 'uulzvar_sess__local') arr = arr.concat(adoptGuestSessions());
       try { localStorage.setItem(key, JSON.stringify(arr)); localStorage.removeItem(LEGACY_SESS_KEY); } catch {}
     }
   }
   return Array.isArray(arr) ? arr : [];
 }
+/* Хадгалалт амжилтгүй болбол (санах ой дүүрсэн, хувийн горим) ХЭМЖИЛТ
+   ЧИМЭЭГҮЙ АЛДАГДАНА — ажилтан хадгалагдсан гэж бодоод үргэлжлүүлнэ.
+   Тиймээс заавал мэдэгдэнэ. Амжилтыг буцаана. */
+let storeWarnAt = 0;
+function warnStoreFail() {
+  const now = Date.now();
+  const first = now - storeWarnAt > 60000;        // минутад нэг л удаа цонх, бусдад товч мэдэгдэл
+  storeWarnAt = now;
+  const text = 'Утасны санах ой дүүрсэн тул хэмжилт хадгалагдсангүй.\n\n'
+    + '1) «↓» → Excel татаж авна уу.\n'
+    + '2) «📂 Өмнөх хэмжилтүүд»-ээс илгээсэн хуучин хэмжилтээ устгана уу.';
+  if (first) showMsg('⚠️ Хэмжилт хадгалагдсангүй', text, '⚠️');
+  else showStatus('⚠️ Хэмжилт хадгалагдсангүй — санах ой дүүрсэн', 'linear-gradient(180deg,#ff5a6e,#d92d45)');
+}
 function saveSessions(arr) {
-  try { localStorage.setItem(sessOwnerKey(), JSON.stringify(arr)); } catch {}
+  try { localStorage.setItem(sessOwnerKey(), JSON.stringify(arr)); return true; }
+  catch (e) { try { warnStoreFail(); } catch (e2) {} return false; }
+}
+
+/* ══ Гаднаас орж ирэх өгөгдлийг ЦЭВЭРЛЭХ ══
+   Импортолсон файл болон үүлний баримтыг (ажилтан бичсэн, төрөл нь
+   шалгагддаггүй) хэрэглэхээс өмнө нэг дор баталгаажуулна. Үгүй бол:
+   • s/e нь том тоо бол «for km=s..e» давталт хуудсыг царцаана
+   • тэмдэгт мөр HTML болон гарч код ажиллана
+   • «<img…>» гэсэн «утга» нийлбэрийг тэмдэгт мөрийн залгалт болгоно */
+const MAX_KM_READ = 1000;     // уншиж буй баримтын км-ийн дээд муж (хэмжилт эхлүүлэхэд OPEN_MAX_KM)
+const MAX_JOINTS = 200;
+function badData(msg) { const e = new Error(msg); e.userMsg = msg; return e; }
+const asInt = v => {
+  if (typeof v === 'string' && v.trim() === '') return null;
+  if (typeof v !== 'number' && typeof v !== 'string') return null;
+  const n = Number(v);
+  return Number.isInteger(n) ? n : null;
+};
+const cleanStr = (v, n) => (typeof v === 'string' || typeof v === 'number') ? String(v).trim().slice(0, n) : '';
+const cleanTempVal = v => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= -100 && n <= 150 ? n : null;
+};
+function cleanConfig(raw) {
+  if (!raw || typeof raw !== 'object') throw badData('тохиргоо алга');
+  const station = raw.station === true;
+  let s = 0, e = 0;
+  if (!station) {
+    s = asInt(raw.s); e = asInt(raw.e);
+    if (s === null || e === null || s < 0 || e < s) throw badData('км-ийн муж буруу');
+    if (e - s + 1 > MAX_KM_READ) throw badData(`км-ийн муж хэт том (${MAX_KM_READ}-аас их)`);
+  }
+  const bar = asInt(raw.bar), zun = asInt(raw.zun);
+  if (bar === null || zun === null || bar < 1 || zun < 1 || bar > MAX_JOINTS || zun > MAX_JOINTS) throw badData('үений тоо буруу');
+  const pd = asInt(raw.pd);
+  const date = cleanStr(raw.date, 10);
+  return {
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '',
+    road: cleanStr(raw.road, 40) || '—',
+    pd: pd !== null && pd >= 1 && pd <= 13 ? pd : null,
+    worker: cleanStr(raw.worker, 60),
+    account: cleanStr(raw.account, 60) || null,
+    tAir: cleanTempVal(raw.tAir), tRail: cleanTempVal(raw.tRail),
+    station, openEnd: raw.openEnd === true,
+    s, e, bar, zun, max: 37
+  };
+}
+function cleanVal(v) {
+  if (v === null || v === undefined || v === '' || (typeof v !== 'number' && typeof v !== 'string')) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : null;
+}
+function cleanData(raw, cfg) {
+  const out = {};
+  if (!raw || typeof raw !== 'object') return out;
+  const maxJ = Math.max(cfg.bar, cfg.zun);
+  for (let km = cfg.s; km <= cfg.e; km++) {
+    const row = raw[km];
+    if (!row || typeof row !== 'object') continue;
+    const o = {};
+    for (let j = 1; j <= maxJ; j++) {
+      const c = row[j];
+      if (!c || typeof c !== 'object') continue;
+      const b = j <= cfg.bar ? cleanVal(c.bar) : null, z = j <= cfg.zun ? cleanVal(c.zun) : null;
+      if (b !== null || z !== null) o[j] = { bar: b, zun: z };
+    }
+    if (Object.keys(o).length) out[km] = o;
+  }
+  return out;
+}
+/* Давтагдахгүй id. Date.now() ганцаараа бол нэг миллисекундэд орсон хоёр
+   импорт ижил id авч, нэг нь нөгөөгөө дарна. */
+function uniqueId(prefix, taken) {
+  let id;
+  do { id = prefix + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+  while (taken && taken.has(id));
+  return id;
 }
 
 /* Үүлэн дээрх TTL-тэй ижил хугацаа — утсан дээр ч 30 хоногоос хуучин нь үлдэхгүй */
+/* Үүлэн горимд ИЛГЭЭГЭЭГҮЙ хэмжилтийг хэдийд ч устгахгүй: ажилтан сүлжээгүй
+   газар олон хоног ажиллаад дараа нь илгээж болно. Устгах нь зөвхөн
+   (а) илгээгдсэн, (б) хоосон хуучин хэмжилт. Мөн boot() дотор энэ нь
+   нэвтрэхээс ӨМНӨ дуудагдаж «guest» түлхүүрт л хүрдэг байсан тул акаунтын
+   хэмжилтийг огт цэвэрлэж чаддаггүй байв — одоо профайл тогтсон үед дахин
+   дуудна. */
 function purgeOldSessions() {
   const cutoff = Date.now() - TTL_DAYS * 24 * 3600 * 1000;
   const all = getSessions();
   const kept = all.filter(s => {
     const t = new Date(s.savedAt || s.startedAt || 0).getTime();
-    return !Number.isFinite(t) || t >= cutoff;
+    if (!Number.isFinite(t) || t >= cutoff) return true;
+    return cloudConfigured() && countMeasurements(s) > 0 && !isSessionSent(s);
   });
   if (kept.length !== all.length) saveSessions(kept);
 }
@@ -3746,6 +3929,13 @@ async function doDeleteSession() {
 function esc(str) {
   return String(str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
+/* HTML атрибут доторх inline handler-ийн аргумент.
+   ⚠️ onclick="f('${esc(x)}')" АЮУЛТАЙ: HTML entity нь JS-ээс ӨМНӨ тайлагддаг
+   тул esc() хийсэн «'» (&#39;) нь атрибутыг задалсны дараа жинхэнэ «'» болж
+   JS тэмдэгт мөрийг таслана. Замын дугаарт «'» орвол товч эвдэрч, хортой
+   утга бол код ажиллана. JSON-оор тэмдэгт мөрийн literal болгож, дараа нь
+   escape хийвэл тайлагдсаны дараа ч зөв literal хэвээр үлдэнэ. */
+function jsArg(v) { return esc(JSON.stringify(v)); }
 
 function fmtDate(iso) {
   const d = new Date(iso);
@@ -3893,18 +4083,18 @@ function renderSessList() {
       : sent ? '<span class="sess-badge sent">☁️ илгээсэн</span>'
              : '<span class="sess-badge pend">илгээгээгүй</span>';
     const upBtn = up && cnt
-      ? `<div class="sess-up${sent?' done':''}" title="Админ руу илгээх" onclick="sendSessionRow('${s.id}',event)">${sent?'✅':'☁️'}</div>`
+      ? `<div class="sess-up${sent?' done':''}" title="Админ руу илгээх" onclick="sendSessionRow(${jsArg(s.id)},event)">${sent?'✅':'☁️'}</div>`
       : '';
     /* Товших → нээх, удаан дарах → сонголтын цэс */
-    return `<div class="sess-item" onclick="sessTap('${s.id}')"
-      ontouchstart="sessPressStart('${s.id}',event,this)" ontouchmove="sessPressMove(event)"
+    return `<div class="sess-item" onclick="sessTap(${jsArg(s.id)})"
+      ontouchstart="sessPressStart(${jsArg(s.id)},event,this)" ontouchmove="sessPressMove(event)"
       ontouchend="sessPressEnd()" ontouchcancel="sessPressEnd()"
-      onmousedown="sessPressStart('${s.id}',event,this)" onmousemove="sessPressMove(event)"
+      onmousedown="sessPressStart(${jsArg(s.id)},event,this)" onmousemove="sessPressMove(event)"
       onmouseup="sessPressEnd()" onmouseleave="sessPressEnd()"
-      oncontextmenu="return sessCtxMenu('${s.id}',event)">
+      oncontextmenu="return sessCtxMenu(${jsArg(s.id)},event)">
       <div class="sess-meta">
         <div class="sess-date">${fmtDate(s.savedAt)}${w?` · <span class="sess-worker">${esc(w)}</span>`:''}</div>
-        <div class="sess-info">Зам №${c.road||'—'} · ${esc(kmLabel(s))} · ${cnt} хэмжилт${badge}</div>
+        <div class="sess-info">Зам №${esc(String(c.road || '—'))} · ${esc(kmLabel(s))} · ${cnt} хэмжилт${badge}</div>
       </div>
       ${upBtn}
     </div>`;
@@ -3936,10 +4126,14 @@ function viewCloudSession(docId) {
   currentViewSessId = null;              // утсанд хадгалагдсан биш
   const c = sess.config, w = (c.worker || '').trim();
   renderSessionView(sess,
-    `☁️ Ирсэн: ${fmtDate(sess.savedAt)} · Огноо: ${esc(String(c.date || '—'))}`
+    `☁️ Ирсэн: ${fmtDate(sess.savedAt)} · Огноо: ${String(c.date || '—')}`
     + (w ? ` · Хэмжигч: ${w}` : ''));
   document.getElementById('btnSessCloud').style.display = 'none';   // буцааж илгээхгүй
 }
+
+/* Харагдацад зөвхөн жинхэнэ тоо гарна — бусад нь (HTML, текст) тоологдохгүй */
+const svNum = v => (v === null || v === undefined || v === '' || (typeof v !== 'number' && typeof v !== 'string')) ? null
+  : (Number.isFinite(Number(v)) ? Number(v) : null);
 
 /* Хоёуланд нь нийтлэг харагдац */
 let currentViewSess = null;
@@ -3954,9 +4148,9 @@ function renderSessionView(sess, subText) {
   for (let km = c.s; km <= c.e; km++) {
     let grp = '';
     for (let j = maxJ; j >= 1; j--) {
-      const b = d[km]?.[j]?.bar, z = d[km]?.[j]?.zun;
-      if (b !== null && b !== undefined) grp += `<div class="sessv-row"><span class="ro-tag ro-bar">Баруун</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(b)}">${b} мм</span></div>`;
-      if (z !== null && z !== undefined) grp += `<div class="sessv-row"><span class="ro-tag ro-zun">Зүүн</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(z)}">${z} мм</span></div>`;
+      const b = svNum(d[km]?.[j]?.bar), z = svNum(d[km]?.[j]?.zun);
+      if (b !== null) grp += `<div class="sessv-row"><span class="ro-tag ro-bar">Баруун</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(b)}">${b} мм</span></div>`;
+      if (z !== null) grp += `<div class="sessv-row"><span class="ro-tag ro-zun">Зүүн</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(z)}">${z} мм</span></div>`;
     }
     if (grp) html += `<div class="sessv-km">${km} км</div>${grp}`;
   }
@@ -4285,8 +4479,11 @@ function doRestart() {
 
 /* ── Эхлүүлэх ── */
 /* Шинэчлэлт утсанд хүрсэн эсэхийг шалгах хувилбарын дугаар.
-   Өөрчлөлт хийх бүрд шинэчилнэ. */
-const APP_VERSION = '2026-09-02.4';
+   ⚠️ index.html өөрчлөх БҮРД заавал ахиулна (sw.js-ийн CACHE-тай хамт).
+   Суулгасан апп-ын шинэчлэлт шалгагч яг энэ мөрийг серверийнхтэй харьцуулдаг —
+   ахиулахаа мартвал дэлгэцэнд үлдсэн (app switcher-т хэд хоног амьд) апп
+   хуучин хувилбараараа үргэлжилнэ. */
+const APP_VERSION = '2026-11-06.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
@@ -4397,17 +4594,33 @@ function startApp() {
   if (station) {
     s = e = 0;
   } else {
-    if (s < 1) return requireField('sS', 'Эхлэх км буруу', 'Эхлэх км нь 1-ээс их байх ёстой.');
+    if (!Number.isInteger(s) || s < 1) return requireField('sS', 'Эхлэх км буруу', 'Эхлэх км нь 1-ээс эхлэх БҮТЭН тоо байх ёстой (жишээ нь 681).');
     if (e === null) { e = s; openEnd = true; }          // дуусахыг бичээгүй — уртсана
-    else if (e < s) return requireField('sE', 'Дуусах км буруу', 'Дуусах км нь эхлэх км-ээс их байх ёстой.\n\nМэдэхгүй бол хоосон үлдээж болно — км өөрөө нэмэгдэнэ.');
+    else if (!Number.isInteger(e) || e < s) return requireField('sE', 'Дуусах км буруу', 'Дуусах км нь эхлэх км-ээс багагүй БҮТЭН тоо байх ёстой.\n\nМэдэхгүй бол хоосон үлдээж болно — км өөрөө нэмэгдэнэ.');
+    else if (e - s + 1 > OPEN_MAX_KM) return requireField('sE', 'Км-ийн муж хэт том',
+      `Нэг хэмжилтэд ${OPEN_MAX_KM} км-ээс илүүг хамруулах боломжгүй.\n\nДуусах км-ээ шалгана уу — нэг цифр илүү бичсэн байж болзошгүй.`);
   }
 
   const tAir = numOrNull(document.getElementById('sTAir').value);
   const tRail = numOrNull(document.getElementById('sTRail').value);
   if (tAir === null) return requireField('sTAir', 'Агаарын хэм',
     'Агаарын хэмийг бичнэ үү.\n\nМаягт-09-д заавал шаардагдана. Хасах хэм бол ± товчийг дарна.');
+  if (tAir < -60 || tAir > 60) return requireField('sTAir', 'Агаарын хэм буруу',
+    'Агаарын хэм −60°-аас +60° хооронд байх ёстой. Тоогоо шалгана уу.');
   if (tRail === null) return requireField('sTRail', 'Зам төмрийн хэм',
     'Зам төмрийн хэмийг бичнэ үү.\n\nҮүнээс «байх ёстой хуримтлал» бодогдоно. Хасах хэм бол ± товчийг дарна.');
+  if (tRail < -60 || tRail > 90) return requireField('sTRail', 'Зам төмрийн хэм буруу',
+    'Зам төмрийн хэм −60°-аас +90° хооронд байх ёстой. Тоогоо шалгана уу.');
+  /* Үений тоо: хоосон бол 43. Өөр бол 1–100 хоорондын бүхэл тоо. */
+  const readJ = id => {
+    const raw = (document.getElementById(id).value || '').trim();
+    if (raw === '') return 43;
+    const n = Number(raw);
+    return (Number.isInteger(n) && n >= 1 && n <= 100) ? n : null;
+  };
+  const barN = readJ('sBar'), zunN = readJ('sZun');
+  if (barN === null) return requireField('sBar', 'Үений тоо буруу', 'Баруун талын үений тоо 1–100 хоорондын бүхэл тоо байх ёстой.');
+  if (zunN === null) return requireField('sZun', 'Үений тоо буруу', 'Зүүн талын үений тоо 1–100 хоорондын бүхэл тоо байх ёстой.');
 
   // Нэг хаягийг олон хүн хуваалцдаг тул нэр заавал шаардлагатай
   const workerName = (document.getElementById('sWorker').value||'').trim();
@@ -4428,8 +4641,8 @@ function startApp() {
     station,           // үнэн бол өртөөний зам (км-гүй, үе хязгааргүй)
     openEnd,           // үнэн бол дуусах км тодорхойгүй — жагсаалт уртсана
     s, e,
-    bar: Math.min(parseInt(document.getElementById('sBar').value)||43,100),
-    zun: Math.min(parseInt(document.getElementById('sZun').value)||43,100),
+    bar: barN,
+    zun: zunN,
     max: 37,
   };
   data = {};
@@ -4576,6 +4789,11 @@ function refreshDrumDisplay() {
 
 function setupDrum() {
   const ring=document.getElementById('drumRing');
+  /* startApp() бүрд дуудагддаг — хэмжилт шинээр эхлэх бүрд listener нэмбэл
+     хүрдний нэг эргэлт N удаа ажиллаж (setDrum нь drumCur-ээс хамаарна),
+     дугуй хэт хурдан эргэх болно. Нэг л удаа холбоно. */
+  if (ring._drumBound) return;
+  ring._drumBound = true;
   let startY=0, startVal=0, moving=false;
   ring.addEventListener('touchstart',e=>{
     startY=e.touches[0].clientY; startVal=drumCur; moving=true;
@@ -4654,10 +4872,16 @@ function growKmList() {
   buildStrip();
   return true;
 }
+/* Баруун ба зүүн талын үений тоо ялгаатай байж болно. Тухайн үед
+   байдаг эхний/сүүлийн чиглэлийг олно — байхгүй чиглэл рүү орвол хоосон
+   утга (0 мм) бичигдэж, Excel-д ч орохгүй гээгдэнэ. */
+function firstDir(j) { return j <= C.bar ? 'bar' : 'zun'; }
+function lastDir(j)  { return j <= C.zun ? 'zun' : 'bar'; }
+
 function nextJoint() {
   const maxJ=Math.max(C.bar,C.zun);
   if (curJ<maxJ) {
-    curJ++; curDir='bar';
+    curJ++; curDir=firstDir(curJ);
   } else if (C.station && maxJ < STATION_MAX_J) {
     // Өртөөний зам — дараагийн үеийг нэмж үргэлжлүүлнэ
     C.bar = C.zun = maxJ + 1;
@@ -4696,13 +4920,13 @@ function setDir(dir) {
 
 function goPrev() {
   resetWarnState();
-  if (curDir==='zun') {
+  if (curDir==='zun' && curJ<=C.bar) {
     curDir='bar';
   } else if (curJ>1) {
-    curJ--; curDir='zun';
+    curJ--; curDir=lastDir(curJ);
   } else {
     const list=kmList(), idx=list.indexOf(curKm);
-    if (idx>0) { jumpKm(list[idx-1]); curJ=Math.max(C.bar,C.zun); curDir='zun'; render(); return; }
+    if (idx>0) { jumpKm(list[idx-1]); curJ=Math.max(C.bar,C.zun); curDir=lastDir(curJ); drumCur=getSaved()??0; render(); return; }
     return;
   }
   const saved=getSaved();
@@ -4918,11 +5142,13 @@ async function _exportExcelCore(c, d, filename) {
     return;
   }
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'ПД-6';
+  wb.creator = c.pd ? 'ПД-' + c.pd : 'Уулзвар';
   wb.created = new Date();
 
   const maxJ = Math.max(c.bar, c.zun);
-  const MAX_THR = c.max || 37;
+  /* Дугуй 37 мм-ээс хэтрэхгүй тул «> 37» гэж тоолбол багана үргэлж хоосон
+     гарна. Аппын улаан анхааруулгатай (≥36) нэгтгэсэн хүснэгттэй ижил. */
+  const DANGER = 36;
 
   /* ═══════════════ Sheet 1: Маягт-09 ═══════════════
      Хэрэглэгчийн албан маягтын бүтцээр:
@@ -5077,7 +5303,7 @@ async function _exportExcelCore(c, d, filename) {
   t2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F0FF' } };
   ws2.getRow(1).height = 26;
 
-  const h2 = ws2.addRow(['КМ', 'Баруун нийт', 'Баруун дундаж', 'Зүүн нийт', 'Зүүн дундаж', 'Хэтрүүлсэн']);
+  const h2 = ws2.addRow(['КМ', 'Баруун нийт', 'Баруун дундаж', 'Зүүн нийт', 'Зүүн дундаж', 'Аюултай (≥36)']);
   h2.eachCell(cell => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F8EF7' } };
@@ -5095,9 +5321,9 @@ async function _exportExcelCore(c, d, filename) {
     const zT = zv.length ? zv.reduce((a,x)=>a+x,0) : null;
     const bA = bv.length ? +(bv.reduce((a,x)=>a+x,0)/bv.length).toFixed(1) : null;
     const zA = zv.length ? +(zv.reduce((a,x)=>a+x,0)/zv.length).toFixed(1) : null;
-    const over = [...bv, ...zv].filter(v => v > MAX_THR).length;
-    totBOver += bv.filter(v=>v>MAX_THR).length;
-    totZOver += zv.filter(v=>v>MAX_THR).length;
+    const over = [...bv, ...zv].filter(v => v >= DANGER).length;
+    totBOver += bv.filter(v=>v>=DANGER).length;
+    totZOver += zv.filter(v=>v>=DANGER).length;
     const row = ws2.addRow([km, bT, bA, zT, zA, over || null]);
     row.eachCell({includeEmpty:true}, (cell, colNum) => {
       cell.alignment = { horizontal: 'center' };
@@ -5135,7 +5361,7 @@ async function _exportExcelCore(c, d, filename) {
   a.download = filename;
   await sbGate();            // хөдөлгөөнт товч тоглож байвал төгсгөлийг нь хүлээнэ
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5174,8 +5400,9 @@ function combinedSource() {
    хамгийн сүүлийн утга нь үлдэнэ (нэгтгэсэн Excel-тэй ижил зарчим). */
 function adjKmList() {
   const map = new Map();
+  /* «Хамгийн сүүлийнх» = хамгийн сүүлд ХЭМЖСЭН (илгээсэн/хадгалсан биш) */
   const sessions = combinedSource().slice().sort((a, b) =>
-    new Date(a.savedAt || a.startedAt || 0) - new Date(b.savedAt || b.startedAt || 0));
+    byMeasured(measuredStamp(a), measuredStamp(b)));
   sessions.forEach(s => {
     const c = s.config || {}, d = s.data || {};
     const road = String(c.road == null ? '—' : c.road);
@@ -5223,8 +5450,8 @@ function openAdjMod() {
         <div class="adj-km-hdr">Зам №${esc(e.road)} · ${e.km} км</div>
         <div class="adj-km-det">${dt.length ? esc(dt[dt.length-1]) : '—'}${who ? ' · ' + esc(who) : ''}</div>
         <div class="adj-sides">
-          <button class="as-bar" ${e.bar.size ? '' : 'disabled'} onclick="openAdjResult('${esc(e.road)}',${e.km},'bar')">Баруун · ${e.bar.size} үе</button>
-          <button class="as-zun" ${e.zun.size ? '' : 'disabled'} onclick="openAdjResult('${esc(e.road)}',${e.km},'zun')">Зүүн · ${e.zun.size} үе</button>
+          <button class="as-bar" ${e.bar.size ? '' : 'disabled'} onclick="openAdjResult(${jsArg(e.road)},${e.km},'bar')">Баруун · ${e.bar.size} үе</button>
+          <button class="as-zun" ${e.zun.size ? '' : 'disabled'} onclick="openAdjResult(${jsArg(e.road)},${e.km},'zun')">Зүүн · ${e.zun.size} үе</button>
         </div>
       </div>`;
     }).join('');
@@ -5377,7 +5604,9 @@ function dpItems() {
       };
     })
     .filter(it => it.values > 0)
-    .sort((a, b) => b.when - a.when);      // шинэ нь дээрээ
+    /* ХЭМЖСЭН өдрөөр (шинэ нь дээрээ). Илгээсэн цагаар эрэмбэлбэл нэг өдрийн
+       хэмжилтүүд хоорондоо тусгаарлагдаж, өдрийн толгой давхардан гардаг. */
+    .sort((a, b) => byMeasured(measuredStamp(b.sess), measuredStamp(a.sess)));
 }
 
 function openDatePickMod() {
@@ -5577,7 +5806,7 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   // Апп дээр улаанаар (≥36) анхааруулдаг хэмжээг "аюултай" гэж тоолно.
   const maxJ = comb.maxJ, DANGER = 36;
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'ПД-6';
+  wb.creator = myPd() ? 'ПД-' + myPd() : 'Уулзвар';
   wb.created = new Date();
 
   /* ═══ Sheet 1: бүх км нэг хүснэгтэд ═══ */
@@ -5825,7 +6054,7 @@ async function exportCombinedExcel(dates, srcOverride, nameOverride) {
   a.download = nameOverride || `нэгдсэн_${(CLOUD.on && myPd()) ? 'ПД'+myPd()+'_' : ''}уулзвар_${kmTag2 ? kmTag2 + 'км_' : ''}${dTag}.xlsx`;
   await sbGate();            // хөдөлгөөнт товч тоглож байвал төгсгөлийг нь хүлээнэ
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
   showStatus(`📊 ${dl.length || 1} өдөр · ${comb.rows.length} км · ${comb.values} хэмжилт татагдлаа`, 'linear-gradient(180deg,#8bf7cf,#5af0b4)');
 }
 
@@ -5896,14 +6125,14 @@ async function handleImport(e) {
   for (const file of files) {
     try {
       const payload = JSON.parse(await readFileText(file));
-      if (payload.v !== 1 || !payload.config || !payload.data) throw new Error('Формат буруу');
+      if (!payload || payload.v !== 1 || !payload.config || !payload.data) throw badData('файл буруу форматтай');
       const res = mergeIntoSessions(payload);
       okFiles++;
       totalMerged += res.merged;
       lines.push(`${res.isNew ? '🆕' : '➕'} ${res.label} — ${res.merged} хэмжилт`);
     } catch(err) {
       failFiles++;
-      lines.push(`❌ ${file.name} — файл буруу форматтай`);
+      lines.push(`❌ ${file.name} — ${(err && err.userMsg) || 'файл буруу форматтай'}`);
     }
   }
 
@@ -5921,7 +6150,10 @@ async function handleImport(e) {
 }
 
 function mergeIntoSessions(payload) {
-  const c = payload.config;
+  // Орж ирсэн өгөгдлийг эхлээд цэвэрлэнэ (хэт том муж, HTML, тоон бус утга)
+  const c = cleanConfig(payload.config);
+  const pdata = cleanData(payload.data, c);
+  payload = { config: c, data: pdata, sentAt: payload.sentAt };
   const sessions = getSessions();
   const workerOf = cfg => ((cfg && cfg.worker) || '').trim();
   // Find matching session by road+range+date+хэмжигч.
@@ -5939,6 +6171,9 @@ function mergeIntoSessions(payload) {
   if (matchIdx >= 0) {
     // Merge data into existing session
     const sess = sessions[matchIdx];
+    // Үений тоо өөр байвал хоёрынх нь их нь — эс бөгөөс нэмсэн үе Excel-д орохгүй
+    sess.config.bar = Math.max(sess.config.bar || 0, c.bar);
+    sess.config.zun = Math.max(sess.config.zun || 0, c.zun);
     for (let km = c.s; km <= c.e; km++) {
       if (!sess.data[km]) sess.data[km] = {};
       for (let j = 1; j <= maxJ; j++) {
@@ -5951,12 +6186,12 @@ function mergeIntoSessions(payload) {
     }
     sess.savedAt = new Date().toISOString();
     if (workerOf(c) && !workerOf(sess.config)) sess.config.worker = workerOf(c);
-    saveSessions(sessions);
+    if (!saveSessions(sessions)) throw badData('утасны санах ой дүүрсэн');
     return { merged, isNew: false, label };
   } else {
     // New session
     const newSess = {
-      id: 'sess_import_' + Date.now(),
+      id: uniqueId('sess_import_', new Set(sessions.map(x => x.id))),
       startedAt: payload.sentAt || new Date().toISOString(),
       savedAt: new Date().toISOString(),
       config: c,
@@ -5972,7 +6207,7 @@ function mergeIntoSessions(payload) {
       }
     }
     sessions.unshift(newSess);
-    saveSessions(sessions);
+    if (!saveSessions(sessions)) throw badData('утасны санах ой дүүрсэн');
     return { merged, isNew: true, label };
   }
 }

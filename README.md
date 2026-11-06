@@ -28,6 +28,12 @@
 | `firestore.rules` | Firebase аюулгүй байдлын дүрэм — Console-д хуулж тавина |
 | `FIREBASE-SETUP.md` | Нэвтрэлт тохируулах алхам алхмын заавар |
 
+### Шинэ хувилбар гаргахдаа (хөгжүүлэгчид)
+
+1. `index.html` доторх `APP_VERSION`-ийг шинэчилнэ — үгүй бол ажилчдын утсанд шинэчлэлт мэдэгдэхгүй.
+2. `sw.js` доторх `CACHE = 'uulzvar-vNN'`-ийн дугаарыг нэмнэ.
+3. `firestore.rules` өөрчлөгдсөн бол Firebase Console → Firestore → Rules хэсэгт **дахин хуулж Publish** хийнэ (git-д орсон ч Firebase-д автоматаар орохгүй).
+
 ## Суулгах
 
 Аппын хаяг: **<https://123jokerfun-afk.github.io/Uulzwar_zai/>**
