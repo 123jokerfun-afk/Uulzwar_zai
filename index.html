@@ -642,6 +642,16 @@ button:active, .km-chip:active, .km-mod-chip:active, .nav-side-btn:active, .km-b
 .ro-tag { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: var(--r-pill); }
 .ro-bar { color: var(--accent-hi); background: rgba(77,141,255,.16); }
 .ro-zun { color: var(--mint); background: rgba(90,240,180,.14); }
+.sv-info { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0 2px 8px; font-size: 11px; color: var(--muted); }
+.sv-info b { color: var(--text); font-weight: 700; }
+.sv-hd { display: flex; gap: 6px; margin-bottom: 6px; padding: 0 2px; align-items: stretch; }
+.sv-hd .h-j { width: 44px; flex-shrink: 0; text-align: center; align-self: flex-end; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.sv-hc { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; gap: 1px; }
+.sv-hc b { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+.sv-hc.h-z b { color: var(--mint); }
+.sv-hc.h-b b { color: var(--accent-hi); }
+.sv-tot { font-size: 13px; font-weight: 800; color: var(--text); }
+.sv-sm { font-size: 9.5px; color: var(--muted); }
 .sessv-actions { display: flex; gap: 9px; padding-top: 12px; margin-top: 10px; flex-shrink: 0; border-top: 1px solid rgba(255,255,255,.08); }
 .sessv-actions button { flex: 1; min-height: 48px; padding: 13px; font-size: 13px; font-weight: 600; border-radius: var(--r-sm); border: 1px solid var(--edge); background: var(--glass-2); color: var(--text); cursor: pointer; }
 .sessv-actions .sv-xlsx { background: var(--grad-green); border-color: transparent; color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, var(--glow-mint); }
@@ -3229,13 +3239,29 @@ function scheduleCloudSave() {
 }
 
 /* ── Админ: хэсгийн бүх өгөгдөл татах ── */
+/* Үүлэн баримт 30 хоног өнгөрсөн эсэх: expireAt байвал түүгээр, үгүй бол
+   updatedAt-аар. Серверийн цаг тогтоогдоогүй (null) бол шинэ гэж үзнэ. */
+function cloudExpired(d) {
+  d = d || {};
+  const ts = v => (v && typeof v.toMillis === 'function') ? v.toMillis() : null;
+  const exp = ts(d.expireAt);
+  if (exp !== null) return exp <= Date.now();
+  const upd = ts(d.updatedAt);
+  return upd !== null && upd < Date.now() - TTL_DAYS * 24 * 3600 * 1000;
+}
+
 async function loadSectionData() {
   if (!CLOUD.on || !isAdmin()) return;
   const dot = document.getElementById('admDot'), st = document.getElementById('admStatus');
   dot.className = 'cloud-dot'; st.textContent = 'Татаж байна…';
   try {
     const snap = await CLOUD.db.collection('measurements').where('pd', '==', myPd()).get();
-    const parsed = snap.docs.map(doc => cloudToSession(doc.id, doc.data()));
+    /* 30 хоногоос хуучин баримтыг харуулахгүй, устгана (Firestore-ийн TTL бодлого
+       Console дээр тохируулаагүй эсвэл хоцорч байсан ч хуучин өгөгдөл үлдэхгүй) */
+    const live = [], stale = [];
+    snap.docs.forEach(doc => (cloudExpired(doc.data()) ? stale : live).push(doc));
+    stale.forEach(doc => { doc.ref.delete().catch(() => {}); });
+    const parsed = live.map(doc => cloudToSession(doc.id, doc.data()));
     const skipped = parsed.filter(x => !x).length;
     CLOUD.sectionSessions = parsed.filter(Boolean)
       .sort((a, b) => new Date(a.savedAt) - new Date(b.savedAt));
@@ -3244,7 +3270,8 @@ async function loadSectionData() {
     const total = CLOUD.sectionSessions.reduce((n, s) => n + countMeasurements(s), 0);
     st.textContent = `ПД-${myPd()} · ${people.size} хүн · ${CLOUD.sectionSessions.length} илгээлт · ${total} хэмжилт`
       + (snap.metadata.fromCache ? ' (офлайн кэш)' : '')
-      + (skipped ? ` · ⚠️ ${skipped} буруу баримт алгасав` : '');
+      + (skipped ? ` · ⚠️ ${skipped} буруу баримт алгасав` : '')
+      + (stale.length ? ` · 🗑 ${stale.length} хуучин (30 хоног+) устгав` : '');
     renderAdmList();
   } catch (e) {
     dot.className = 'cloud-dot off';
@@ -3639,22 +3666,21 @@ function uniqueId(prefix, taken) {
   return id;
 }
 
-/* Үүлэн дээрх TTL-тэй ижил хугацаа — утсан дээр ч 30 хоногоос хуучин нь үлдэхгүй */
-/* Үүлэн горимд ИЛГЭЭГЭЭГҮЙ хэмжилтийг хэдийд ч устгахгүй: ажилтан сүлжээгүй
-   газар олон хоног ажиллаад дараа нь илгээж болно. Устгах нь зөвхөн
-   (а) илгээгдсэн, (б) хоосон хуучин хэмжилт. Мөн boot() дотор энэ нь
-   нэвтрэхээс ӨМНӨ дуудагдаж «guest» түлхүүрт л хүрдэг байсан тул акаунтын
-   хэмжилтийг огт цэвэрлэж чаддаггүй байв — одоо профайл тогтсон үед дахин
-   дуудна. */
+/* Үүлэн дээрх TTL-тэй ижил хугацаа — утсан дээр ч 30 хоногоос хуучин нь үлдэхгүй.
+   Илгээсэн эсэхээс үл хамааран устгана (өмнө нь илгээгээгүйг үлдээдэг байсан тул
+   «30 хоног болсон хэмжилт устахгүй» байсан). Одоо хэмжиж буй хэмжилтийг хөндөхгүй.
+   Устсан тоог буцаана. */
 function purgeOldSessions() {
   const cutoff = Date.now() - TTL_DAYS * 24 * 3600 * 1000;
   const all = getSessions();
   const kept = all.filter(s => {
+    if (s.id && s.id === currentSessionId) return true;
     const t = new Date(s.savedAt || s.startedAt || 0).getTime();
-    if (!Number.isFinite(t) || t >= cutoff) return true;
-    return cloudConfigured() && countMeasurements(s) > 0 && !isSessionSent(s);
+    return !Number.isFinite(t) || t >= cutoff;
   });
-  if (kept.length !== all.length) saveSessions(kept);
+  const n = all.length - kept.length;
+  if (n > 0) saveSessions(kept);
+  return n;
 }
 
 function autoSave() {
@@ -4102,6 +4128,7 @@ function renderSessList() {
 }
 
 function openSessMod() {
+  try { purgeOldSessions(); } catch (e) {}
   renderSessList();
   document.getElementById('sessMod').classList.add('on');
 }
@@ -4144,15 +4171,42 @@ function renderSessionView(sess, subText) {
   document.getElementById('sessVSub').textContent = subText;
 
   const maxJ = Math.max(c.bar || 0, c.zun || 0);
+  const tRail = svNum(c.tRail), tAir = svNum(c.tAir);
+  const gap = normGapMm(tRail);
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const avg = a => a.length ? sum(a) / a.length : null;
+  const mm = v => v === null ? '—' : fmtMm(v);
+  const sign = t => t === null ? '—' : (t > 0 ? '+' : '') + t + '°C';
   let html = '';
   for (let km = c.s; km <= c.e; km++) {
-    let grp = '';
+    const bv = [], zv = [];
+    for (let j = 1; j <= (c.bar || 0); j++) { const v = svNum(d[km]?.[j]?.bar); if (v !== null) bv.push(v); }
+    for (let j = 1; j <= (c.zun || 0); j++) { const v = svNum(d[km]?.[j]?.zun); if (v !== null) zv.push(v); }
+    if (!bv.length && !zv.length) continue;
+    const allAvg = avg([...bv, ...zv]);
+    const side = (arr, cls, name) => `<div class="sv-hc ${cls}"><b>${name}</b>`
+      + `<span class="sv-tot">Нийт ${mm(arr.length ? sum(arr) : null)} мм</span>`
+      + `<span class="sv-sm">дундаж ${mm(avg(arr))}`
+      + (gap !== null && arr.length ? ` · ёстой ${mm(gap * arr.length)}` : '') + `</span></div>`;
+    let rows = '';
     for (let j = maxJ; j >= 1; j--) {
       const b = svNum(d[km]?.[j]?.bar), z = svNum(d[km]?.[j]?.zun);
-      if (b !== null) grp += `<div class="sessv-row"><span class="ro-tag ro-bar">Баруун</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(b)}">${b} мм</span></div>`;
-      if (z !== null) grp += `<div class="sessv-row"><span class="ro-tag ro-zun">Зүүн</span><span style="font-size:12px;color:var(--muted)">${j}-р үе</span><span style="margin-left:auto;font-weight:800;font-size:15px;color:${sessValColor(z)}">${z} мм</span></div>`;
+      if (b === null && z === null) continue;
+      const par = (j % 2 === 0) ? 'even' : 'odd';
+      const cell = (v, inRange) => v !== null
+        ? `<span class="ht-c ${par}" style="color:${sessValColor(v)}">${v}<span class="u">мм</span></span>`
+        : (inRange ? `<span class="ht-c ${par} ht-empty">–</span>` : `<span class="ht-c ht-na"></span>`);
+      rows += `<div class="ht-row"><span class="ht-j ${par}">${j}</span>${cell(z, j <= (c.zun || 0))}${cell(b, j <= (c.bar || 0))}</div>`;
     }
-    if (grp) html += `<div class="sessv-km">${km} км</div>${grp}`;
+    html += `<div class="hist-km"><div class="hist-km-ttl">${c.station ? 'Өртөөний зам' : km + ' км'}</div>`
+      + `<div class="sv-info">`
+      + `<span>🌡 Зам төмөр <b>${sign(tRail)}</b></span>`
+      + (tAir !== null ? `<span>Агаар <b>${sign(tAir)}</b></span>` : '')
+      + `<span>Дундаж зай <b>${mm(allAvg)} мм</b></span>`
+      + `<span>Байх ёстой зай <b>${gap === null ? '—' : mm(gap) + ' мм'}</b></span>`
+      + `</div>`
+      + `<div class="sv-hd"><span class="h-j">Үе</span>${side(zv, 'h-z', 'Зүүн')}${side(bv, 'h-b', 'Баруун')}</div>`
+      + rows + `</div>`;
   }
   document.getElementById('sessVBody').innerHTML = html || '<div class="sess-empty">Хэмжилт оруулаагүй</div>';
   document.getElementById('sessViewMod').classList.add('on');
@@ -4483,7 +4537,7 @@ function doRestart() {
    Суулгасан апп-ын шинэчлэлт шалгагч яг энэ мөрийг серверийнхтэй харьцуулдаг —
    ахиулахаа мартвал дэлгэцэнд үлдсэн (app switcher-т хэд хоног амьд) апп
    хуучин хувилбараараа үргэлжилнэ. */
-const APP_VERSION = '2026-11-06.1';
+const APP_VERSION = '2026-11-07.1';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {

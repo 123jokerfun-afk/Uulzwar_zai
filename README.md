@@ -32,7 +32,8 @@
 
 1. `index.html` доторх `APP_VERSION`-ийг шинэчилнэ — үгүй бол ажилчдын утсанд шинэчлэлт мэдэгдэхгүй.
 2. `sw.js` доторх `CACHE = 'uulzvar-vNN'`-ийн дугаарыг нэмнэ.
-3. `firestore.rules` өөрчлөгдсөн бол Firebase Console → Firestore → Rules хэсэгт **дахин хуулж Publish** хийнэ (git-д орсон ч Firebase-д автоматаар орохгүй).
+3. 30 хоногийн цэвэрлэгээ: утсан дээрх хэмжилт өөрөө устна. Үүлэн дээрх хэмжилтийг админ нэвтрэхэд апп устгана; нэвтрэхгүй байсан ч устгахын тулд FIREBASE-SETUP.md-ийн **TTL бодлого** (`measurements` / `expireAt`)-ыг Console дээр заавал идэвхжүүлнэ.
+4. `firestore.rules` өөрчлөгдсөн бол Firebase Console → Firestore → Rules хэсэгт **дахин хуулж Publish** хийнэ (git-д орсон ч Firebase-д автоматаар орохгүй).
 
 ## Суулгах
 
