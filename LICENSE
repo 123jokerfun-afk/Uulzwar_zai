@@ -1,0 +1,46 @@
+Уулзварын зайн хэмжилт (Uulzwar_zai)
+Copyright (c) 2026 Золжаргал. Бүх эрх хуулиар хамгаалагдсан.
+Copyright (c) 2026 Zoljargal. All rights reserved.
+
+Холбоо барих / Contact: 123jokerfun@gmail.com
+
+────────────────────────────────────────────────────────────────────
+МОНГОЛООР
+
+Энэ репозитор дахь програм хангамж, эх код, баримт бичиг, дизайн,
+хөдөлгөөнт зураг (цаашид «Бүтээл») нь Золжаргалын өмч бөгөөд
+зохиогчийн эрхийн хуулиар хамгаалагдана.
+
+Бүтээлийг эзэмшигчийн ЭХЭЭР БИЧСЭН ЗӨВШӨӨРӨЛГҮЙГЭЭР хуулбарлах, тараах,
+өөрчлөх, дахин хэвлэх, нийтэд ашиглуулах, худалдах, түрээслэх, өөр
+бүтээлд оруулахыг хориглоно.
+
+Энэ репозитор нийтэд харагдаж байгаа нь ямар нэг лиценз олгосон
+гэсэн үг БИШ. Нээлттэй эхийн лиценз (MIT, GPL г.м) энд хамаарахгүй.
+
+Ашиглах, нэвтрүүлэх, хамтран ажиллах зөвшөөрөл хүсвэл дээрх
+хаягаар холбогдоно уу.
+
+Гуравдагч талын бүрэлдэхүүн (жишээ нь ExcelJS, Firebase SDK) нь
+тус тусын лицензээр үйлчилнэ; энэ мэдэгдэл тэдгээрт хамаарахгүй.
+
+────────────────────────────────────────────────────────────────────
+ENGLISH
+
+The software, source code, documentation, design and animations in
+this repository (the "Work") are the property of Zoljargal and are
+protected by copyright.
+
+You may not copy, distribute, modify, republish, sublicense, sell,
+rent or incorporate the Work into another work, in whole or in part,
+without the owner's prior written permission.
+
+That this repository is publicly visible grants no licence of any
+kind. No open-source licence applies.
+
+To request permission, write to the address above.
+
+Third-party components (for example ExcelJS and the Firebase SDK) are
+governed by their own licences; this notice does not apply to them.
+
+THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

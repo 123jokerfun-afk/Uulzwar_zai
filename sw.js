@@ -8,7 +8,7 @@
      • Firebase-ийн өгөгдлийн хүсэлтэд ОГТ хүрэхгүй — тэдгээрийг
        Firestore өөрөө офлайнд зохицуулна.
 */
-const CACHE = 'uulzvar-v41';
+const CACHE = 'uulzvar-v43';
 const CDN = ['cdn.jsdelivr.net', 'www.gstatic.com'];
 /* Интро бичлэгийн сан. Хуудас өөрөө удирддаг тул service worker
    энэ санг УСТГАХГҮЙ — эс тэгвэл SW шинэчлэх бүрд 4МБ бичлэг дахин
@@ -52,7 +52,15 @@ self.addEventListener('fetch', e => {
       try {
         const res = await fetch(req, { cache: 'no-store' });
         const c = await caches.open(CACHE);
-        c.put('./index.html', res.clone());
+        /* Зөвхөн ХЭВИЙН (2xx) хариуг кэшлэнэ. Хостингийн 404/5xx, эсвэл утасны
+           сүлжээний нэвтрэх хуудас (captive portal) офлайн кэшийг сольвол апп
+           сүлжээгүй үед ЗАЛГИХГҮЙ нээгдэхгүй болно. Сервер 5xx өгвөл өмнөх сайн
+           хуудсыг үзүүлнэ. */
+        if (res.ok) { c.put('./index.html', res.clone()); return res; }
+        if (res.status >= 500) {
+          const hit = (await c.match('./index.html')) || (await c.match('./'));
+          if (hit) return hit;
+        }
         return res;
       } catch {
         const c = await caches.open(CACHE);
