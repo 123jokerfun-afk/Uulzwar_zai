@@ -110,8 +110,15 @@ service cloud.firestore {
       allow update: if activeUser() && mine() && validNew()
                     && request.resource.data.pd == resource.data.pd
                     && request.resource.data.uid == resource.data.uid;
-      // Устгах эрх зөвхөн тухайн ПД-ийн админд.
-      allow delete: if isAdmin() && asPd(resource.data.pd) == myPd();
+      /* Хугацаа (30 хоног) дууссан эсэх. Firestore-ийн TTL бодлого тохируулаагүй
+         үед ажилтан өөрийн хуучин баримтыг апп-аараа цэвэрлэж чадна. */
+      function expired() {
+        return resource.data.get('expireAt', request.time + duration.value(1, 'd')) < request.time
+            || resource.data.get('updatedAt', request.time) < request.time - duration.value(30, 'd');
+      }
+      /* Устгах: тухайн ПД-ийн админ (юуг ч), эсвэл ажилтан ӨӨРИЙН ХУГАЦАА ДУУССАН баримтыг. */
+      allow delete: if (isAdmin() && asPd(resource.data.pd) == myPd())
+                    || (activeUser() && mine() && expired());
     }
 
     // Бусад бүх зам хаалттай.

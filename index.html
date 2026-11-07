@@ -3109,6 +3109,22 @@ function applyProfile() {
   document.getElementById('btnCombinedLocal').style.display = 'none';
   // Профайл тогтсон (акаунтын түлхүүр мэдэгдэж байгаа) үед хуучин хэмжилтийг цэвэрлэнэ
   try { purgeOldSessions(); } catch (e) {}
+  purgeMyCloudExpired();
+}
+
+/* Өөрийн илгээсэн, 30 хоногоос хуучин үүлэн баримтыг устгана. Firestore-ийн TTL
+   бодлого тохируулаагүй байсан ч ажилтан/админ нэвтрэх бүрд хуучин өгөгдөл
+   үлдэхгүй. Дүрэм нь зөвхөн ӨӨРИЙН ХУГАЦАА ДУУССАН баримтыг устгахыг зөвшөөрнө.
+   Алдаа гарвал чимээгүй алгасна (сүлжээгүй, дүрэм шинэчлээгүй г.м.). */
+async function purgeMyCloudExpired() {
+  try {
+    if (!CLOUD.on || !CLOUD.user || !CLOUD.profile || !CLOUD.profile.email) return 0;
+    const snap = await CLOUD.db.collection('measurements')
+      .where('email', '==', CLOUD.profile.email).get();
+    const stale = snap.docs.filter(doc => cloudExpired(doc.data()));
+    await Promise.allSettled(stale.map(doc => doc.ref.delete()));
+    return stale.length;
+  } catch (e) { return 0; }
 }
 
 /* ── Ажилчны өгөгдлийг үүлэн рүү илгээх ── */
@@ -4537,7 +4553,7 @@ function doRestart() {
    Суулгасан апп-ын шинэчлэлт шалгагч яг энэ мөрийг серверийнхтэй харьцуулдаг —
    ахиулахаа мартвал дэлгэцэнд үлдсэн (app switcher-т хэд хоног амьд) апп
    хуучин хувилбараараа үргэлжилнэ. */
-const APP_VERSION = '2026-11-07.1';
+const APP_VERSION = '2026-11-07.2';
 /* Хувилбарын бичиг дээр дарахад шинэчлэлтийг албадан шалгана —
    кэшнээс болж хуучин хувилбар гацсан үед хэрэг болно. */
 async function forceUpdate() {
